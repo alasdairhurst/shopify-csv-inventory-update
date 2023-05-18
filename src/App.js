@@ -1,5 +1,10 @@
+import { useState } from 'react';
 import Papa from 'papaparse';
 import './App.css';
+import defaultVendorConfig from './vendors.json';
+
+const STOCK_CAP = 99;
+const DONWLOAD_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
 
 function downloadCSV(csvContent, filename) {
   const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -52,8 +57,6 @@ async function parseFileAsCSV(field, props) {
   return parseCSVString(headerRow + fileContent, props);
 }
 
-const STOCK_CAP = 99;
-
 function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQuantityKey}) {
   if (!vendorCSV) {
     return [];
@@ -78,52 +81,38 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
   return changedItems;
 }
 
-const importShopify = async (event) => {
+const importShopify = async (event, vendorConfig) => {
   event.preventDefault(); // Prevents the form from submitting and refreshing the page
-
   const form = event.target; // Get the submitted form element
   const shopify = form.querySelector('#shopify'); // Get file inputs within the submitted form
   const shopifyCSV = await parseFileAsCSV(shopify);
-  const reydon = form.querySelector('#reydon')
-  const reydonCSV = await parseFileAsCSV(reydon);
-  const cartas = form.querySelector('#cartas')
-  const cartasCSV = await parseFileAsCSV(cartas, { headers: ['location', 'a', 'b', 'c', 'Code', 'variant', 'available', 'pending', 'Quantity', 'e'] });
-  const unicorn = form.querySelector('#unicorn')
-  const unicornCSV = await parseFileAsCSV(unicorn);
+  const allChangedItems = [];
 
-  const raydonUpdates = getStockUpdates({
-    vendor: 'raydon',
-    vendorCSV: reydonCSV,
-    shopifyCSV,
-    vendorSKUKey: 'Code',
-    vendorQuantityKey: 'Quantity',
-  });
-
-  const cartasUpdates = getStockUpdates({
-    vendor: 'cartas',
-    vendorCSV: cartasCSV,
-    shopifyCSV,
-    vendorSKUKey: 'Code',
-    vendorQuantityKey: 'Quantity'
-  });
-
-  const unicornUpdates = getStockUpdates({
-    vendor: 'unicorn',
-    vendorCSV: unicornCSV,
-    shopifyCSV,
-    vendorSKUKey: 'SKU',
-    vendorQuantityKey: 'QTY'
-  });
+  for (const vendor of vendorConfig) {
+    const htmlFormFile = form.querySelector(`#${vendor.name}`);
+    const options = {};
+    if (vendor.headers) {
+      options.headers = vendor.headers;
+    }
+    const vendorCSV = await parseFileAsCSV(htmlFormFile, options);
+    const vendorUpdates = getStockUpdates({
+      vendor: vendor.name,
+      vendorCSV: vendorCSV,
+      shopifyCSV,
+      vendorSKUKey: vendor.vendorSKUKey,
+      vendorQuantityKey: vendor.vendorQuantityKey
+    });
+    allChangedItems.push(...vendorUpdates);
+  }
   
-  const changedItems = [...raydonUpdates, ...cartasUpdates, ...unicornUpdates];
   const messageDiv = document.getElementById('message');
-  if (changedItems.length) {
+  if (allChangedItems.length) {
     messageDiv.textContent = '';
-    const csv = Papa.unparse(changedItems, {
+    const csv = Papa.unparse(allChangedItems, {
       header: true,
       newline: '\n',
     });
-    downloadCSV(csv, 'completed_inventory_update_for_shopify.csv');
+    downloadCSV(csv, DONWLOAD_FILE_NAME);
   } else {
     messageDiv.textContent = 'Nothing changed';
     console.log('Nothing changed!')
@@ -131,25 +120,56 @@ const importShopify = async (event) => {
 }
 
 function App() {
+
+  const [ vendorConfig, setVendorConfig ] = useState(defaultVendorConfig);
+  const [ vendorConfigText, setVendorConfigText ] = useState(JSON.stringify(vendorConfig, null, 2));
+  const [ showConfigEditor, setShowConfigEditor ] = useState(false);
+  console.log({vendorConfig, vendorConfigText, showConfigEditor})
+
   return (
     <div className="App">
       <header className="App-header">
-        <form className="form" onSubmit={importShopify}>
-          <label htmlFor="shopify">Shopify inventory export CSV:</label>
+        <form className="form" onSubmit={e => {
+          importShopify(e, vendorConfig);
+        }}>
+          <h2>Shopify Inventory</h2>
+          <label htmlFor="shopify">Shopify inventory CSV:</label>
           <input type="file" id="shopify" name="shopify" />
           <p/>
-          <label htmlFor="reydon">Reydon email CSV:</label>
-          <input type="file" id="reydon" name="reydon" />
-          <p/>
-          <label htmlFor="cartas">Cartas CSV:</label>
-          <input type="file" id="cartas" name="cartas" />
-          <p/>
-          <label htmlFor="unicorn">Unicorn CSV:</label>
-          <input type="file" id="unicorn" name="unicorn" />
-          <p/>
-          <input type="submit" />
+          <h2>Vendor Inventory</h2>
+          {vendorConfig.map(vendor => (
+            <div key={vendor.name}>
+              <label htmlFor={vendor.name}>{vendor.importLabel}</label>
+              <input type="file" id={vendor.name} name={vendor.name} />
+              <p/>
+            </div>
+          ))}
+          <input type="submit" value="Download updated CSV" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
           <div id="message" />
+          <p/>
+          <p/>
         </form>
+        <button style={{color: 'grey', backgroundColor: 'yellow'}} onClick={() => setShowConfigEditor(!showConfigEditor)}>
+          Edit vendor config
+        </button>
+        {showConfigEditor && (
+          <textarea
+            value={vendorConfigText}
+            cols={75}
+            rows={vendorConfigText.split('\n').length + 1}
+            onChange={e => {
+              e.preventDefault();
+              const text = e.target.value;
+              setVendorConfigText(text);
+              try {
+                let newConfig = JSON.parse(text);
+                setVendorConfig(newConfig);
+              } catch (e) {
+                // ignore
+              }
+            }}
+          />
+        )}
       </header>
     </div>
   );

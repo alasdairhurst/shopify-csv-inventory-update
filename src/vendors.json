@@ -1,0 +1,21 @@
+[
+	{
+		"name": "raydon",
+		"importLabel": "Raydon CSV",
+		"vendorSKUKey": "Code",
+		"vendorQuantityKey": "Quantity"
+	},
+	{
+		"name": "cartas",
+		"importLabel": "Cartas CSV",
+		"vendorSKUKey": "SKU",
+		"vendorQuantityKey": "Quantity",
+		"headers": ["a", "b", "c", "d", "SKU", "e", "f", "g", "Quantity", "h"]
+	},
+	{
+		"name": "unicorn",
+		"importLabel": "Unicorn CSV",
+		"vendorSKUKey": "SKU",
+		"vendorQuantityKey": "QTY"
+	}
+]
