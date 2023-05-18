@@ -33,16 +33,49 @@ function parseCSVString(csvString) {
   });
 }
 
-async function parseFileAsCSV(field) {
+async function parseFileAsCSV(field, props) {
+  const file = field.files[0];
+  if (!file) return;
+
   const reader = new FileReader();
   // Read the file content synchronously
-  reader.readAsText(field.files[0]);
+  reader.readAsText(file);
   await new Promise(resolve => {
     reader.onload = resolve;
   });
 
   const fileContent = reader.result; // Get the file content
-  return parseCSVString(fileContent);
+  let headerRow = '';
+  if (props?.headers) {
+    headerRow = props.headers.join(',') + '\n';
+  }
+  return parseCSVString(headerRow + fileContent, props);
+}
+
+const STOCK_CAP = 99;
+
+function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQuantityKey}) {
+  if (!vendorCSV) {
+    return [];
+  }
+  const changedItems = [];
+  for (const newStockItem of vendorCSV) {
+    const currentShopifyItem = shopifyCSV.find(r => r.SKU === newStockItem[vendorSKUKey]);
+    if (!currentShopifyItem) {
+      console.error(`no item found in shopify with ${vendor} SKU ${newStockItem[vendorSKUKey]}`);
+      continue;
+    }
+    const currentQuantity = currentShopifyItem['On hand'];
+    const newQuantity = Math.min(newStockItem[vendorQuantityKey], STOCK_CAP);
+    if (currentQuantity === newQuantity) {
+      console.log(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock matches what is in ${vendor}`);
+    } else {
+      console.warn(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
+      currentShopifyItem['On hand'] = newQuantity;
+      changedItems.push(currentShopifyItem);
+    }
+  }
+  return changedItems;
 }
 
 const importShopify = async (event) => {
@@ -53,48 +86,35 @@ const importShopify = async (event) => {
   const shopifyCSV = await parseFileAsCSV(shopify);
   const reydon = form.querySelector('#reydon')
   const reydonCSV = await parseFileAsCSV(reydon);
+  const cartas = form.querySelector('#cartas')
+  const cartasCSV = await parseFileAsCSV(cartas, { headers: ['location', 'a', 'b', 'c', 'Code', 'variant', 'available', 'pending', 'Quantity', 'e'] });
 
-  const info = [];
-  const warn = [];
-  let changed = false;
-  const changedItems = [];
-
-  for (const newStockItem of reydonCSV) {
-    const currentShopifyItem = shopifyCSV.find(r => r.SKU === newStockItem.Code);
-    if (!currentShopifyItem) {
-      warn.push(`no item found in shopify with reydon SKU ${newStockItem.Code}`)
-      console.error(warn[warn.length-1]);
-      continue;
-    }
-    const currentQuantity = currentShopifyItem['On hand'];
-    const newQuantity = newStockItem.Quantity;
-    if (currentQuantity === newQuantity) {
-      info.push(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock matches what is in reydon`);
-      console.log(info[info.length-1]);
-    } else {
-      info.push(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
-      console.warn(info[info.length-1]);
-      currentShopifyItem['On hand'] = Math.min(newQuantity, 99);
-      changed = true;
-      changedItems.push(currentShopifyItem);
-    }
-  }
-  const csv = Papa.unparse(shopifyCSV, {
-    header: true,
-    newline: '\n',
+  const raydonUpdates = getStockUpdates({
+    vendor: 'raydon',
+    vendorCSV: reydonCSV,
+    shopifyCSV,
+    vendorSKUKey: 'Code',
+    vendorQuantityKey: 'Quantity',
   });
 
-  const altCSV = Papa.unparse(changedItems, {
-    header: true,
-    newline: '\n',
+  const cartasUpdates = getStockUpdates({
+    vendor: 'cartas',
+    vendorCSV: cartasCSV,
+    shopifyCSV,
+    vendorSKUKey: 'Code',
+    vendorQuantityKey: 'Quantity'
   });
 
-
+  
+  const changedItems = [...raydonUpdates, ...cartasUpdates];
   const messageDiv = document.getElementById('message');
-  if (changed) {
+  if (changedItems.length) {
     messageDiv.textContent = '';
-    console.log(altCSV);
-    downloadCSV(altCSV, 'completed_inventory_update_for_shopify.csv');
+    const csv = Papa.unparse(changedItems, {
+      header: true,
+      newline: '\n',
+    });
+    downloadCSV(csv, 'completed_inventory_update_for_shopify.csv');
   } else {
     messageDiv.textContent = 'Nothing changed';
     console.log('Nothing changed!')
@@ -111,6 +131,9 @@ function App() {
           <p/>
           <label htmlFor="reydon">Reydon email CSV:</label>
           <input type="file" id="reydon" name="reydon" />
+          <p/>
+          <label htmlFor="cartas">Cartas CSV:</label>
+          <input type="file" id="cartas" name="cartas" />
           <p/>
           <input type="submit" />
           <div id="message" />
