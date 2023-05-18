@@ -1,6 +1,5 @@
-import logo from './logo.svg';
-import './App.css';
 import Papa from 'papaparse';
+import './App.css';
 
 function downloadCSV(csvContent, filename) {
   const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -43,48 +42,59 @@ async function parseFileAsCSV(field) {
   });
 
   const fileContent = reader.result; // Get the file content
-
   return parseCSVString(fileContent);
 }
 
-const importNembol = async (event) => {
+const importShopify = async (event) => {
   event.preventDefault(); // Prevents the form from submitting and refreshing the page
 
   const form = event.target; // Get the submitted form element
-  const nembol = form.querySelector('#nembol'); // Get file inputs within the submitted form
-  const nembolCSV = await parseFileAsCSV(nembol);
+  const shopify = form.querySelector('#shopify'); // Get file inputs within the submitted form
+  const shopifyCSV = await parseFileAsCSV(shopify);
   const reydon = form.querySelector('#reydon')
   const reydonCSV = await parseFileAsCSV(reydon);
 
   const info = [];
   const warn = [];
   let changed = false;
+  const changedItems = [];
 
   for (const newStockItem of reydonCSV) {
-    const currentNembolItem = nembolCSV.find(r => r.sku === newStockItem.Code);
-    if (!currentNembolItem) {
-      warn.push(`no item found in nembol with reydon SKU ${newStockItem.Code}`)
+    const currentShopifyItem = shopifyCSV.find(r => r.SKU === newStockItem.Code);
+    if (!currentShopifyItem) {
+      warn.push(`no item found in shopify with reydon SKU ${newStockItem.Code}`)
       console.error(warn[warn.length-1]);
       continue;
     }
-    const currentQuantity = currentNembolItem.quantity;
+    const currentQuantity = currentShopifyItem['On hand'];
     const newQuantity = newStockItem.Quantity;
     if (currentQuantity === newQuantity) {
-      info.push(`Found item in nembol ${JSON.stringify(currentNembolItem)} stock matches what is in reydon`);
+      info.push(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock matches what is in reydon`);
       console.log(info[info.length-1]);
     } else {
-      info.push(`Found item in nembol ${JSON.stringify(currentNembolItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
+      info.push(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
       console.warn(info[info.length-1]);
-      currentNembolItem.quantity = newQuantity;
+      currentShopifyItem['On hand'] = Math.min(newQuantity, 99);
       changed = true;
+      changedItems.push(currentShopifyItem);
     }
   }
-  console.log(nembolCSV);
-  const csv = Papa.unparse(nembolCSV, { header: true });
+  const csv = Papa.unparse(shopifyCSV, {
+    header: true,
+    newline: '\n',
+  });
+
+  const altCSV = Papa.unparse(changedItems, {
+    header: true,
+    newline: '\n',
+  });
+
+
   const messageDiv = document.getElementById('message');
   if (changed) {
     messageDiv.textContent = '';
-    downloadCSV(csv, 'updated_export.csv');
+    console.log(altCSV);
+    downloadCSV(altCSV, 'completed_inventory_update_for_shopify.csv');
   } else {
     messageDiv.textContent = 'Nothing changed';
     console.log('Nothing changed!')
@@ -95,13 +105,12 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <form className="form" onSubmit={importNembol}>
-          <label htmlFor="nembol">Nembol export CSV:</label>
-          <input type="file" id="nembol" name="nembol" />
+        <form className="form" onSubmit={importShopify}>
+          <label htmlFor="shopify">Shopify inventory export CSV:</label>
+          <input type="file" id="shopify" name="shopify" />
           <p/>
-          <label htmlFor="nembol">Reydon email CSV:</label>
-          <input type="file" id="reydon" name="stock" />
+          <label htmlFor="reydon">Reydon email CSV:</label>
+          <input type="file" id="reydon" name="reydon" />
           <p/>
           <input type="submit" />
           <div id="message" />
