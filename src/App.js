@@ -88,6 +88,8 @@ const importShopify = async (event) => {
   const reydonCSV = await parseFileAsCSV(reydon);
   const cartas = form.querySelector('#cartas')
   const cartasCSV = await parseFileAsCSV(cartas, { headers: ['location', 'a', 'b', 'c', 'Code', 'variant', 'available', 'pending', 'Quantity', 'e'] });
+  const unicorn = form.querySelector('#unicorn')
+  const unicornCSV = await parseFileAsCSV(unicorn);
 
   const raydonUpdates = getStockUpdates({
     vendor: 'raydon',
@@ -105,8 +107,15 @@ const importShopify = async (event) => {
     vendorQuantityKey: 'Quantity'
   });
 
+  const unicornUpdates = getStockUpdates({
+    vendor: 'unicorn',
+    vendorCSV: unicornCSV,
+    shopifyCSV,
+    vendorSKUKey: 'SKU',
+    vendorQuantityKey: 'QTY'
+  });
   
-  const changedItems = [...raydonUpdates, ...cartasUpdates];
+  const changedItems = [...raydonUpdates, ...cartasUpdates, ...unicornUpdates];
   const messageDiv = document.getElementById('message');
   if (changedItems.length) {
     messageDiv.textContent = '';
@@ -134,6 +143,9 @@ function App() {
           <p/>
           <label htmlFor="cartas">Cartas CSV:</label>
           <input type="file" id="cartas" name="cartas" />
+          <p/>
+          <label htmlFor="unicorn">Unicorn CSV:</label>
+          <input type="file" id="unicorn" name="unicorn" />
           <p/>
           <input type="submit" />
           <div id="message" />
