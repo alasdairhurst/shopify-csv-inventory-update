@@ -17,5 +17,12 @@
 		"importLabel": "Unicorn CSV",
 		"vendorSKUKey": "SKU",
 		"vendorQuantityKey": "QTY"
+	},
+	{
+		"name": "muaythai",
+		"importLabel": "Muay Thai Boxing CSV",
+		"vendorSKUKey": "SKU",
+		"vendorQuantityKey": "Quantity",
+		"variantFormat": "multiline-mtb"
 	}
 ]

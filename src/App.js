@@ -54,22 +54,48 @@ async function parseFileAsCSV(field, props) {
   if (props?.headers) {
     headerRow = props.headers.join(',') + '\n';
   }
-  return parseCSVString(headerRow + fileContent, props);
+  const csv = await parseCSVString(headerRow + fileContent);
+  if (props?.variantFormat === 'multiline-mtb') {
+    const newCSV = [];
+    let parentItem;
+    for (const i of csv) {
+      // variant parent
+      if (!i.SKU && !i['Option SKU']) {
+        parentItem = i;
+        continue;
+      }
+      // singular
+      if (i.SKU) {
+        newCSV.push(i);
+        continue
+      }
+      // variant
+      newCSV.push({
+        ...parentItem,
+        SKU: i['Option SKU'],
+        Quantity: i['Option quantity'],
+        'Option value': i['Option value']
+      });
+    }
+    return newCSV;
+  }
+
+  return csv;
 }
 
 function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQuantityKey}) {
-  if (!vendorCSV) {
+  if (!vendorCSV || !shopifyCSV) {
     return [];
   }
   const changedItems = [];
   for (const newStockItem of vendorCSV) {
-    const currentShopifyItem = shopifyCSV.find(r => r.SKU === newStockItem[vendorSKUKey]);
+    const currentShopifyItem = shopifyCSV.find(r => r.SKU && r.SKU === newStockItem[vendorSKUKey]);
     if (!currentShopifyItem) {
       console.error(`no item found in shopify with ${vendor} SKU ${newStockItem[vendorSKUKey]}`);
       continue;
     }
-    const currentQuantity = currentShopifyItem['On hand'];
-    const newQuantity = Math.min(newStockItem[vendorQuantityKey], STOCK_CAP);
+    const currentQuantity = +currentShopifyItem['On hand'];
+    const newQuantity = Math.min(+newStockItem[vendorQuantityKey], STOCK_CAP);
     if (currentQuantity === newQuantity) {
       console.log(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock matches what is in ${vendor}`);
     } else {
@@ -90,11 +116,10 @@ const importShopify = async (event, vendorConfig) => {
 
   for (const vendor of vendorConfig) {
     const htmlFormFile = form.querySelector(`#${vendor.name}`);
-    const options = {};
-    if (vendor.headers) {
-      options.headers = vendor.headers;
+    const vendorCSV = await parseFileAsCSV(htmlFormFile, vendor);
+    if (!vendorCSV) {
+      continue;
     }
-    const vendorCSV = await parseFileAsCSV(htmlFormFile, options);
     const vendorUpdates = getStockUpdates({
       vendor: vendor.name,
       vendorCSV: vendorCSV,
@@ -124,7 +149,6 @@ function App() {
   const [ vendorConfig, setVendorConfig ] = useState(defaultVendorConfig);
   const [ vendorConfigText, setVendorConfigText ] = useState(JSON.stringify(vendorConfig, null, 2));
   const [ showConfigEditor, setShowConfigEditor ] = useState(false);
-  console.log({vendorConfig, vendorConfigText, showConfigEditor})
 
   return (
     <div className="App">
