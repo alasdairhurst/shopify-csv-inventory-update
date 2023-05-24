@@ -185,6 +185,7 @@ const importShopify = async (event, vendorConfig) => {
     messageDiv.textContent = 'Nothing changed';
     console.log('Nothing changed!')
   }
+  console.log(allNewProducts.length, 'new items ready to add to store');
   if (allNewProducts.length) {
     const csv = Papa.unparse(allNewProducts, {
       header: true,
