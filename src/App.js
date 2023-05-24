@@ -4,7 +4,11 @@ import './App.css';
 import defaultVendorConfig from './vendors.json';
 
 const STOCK_CAP = 99;
-const DONWLOAD_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
+const DONWLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
+const DONWLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
+const DEFAULT_SHOPIFY_PRODUCT = {
+  'Handle': '', 'Title': '', 'Body (HTML)': '', 'Vendor': '', 'Product Category': '', 'Type': '', 'Tags': '', 'Published': '', 'Option1 Name': '', 'Option1 Value': '', 'Option2 Name': '', 'Option2 Value': '', 'Option3 Name': '', 'Option3 Value': '', 'Variant SKU': '', 'Variant Grams': '', 'Variant Inventory Tracker': '', 'Variant Inventory Qty': '', 'Variant Inventory Policy': '', 'Variant Fulfillment Service': '', 'Variant Price': '', 'Variant Compare At Price': '', 'Variant Requires Shipping': '', 'Variant Taxable': '', 'Variant Barcode': '', 'Image Src': '', 'Image Position': '', 'Image Alt Text': '', 'Gift Card': '', 'SEO Title': '', 'SEO Description': '', 'Google Shopping / Google Product Category': '', 'Google Shopping / Gender': '', 'Google Shopping / Age Group': '', 'Google Shopping / MPN': '', 'Google Shopping / AdWords Grouping': '', 'Google Shopping / AdWords Labels': '', 'Google Shopping / Condition': '', 'Google Shopping / Custom Product': '', 'Google Shopping / Custom Label 0': '', 'Google Shopping / Custom Label 1': '', 'Google Shopping / Custom Label 2': '', 'Google Shopping / Custom Label 3': '', 'Google Shopping / Custom Label 4': '', 'Variant Image': '', 'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Included / United Kingdom': '', 'Status': ''
+}
 
 function downloadCSV(csvContent, filename) {
   const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -87,24 +91,61 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
   if (!vendorCSV || !shopifyCSV) {
     return [];
   }
-  const changedItems = [];
+  const vendorUpdates = [];
+  const newProducts = [];
   for (const newStockItem of vendorCSV) {
     const currentShopifyItem = shopifyCSV.find(r => r.SKU && r.SKU === newStockItem[vendorSKUKey]);
+    const newQuantity = Math.min(+newStockItem[vendorQuantityKey], STOCK_CAP);
     if (!currentShopifyItem) {
       console.error(`no item found in shopify with ${vendor} SKU ${newStockItem[vendorSKUKey]}`);
+      if (vendor === 'muaythai') {
+        const prevProduct = newProducts[newProducts.length - 1];
+        const Handle = newStockItem.Name.toLowerCase().replace(/\s/g, '-');
+        let newProductInfo = {};
+        if (Handle !== prevProduct?.Handle) {
+          newProductInfo = {
+            Title: newStockItem.Name,
+            'Body (HTML)': newStockItem.Description,
+            Vendor: newStockItem.Manufacturer,
+            'Product Category': 'Sporting Goods',
+            Type: 'Sporting Goods',
+            Published: 'TRUE',
+          };
+        }
+        newProducts.push({
+          ...DEFAULT_SHOPIFY_PRODUCT,
+          Handle,
+          ...newProductInfo,
+          'Option1 Value': newStockItem['Option value'],
+          'Variant SKU': newStockItem.SKU,
+          'Variant Grams': +newStockItem.Weight * 1000,
+          'Variant Inventory Tracker': 'shopify',
+          'Variant Inventory Qty': newQuantity,
+          'Variant Inventory Policy': 'deny',
+          'Variant Fulfillment Service': 'manual',
+          'Variant Price': newStockItem.Price,
+          'Variant Compare At Price': newStockItem.Price,
+          'Variant Requires Shipping': 'TRUE',
+          'Variant Taxable': 'TRUE',
+          'Variant Barcode': newStockItem.SKU,
+          'Gift Card': 'FALSE',
+          'Variant Weight Unit': 'g',
+          'Included / United Kingdom': 'TRUE',
+          'Status': 'active'
+        });
+      }
       continue;
     }
     const currentQuantity = +currentShopifyItem['On hand'];
-    const newQuantity = Math.min(+newStockItem[vendorQuantityKey], STOCK_CAP);
     if (currentQuantity === newQuantity) {
       console.log(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock matches what is in ${vendor}`);
     } else {
       console.warn(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
       currentShopifyItem['On hand'] = newQuantity;
-      changedItems.push(currentShopifyItem);
+      vendorUpdates.push(currentShopifyItem);
     }
   }
-  return changedItems;
+  return { vendorUpdates, newProducts };
 }
 
 const importShopify = async (event, vendorConfig) => {
@@ -113,6 +154,7 @@ const importShopify = async (event, vendorConfig) => {
   const shopify = form.querySelector('#shopify'); // Get file inputs within the submitted form
   const shopifyCSV = await parseFileAsCSV(shopify);
   const allChangedItems = [];
+  const allNewProducts = [];
 
   for (const vendor of vendorConfig) {
     const htmlFormFile = form.querySelector(`#${vendor.name}`);
@@ -120,7 +162,7 @@ const importShopify = async (event, vendorConfig) => {
     if (!vendorCSV) {
       continue;
     }
-    const vendorUpdates = getStockUpdates({
+    const { vendorUpdates, newProducts } = getStockUpdates({
       vendor: vendor.name,
       vendorCSV: vendorCSV,
       shopifyCSV,
@@ -128,6 +170,7 @@ const importShopify = async (event, vendorConfig) => {
       vendorQuantityKey: vendor.vendorQuantityKey
     });
     allChangedItems.push(...vendorUpdates);
+    allNewProducts.push(...newProducts);
   }
   
   const messageDiv = document.getElementById('message');
@@ -137,10 +180,17 @@ const importShopify = async (event, vendorConfig) => {
       header: true,
       newline: '\n',
     });
-    downloadCSV(csv, DONWLOAD_FILE_NAME);
+    downloadCSV(csv, DONWLOAD_INVENTORY_FILE_NAME);
   } else {
     messageDiv.textContent = 'Nothing changed';
     console.log('Nothing changed!')
+  }
+  if (allNewProducts.length) {
+    const csv = Papa.unparse(allNewProducts, {
+      header: true,
+      newline: '\n',
+    });
+    downloadCSV(csv, DONWLOAD_PRODUCTS_FILE_NAME);
   }
 }
 
