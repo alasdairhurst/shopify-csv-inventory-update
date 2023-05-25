@@ -1,28 +1,39 @@
 [
 	{
 		"name": "raydon",
-		"importLabel": "Raydon CSV",
+		"importLabel": "Raydon Stock CSV",
 		"vendorSKUKey": "Code",
-		"vendorQuantityKey": "Quantity"
+		"vendorQuantityKey": "Quantity",
+		"updateInventory": true
+	},	{
+		"name": "raydon-products",
+		"importLabel": "Raydon Products CSV",
+		"vendorSKUKey": "Sku_Code",
+		"vendorQuantityKey": "Free_Stock",
+		"addMissing": true
 	},
 	{
 		"name": "cartas",
 		"importLabel": "Cartas CSV",
 		"vendorSKUKey": "SKU",
 		"vendorQuantityKey": "Quantity",
-		"headers": ["a", "b", "c", "d", "SKU", "e", "f", "g", "Quantity", "h"]
+		"headers": ["a", "b", "c", "d", "SKU", "e", "f", "g", "Quantity", "h"],
+		"updateInventory": true
 	},
 	{
 		"name": "unicorn",
 		"importLabel": "Unicorn CSV",
 		"vendorSKUKey": "SKU",
-		"vendorQuantityKey": "QTY"
+		"vendorQuantityKey": "QTY",
+		"updateInventory": true
 	},
 	{
 		"name": "muaythai",
 		"importLabel": "Muay Thai Boxing CSV",
 		"vendorSKUKey": "SKU",
 		"vendorQuantityKey": "Quantity",
-		"variantFormat": "multiline-mtb"
+		"variantFormat": "multiline-mtb",
+		"updateInventory": true,
+		"addMissing": true
 	}
 ]

@@ -87,19 +87,23 @@ async function parseFileAsCSV(field, props) {
   return csv;
 }
 
-function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQuantityKey}) {
+function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQuantityKey, addMissing, updateInventory}) {
   if (!vendorCSV || !shopifyCSV) {
     return [];
   }
   const vendorUpdates = [];
   const newProducts = [];
   for (const newStockItem of vendorCSV) {
-    const currentShopifyItem = shopifyCSV.find(r => r.SKU && r.SKU === newStockItem[vendorSKUKey]);
+    const SKU = newStockItem[vendorSKUKey].replace('\n', '');
+    if (!SKU) {
+      continue;
+    }
+    const currentShopifyItem = shopifyCSV.find(r => r.SKU && r.SKU === SKU);
     const newQuantity = Math.min(+newStockItem[vendorQuantityKey], STOCK_CAP);
     if (!currentShopifyItem) {
-      console.error(`no item found in shopify with ${vendor} SKU ${newStockItem[vendorSKUKey]}`);
+      console.error(`no item found in shopify with ${vendor} SKU ${SKU}`);
+      const prevProduct = newProducts[newProducts.length - 1];
       if (vendor === 'muaythai') {
-        const prevProduct = newProducts[newProducts.length - 1];
         const Handle = newStockItem.Name.toLowerCase().replace(/\s/g, '-');
         let newProductInfo = {};
         if (Handle !== prevProduct?.Handle) {
@@ -110,6 +114,7 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
             'Product Category': 'Sporting Goods',
             Type: 'Sporting Goods',
             Published: 'TRUE',
+            'Image Src': newStockItem['Main image']
           };
         }
         newProducts.push({
@@ -118,18 +123,57 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
           ...newProductInfo,
           'Option1 Value': newStockItem['Option value'],
           'Variant SKU': newStockItem.SKU,
-          'Variant Grams': +newStockItem.Weight * 1000,
+          'Variant Grams': Math.min(+newStockItem.Weight, 999),
           'Variant Inventory Tracker': 'shopify',
           'Variant Inventory Qty': newQuantity,
           'Variant Inventory Policy': 'deny',
           'Variant Fulfillment Service': 'manual',
-          'Variant Price': newStockItem.Price,
-          'Variant Compare At Price': newStockItem.Price,
+          'Variant Price': (+newStockItem.Price * 1.2).toFixed(2),
+          'Variant Compare At Price': (+newStockItem.Price * 1.2).toFixed(2),
           'Variant Requires Shipping': 'TRUE',
           'Variant Taxable': 'TRUE',
           'Variant Barcode': newStockItem.SKU,
           'Gift Card': 'FALSE',
-          'Variant Weight Unit': 'g',
+          'Variant Weight Unit': 'kg',
+          'Included / United Kingdom': 'TRUE',
+          'Status': 'active'
+        });
+      } else if (vendor === 'raydon-products') {
+        const Handle = newStockItem['Product_Name'].toLowerCase().replace(/\s/g, '-');
+        let newProductInfo = {};
+        const VAT = +newStockItem.VAT / 100;
+        if (Handle !== prevProduct?.Handle) {
+          newProductInfo = {
+            Title: newStockItem['Product_Name'],
+            'Body (HTML)': newStockItem.Description,
+            Vendor: newStockItem.Brand,
+            'Product Category': 'Sporting Goods',
+            Type: 'Sporting Goods',
+            Published: 'TRUE',
+            'Image Src': newStockItem['Image_FTP']
+          };
+        }
+        newProducts.push({
+          ...DEFAULT_SHOPIFY_PRODUCT,
+          Handle,
+          ...newProductInfo,
+          'Option1 Name': newStockItem.Size ? 'Size' : undefined,
+          'Option1 Value': newStockItem.Size,
+          'Option2 Name': newStockItem.Colour ? 'Colour': undefined,
+          'Option2 Value': newStockItem.Colour,
+          'Variant SKU': SKU,
+          'Variant Grams': Math.min(+newStockItem.Weight_KG, 999),
+          'Variant Inventory Tracker': 'shopify',
+          'Variant Inventory Qty': newQuantity,
+          'Variant Inventory Policy': 'deny',
+          'Variant Fulfillment Service': 'manual',
+          'Variant Price': Math.ceil(+newStockItem.Your_Price * 1.4 * (1+VAT) + 3) - 0.01,
+          'Variant Compare At Price': newStockItem.SRP,
+          'Variant Requires Shipping': 'TRUE',
+          'Variant Taxable': VAT > 0 ? 'TRUE' : 'FALSE',
+          'Variant Barcode': newStockItem.Barcode,
+          'Gift Card': 'FALSE',
+          'Variant Weight Unit': 'kg',
           'Included / United Kingdom': 'TRUE',
           'Status': 'active'
         });
@@ -148,9 +192,9 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
   return { vendorUpdates, newProducts };
 }
 
-const importShopify = async (event, vendorConfig) => {
+const importShopify = async (event, vendorConfig, type) => {
   event.preventDefault(); // Prevents the form from submitting and refreshing the page
-  const form = event.target; // Get the submitted form element
+  const form = document.getElementById('myform'); // Get the submitted form element
   const shopify = form.querySelector('#shopify'); // Get file inputs within the submitted form
   const shopifyCSV = await parseFileAsCSV(shopify);
   const allChangedItems = [];
@@ -169,29 +213,37 @@ const importShopify = async (event, vendorConfig) => {
       vendorSKUKey: vendor.vendorSKUKey,
       vendorQuantityKey: vendor.vendorQuantityKey
     });
+    console.log({newProducts})
     allChangedItems.push(...vendorUpdates);
     allNewProducts.push(...newProducts);
   }
   
   const messageDiv = document.getElementById('message');
-  if (allChangedItems.length) {
-    messageDiv.textContent = '';
-    const csv = Papa.unparse(allChangedItems, {
-      header: true,
-      newline: '\n',
-    });
-    downloadCSV(csv, DONWLOAD_INVENTORY_FILE_NAME);
+  if (type === 'inventory') {
+    if (allChangedItems.length) {
+      messageDiv.textContent = '';
+      const csv = Papa.unparse(allChangedItems, {
+        header: true,
+        newline: '\n',
+      });
+      downloadCSV(csv, DONWLOAD_INVENTORY_FILE_NAME);
+    } else {
+      messageDiv.textContent = 'Nothing changed';
+      console.log('Nothing changed!')
+    }
+    console.log(allNewProducts.length, 'new items ready to add to store');
+  } else if (type === 'newproducts') {
+    if (allNewProducts.length) {
+      const csv = Papa.unparse(allNewProducts, {
+        header: true,
+        newline: '\n',
+      });
+      downloadCSV(csv, DONWLOAD_PRODUCTS_FILE_NAME);
+    } else {
+      messageDiv.textContent = 'Nothing new';
+    }
   } else {
-    messageDiv.textContent = 'Nothing changed';
-    console.log('Nothing changed!')
-  }
-  console.log(allNewProducts.length, 'new items ready to add to store');
-  if (allNewProducts.length) {
-    const csv = Papa.unparse(allNewProducts, {
-      header: true,
-      newline: '\n',
-    });
-    downloadCSV(csv, DONWLOAD_PRODUCTS_FILE_NAME);
+    messageDiv.textContent = 'error code 1 contact support';
   }
 }
 
@@ -204,8 +256,9 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <form className="form" onSubmit={e => {
-          importShopify(e, vendorConfig);
+        <form id="myform" className="form" onSubmit={e => {
+          console.log(e);
+          // importShopify(e, vendorConfig);
         }}>
           <h2>Shopify Inventory</h2>
           <label htmlFor="shopify">Shopify inventory CSV:</label>
@@ -219,7 +272,9 @@ function App() {
               <p/>
             </div>
           ))}
-          <input type="submit" value="Download updated CSV" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
+          <input onClick={(e) => importShopify(e, vendorConfig, "inventory")} type="submit" value="Download Inventory CSV (quantity)" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
+          <p/>
+          <input onClick={(e) => importShopify(e, vendorConfig, "newproducts")} type="submit" name="newProducts" value="Download Products CSV (new)" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
           <div id="message" />
           <p/>
           <p/>
