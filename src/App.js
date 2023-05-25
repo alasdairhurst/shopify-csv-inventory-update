@@ -256,10 +256,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <form id="myform" className="form" onSubmit={e => {
-          console.log(e);
-          // importShopify(e, vendorConfig);
-        }}>
+        <form id="myform" className="form" onSubmit={() => {}}>
           <h2>Shopify Inventory</h2>
           <label htmlFor="shopify">Shopify inventory CSV:</label>
           <input type="file" id="shopify" name="shopify" />
