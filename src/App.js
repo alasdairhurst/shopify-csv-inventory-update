@@ -4,7 +4,7 @@ import he from 'he';
 import './App.css';
 import defaultVendorConfig from './vendors.json';
 
-const STOCK_CAP = 99;
+const STOCK_CAP = 50;
 const DONWLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
 const DONWLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
 const DEFAULT_SHOPIFY_PRODUCT = {
@@ -134,7 +134,7 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
       return;
     }
     const currentShopifyItem = shopifyCSV.find(r => r.SKU && r.SKU === SKU);
-    const rawNewQuantity = isNaN(+newStockItem[vendorQuantityKey]) ? (newStockItem[vendorQuantityKey] === 'True' ? 50 : 0) : +newStockItem[vendorQuantityKey];
+    const rawNewQuantity = isNaN(+newStockItem[vendorQuantityKey]) ? (newStockItem[vendorQuantityKey] === 'True' ? 25 : 0) : +newStockItem[vendorQuantityKey];
     const newQuantity = Math.min(rawNewQuantity, STOCK_CAP);
     if (!currentShopifyItem) {
       console.error(`no item found in shopify with ${vendor} SKU ${SKU}`);
@@ -176,8 +176,8 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
           'Variant Inventory Qty': newQuantity,
           'Variant Inventory Policy': 'deny',
           'Variant Fulfillment Service': 'manual',
-          'Variant Price': (+newStockItem.Price * 1.2).toFixed(2),
-          'Variant Compare At Price': (+newStockItem.Price * 1.2).toFixed(2),
+          'Variant Price': Math.ceil(+newStockItem.Price * 1.2) - 0.01,
+          'Variant Compare At Price': Math.ceil(+newStockItem.Price * 1.2) - 0.01,
           'Variant Requires Shipping': 'TRUE',
           'Variant Taxable': 'TRUE',
           'Variant Barcode': newStockItem.SKU,
@@ -277,7 +277,6 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
           console.error('ERROR: missing parent', newStockItem)
           return;
         }
-
         newProducts.push({
           ...DEFAULT_SHOPIFY_PRODUCT,
           Handle: curHandle,
@@ -292,7 +291,7 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
           'Variant Inventory Qty': newQuantity,
           'Variant Inventory Policy': 'deny',
           'Variant Fulfillment Service': 'manual',
-          'Variant Price': Math.ceil(+newStockItem.TradePrice * 0.9 * 1.3 * (1+VAT) + 3) - 0.01,
+          'Variant Price': Math.ceil(+newStockItem.TradePrice * 1.3 * (1+VAT) + 3) - 0.01,
           'Variant Compare At Price': newStockItem.RetailPrice,
           'Variant Requires Shipping': 'TRUE',
           'Variant Taxable': newStockItem.Taxable,
