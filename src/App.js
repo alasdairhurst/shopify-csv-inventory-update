@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Papa from 'papaparse';
+import he from 'he';
 import './App.css';
 import defaultVendorConfig from './vendors.json';
 
@@ -53,10 +54,13 @@ async function parseFileAsCSV(field, props) {
     reader.onload = resolve;
   });
 
-  const fileContent = reader.result; // Get the file content
+  let fileContent = reader.result; // Get the file content
   let headerRow = '';
   if (props?.headers) {
     headerRow = props.headers.join(',') + '\n';
+  }
+  if (props?.name === 'blitz') {
+    fileContent = he.decode(fileContent);
   }
   const csv = await parseCSVString(headerRow + fileContent);
   if (props?.variantFormat === 'multiline-mtb') {
@@ -82,31 +86,68 @@ async function parseFileAsCSV(field, props) {
       });
     }
     return newCSV;
+  } else if (props?.variantFormat === 'blitz') {
+    const newCSV = [];
+    let parentItem;
+    for (const i of csv) {
+      // variant parent
+      if (i.Type === 'Parent') {
+        parentItem = i;
+        continue;
+      }
+      // singular
+      if (i.Type === 'Standard') {
+        newCSV.push(i);
+        continue
+      }
+      const newItem = {...parentItem};
+      for (const key in i) {
+        if (i[key] !== '' && !['Title'].includes(key)) {
+          newItem[key] = i[key];
+        }
+      }
+      // variant
+      newCSV.push(newItem);
+    }
+    console.log(newCSV);
+    return newCSV;
   }
 
   return csv;
 }
 
-function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQuantityKey, addMissing, updateInventory}) {
+function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQuantityKey, addMissing, updateInventory, orderBy}) {
   if (!vendorCSV || !shopifyCSV) {
     return [];
   }
   const vendorUpdates = [];
   const newProducts = [];
-  for (const newStockItem of vendorCSV) {
+  if (orderBy) {
+    vendorCSV = vendorCSV.sort((a, b) => {
+      return a[orderBy].localeCompare(b[orderBy]);
+    });
+  }
+  vendorCSV.forEach((newStockItem, i) => {
+    const prevStockItem = vendorCSV[i-1];
     const SKU = newStockItem[vendorSKUKey].replace('\n', '');
     if (!SKU) {
-      continue;
+      return;
     }
     const currentShopifyItem = shopifyCSV.find(r => r.SKU && r.SKU === SKU);
-    const newQuantity = Math.min(+newStockItem[vendorQuantityKey], STOCK_CAP);
+    const rawNewQuantity = isNaN(+newStockItem[vendorQuantityKey]) ? (newStockItem[vendorQuantityKey] === 'True' ? 50 : 0) : +newStockItem[vendorQuantityKey];
+    const newQuantity = Math.min(rawNewQuantity, STOCK_CAP);
     if (!currentShopifyItem) {
       console.error(`no item found in shopify with ${vendor} SKU ${SKU}`);
+      if (addMissing) {
+        console.warn(`creating new item for SKU ${SKU} from ${vendor} product listing`, newStockItem)
+      }
       const prevProduct = newProducts[newProducts.length - 1];
-      if (vendor === 'muaythai') {
+      if (vendor === 'muaythai' && addMissing) {
         const Handle = newStockItem.Name.toLowerCase().replace(/\s/g, '-');
+        const isNewProduct = Handle !== prevProduct?.Handle;
         let newProductInfo = {};
-        if (Handle !== prevProduct?.Handle) {
+        // if no prev product or 
+        if (isNewProduct) {
           newProductInfo = {
             Title: newStockItem.Name,
             'Body (HTML)': newStockItem.Description,
@@ -114,13 +155,20 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
             'Product Category': 'Sporting Goods',
             Type: 'Sporting Goods',
             Published: 'TRUE',
-            'Image Src': newStockItem['Main image']
+            'Image Src': newStockItem['Main image'],
+            'Option1 Name': 'Title',
+            'Option1 Value': 'Default Title'
           };
+          if (prevProduct?.Title) {
+            prevProduct['Option1 Name'] = 'Title';
+            prevProduct['Option1 Value'] = 'Default Title';
+          }
         }
         newProducts.push({
           ...DEFAULT_SHOPIFY_PRODUCT,
           Handle,
           ...newProductInfo,
+          'Option1 Name': 'Variant',
           'Option1 Value': newStockItem['Option value'],
           'Variant SKU': newStockItem.SKU,
           'Variant Grams': Math.min(+newStockItem.Weight, 999),
@@ -138,11 +186,12 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
           'Included / United Kingdom': 'TRUE',
           'Status': 'active'
         });
-      } else if (vendor === 'raydon-products') {
-        const Handle = newStockItem['Product_Name'].toLowerCase().replace(/\s/g, '-');
+      } else if (vendor === 'raydon-products' && addMissing) {
+        const Handle = currentShopifyItem?.Handle || newStockItem['Product_Name'].toLowerCase().replace(/\s/g, '-');
         let newProductInfo = {};
         const VAT = +newStockItem.VAT / 100;
-        if (Handle !== prevProduct?.Handle) {
+        const isNewProduct = Handle !== prevProduct?.Handle;
+        if (isNewProduct) {
           newProductInfo = {
             Title: newStockItem['Product_Name'],
             'Body (HTML)': newStockItem.Description,
@@ -150,17 +199,26 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
             'Product Category': 'Sporting Goods',
             Type: 'Sporting Goods',
             Published: 'TRUE',
-            'Image Src': newStockItem['Image_FTP']
+            'Image Src': newStockItem['Image_FTP'],
+            'Option1 Name': 'Title',
+            'Option1 Value': 'Default Title'
           };
+          if (prevProduct?.Title) {
+            prevProduct['Option1 Name'] = 'Title';
+            prevProduct['Option1 Value'] = 'Default Title';
+            prevProduct['Option2 Name'] = undefined;
+            prevProduct['Option2 Value'] = undefined;
+          }
         }
+
         newProducts.push({
           ...DEFAULT_SHOPIFY_PRODUCT,
           Handle,
           ...newProductInfo,
-          'Option1 Name': newStockItem.Size ? 'Size' : undefined,
-          'Option1 Value': newStockItem.Size,
-          'Option2 Name': newStockItem.Colour ? 'Colour': undefined,
-          'Option2 Value': newStockItem.Colour,
+          'Option1 Name': newStockItem.Size ? 'Size' : newStockItem.Colour ? 'Colour': 'Title',
+          'Option1 Value': newStockItem.Size || newStockItem.Colour || 'Default Title',
+          'Option2 Name': newStockItem.Size && newStockItem.Colour ? 'Colour': undefined,
+          'Option2 Value': newStockItem.Size ? newStockItem.Colour : undefined,
           'Variant SKU': SKU,
           'Variant Grams': Math.min(+newStockItem.Weight_KG, 999),
           'Variant Inventory Tracker': 'shopify',
@@ -177,18 +235,92 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
           'Included / United Kingdom': 'TRUE',
           'Status': 'active'
         });
+      } else if (vendor === 'blitz' && addMissing) {
+        let newProductInfo = {};
+        const VAT = newStockItem.Taxable === 'True' ? 0.2 : 0;
+        const curHandle = newStockItem.LinkComponent || newStockItem.Link.replace('https://www.blitzsport.com/', '');
+        const prevHandle = prevStockItem?.LinkComponent || prevStockItem?.Link?.replace('https://www.blitzsport.com/', '');
+        const isNewProduct = newStockItem.Type === 'Standard' || (curHandle !== prevHandle);
+        if (isNewProduct) {
+          const features = [];
+          for (let i = 1; i <=5; i++) {
+            if (newStockItem[`Feature${i}`] !== '') {
+              features.push(newStockItem[`Feature${i}`]);
+            }
+          }
+          const featureHTML = features.length ? `<br><ul>${features.map(f => `<li><p>${f}</p></li>`).join('')}</ul>` : '';
+          newProductInfo = {
+            Title: newStockItem.Title,
+            'Body (HTML)': newStockItem.Description + featureHTML,
+            Vendor: newStockItem.Brand,
+            'Product Category': 'Sporting Goods',
+            Type: newStockItem.Category,
+            Published: 'TRUE',
+            'Image Src': newStockItem.ImageUrl,
+            'Option1 Name': 'Title',
+            'Option1 Value': 'Default Title'
+          };
+          console.log(newProductInfo);
+          // add images for previous product
+          if (prevStockItem) {
+            for (let i = 1; i <=5; i++) {
+              if (!!prevStockItem[`AltImage${i}`]) {
+                newProducts.push({
+                  Handle: prevHandle,
+                  'Image Src': prevStockItem[`AltImage${i}`]
+                });
+              }
+            }
+          }
+        } else if (newStockItem.ParentSku !== prevStockItem.ParentSku) {
+          // something is wrong here since it should be the same
+          console.error('ERROR: missing parent', newStockItem)
+          return;
+        }
+
+        newProducts.push({
+          ...DEFAULT_SHOPIFY_PRODUCT,
+          Handle: curHandle,
+          ...newProductInfo,
+          'Option1 Name': newStockItem.Size ? 'Size' : newStockItem.Colour ? 'Colour': 'Title',
+          'Option1 Value': newStockItem.Size || newStockItem.Colour || 'Default Title',
+          'Option2 Name': newStockItem.Size && newStockItem.Colour ? 'Colour': undefined,
+          'Option2 Value': newStockItem.Size ? newStockItem.Colour : undefined,
+          'Variant SKU': SKU,
+          'Variant Grams': Math.min(+newStockItem.Weight, 999),
+          'Variant Inventory Tracker': 'shopify',
+          'Variant Inventory Qty': newQuantity,
+          'Variant Inventory Policy': 'deny',
+          'Variant Fulfillment Service': 'manual',
+          'Variant Price': Math.ceil(+newStockItem.TradePrice * 0.9 * 1.3 * (1+VAT) + 3) - 0.01,
+          'Variant Compare At Price': newStockItem.RetailPrice,
+          'Variant Requires Shipping': 'TRUE',
+          'Variant Taxable': newStockItem.Taxable,
+          'Variant Barcode': newStockItem.Ean,
+          'Gift Card': 'FALSE',
+          'Variant Weight Unit': 'g',
+          'Included / United Kingdom': 'TRUE',
+          'Status': 'active'
+        });
       }
-      continue;
+      // if (!currentShopifyItem) {
+        return;
+
+      // }
     }
     const currentQuantity = +currentShopifyItem['On hand'];
     if (currentQuantity === newQuantity) {
       console.log(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock matches what is in ${vendor}`);
     } else {
-      console.warn(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
-      currentShopifyItem['On hand'] = newQuantity;
-      vendorUpdates.push(currentShopifyItem);
+      if (updateInventory) {
+        console.warn(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
+        currentShopifyItem['On hand'] = newQuantity;
+        vendorUpdates.push(currentShopifyItem);
+      } else {
+        console.warn(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock: ${currentQuantity}, should be: ${newQuantity}`);
+      }
     }
-  }
+  });
   return { vendorUpdates, newProducts };
 }
 
@@ -208,12 +340,10 @@ const importShopify = async (event, vendorConfig, type) => {
     }
     const { vendorUpdates, newProducts } = getStockUpdates({
       vendor: vendor.name,
-      vendorCSV: vendorCSV,
+      vendorCSV,
       shopifyCSV,
-      vendorSKUKey: vendor.vendorSKUKey,
-      vendorQuantityKey: vendor.vendorQuantityKey
+      ...vendor
     });
-    console.log({newProducts})
     allChangedItems.push(...vendorUpdates);
     allNewProducts.push(...newProducts);
   }

@@ -10,7 +10,8 @@
 		"importLabel": "Raydon Products CSV",
 		"vendorSKUKey": "Sku_Code",
 		"vendorQuantityKey": "Free_Stock",
-		"addMissing": true
+		"addMissing": true,
+		"orderBy": "Product_Name"
 	},
 	{
 		"name": "cartas",
@@ -33,6 +34,15 @@
 		"vendorSKUKey": "SKU",
 		"vendorQuantityKey": "Quantity",
 		"variantFormat": "multiline-mtb",
+		"updateInventory": true,
+		"addMissing": true
+	},
+	{
+		"name": "blitz",
+		"importLabel": "Blitz CSV",
+		"vendorSKUKey": "Sku",
+		"vendorQuantityKey": "InStock",
+		"variantFormat": "blitz",
 		"updateInventory": true,
 		"addMissing": true
 	}
