@@ -1,13 +1,13 @@
 [
 	{
-		"name": "raydon",
-		"importLabel": "Raydon Stock CSV",
+		"name": "reydon",
+		"importLabel": "Reydon Stock CSV",
 		"vendorSKUKey": "Code",
 		"vendorQuantityKey": "Quantity",
 		"updateInventory": true
 	},	{
-		"name": "raydon-products",
-		"importLabel": "Raydon Products CSV",
+		"name": "reydon-products",
+		"importLabel": "Reydon Products CSV",
 		"vendorSKUKey": "Sku_Code",
 		"vendorQuantityKey": "Free_Stock",
 		"addMissing": true,

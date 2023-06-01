@@ -6,6 +6,7 @@ import defaultVendorConfig from './vendors.json';
 
 const STOCK_CAP = 50;
 const DONWLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
+const DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME = 'completed_products_update_for_shopify.csv';
 const DONWLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
 const DEFAULT_SHOPIFY_PRODUCT = {
   'Handle': '', 'Title': '', 'Body (HTML)': '', 'Vendor': '', 'Product Category': '', 'Type': '', 'Tags': '', 'Published': '', 'Option1 Name': '', 'Option1 Value': '', 'Option2 Name': '', 'Option2 Value': '', 'Option3 Name': '', 'Option3 Value': '', 'Variant SKU': '', 'Variant Grams': '', 'Variant Inventory Tracker': '', 'Variant Inventory Qty': '', 'Variant Inventory Policy': '', 'Variant Fulfillment Service': '', 'Variant Price': '', 'Variant Compare At Price': '', 'Variant Requires Shipping': '', 'Variant Taxable': '', 'Variant Barcode': '', 'Image Src': '', 'Image Position': '', 'Image Alt Text': '', 'Gift Card': '', 'SEO Title': '', 'SEO Description': '', 'Google Shopping / Google Product Category': '', 'Google Shopping / Gender': '', 'Google Shopping / Age Group': '', 'Google Shopping / MPN': '', 'Google Shopping / AdWords Grouping': '', 'Google Shopping / AdWords Labels': '', 'Google Shopping / Condition': '', 'Google Shopping / Custom Product': '', 'Google Shopping / Custom Label 0': '', 'Google Shopping / Custom Label 1': '', 'Google Shopping / Custom Label 2': '', 'Google Shopping / Custom Label 3': '', 'Google Shopping / Custom Label 4': '', 'Variant Image': '', 'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Included / United Kingdom': '', 'Status': ''
@@ -116,12 +117,12 @@ async function parseFileAsCSV(field, props) {
   return csv;
 }
 
-function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQuantityKey, addMissing, updateInventory, orderBy}) {
-  if (!vendorCSV || !shopifyCSV) {
-    return [];
-  }
+function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, vendorSKUKey, vendorQuantityKey, addMissing, updateInventory, orderBy}) {
   const vendorUpdates = [];
   const newProducts = [];
+  if (!vendorCSV) {
+    return { vendorUpdates, newProducts };
+  }
   if (orderBy) {
     vendorCSV = vendorCSV.sort((a, b) => {
       return a[orderBy].localeCompare(b[orderBy]);
@@ -133,10 +134,10 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
     if (!SKU) {
       return;
     }
-    const currentShopifyItem = shopifyCSV.find(r => r.SKU && r.SKU === SKU);
+    const currentShopifyInventoryItem = shopifyCSV?.find(r => r.SKU && r.SKU === SKU);
     const rawNewQuantity = isNaN(+newStockItem[vendorQuantityKey]) ? (newStockItem[vendorQuantityKey] === 'True' ? 25 : 0) : +newStockItem[vendorQuantityKey];
     const newQuantity = Math.min(rawNewQuantity, STOCK_CAP);
-    if (!currentShopifyItem) {
+    if (!currentShopifyInventoryItem) {
       console.error(`no item found in shopify with ${vendor} SKU ${SKU}`);
       if (addMissing) {
         console.warn(`creating new item for SKU ${SKU} from ${vendor} product listing`, newStockItem)
@@ -186,8 +187,8 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
           'Included / United Kingdom': 'TRUE',
           'Status': 'active'
         });
-      } else if (vendor === 'raydon-products' && addMissing) {
-        const Handle = currentShopifyItem?.Handle || newStockItem['Product_Name'].toLowerCase().replace(/\s/g, '-');
+      } else if (vendor === 'reydon-products' && addMissing) {
+        const Handle = currentShopifyInventoryItem?.Handle || newStockItem['Product_Name'].toLowerCase().replace(/\s/g, '-');
         let newProductInfo = {};
         const VAT = +newStockItem.VAT / 100;
         const isNewProduct = Handle !== prevProduct?.Handle;
@@ -302,22 +303,34 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, vendorSKUKey, vendorQu
           'Status': 'active'
         });
       }
-      // if (!currentShopifyItem) {
-        return;
-
-      // }
-    }
-    const currentQuantity = +currentShopifyItem['On hand'];
-    if (currentQuantity === newQuantity) {
-      console.log(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock matches what is in ${vendor}`);
     } else {
-      if (updateInventory) {
-        console.warn(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
-        currentShopifyItem['On hand'] = newQuantity;
-        vendorUpdates.push(currentShopifyItem);
+      // update inventory
+      const currentQuantity = +currentShopifyInventoryItem['On hand'];
+      if (currentQuantity === newQuantity) {
+        console.log(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock matches what is in ${vendor}`);
       } else {
-        console.warn(`Found item in shopify ${JSON.stringify(currentShopifyItem)} stock: ${currentQuantity}, should be: ${newQuantity}`);
+        if (updateInventory) {
+          console.warn(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
+          currentShopifyInventoryItem['On hand'] = newQuantity;
+          vendorUpdates.push(currentShopifyInventoryItem);
+        } else {
+          console.warn(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock: ${currentQuantity}, should be: ${newQuantity}`);
+        }
       }
+    }
+    // update product only for reydon products for now
+    if (vendor !== 'reydon-products') {
+      return;
+    }
+    const currentShopifyProduct = shopifyProductsCSV?.find(r => r['Variant SKU'] && r['Variant SKU'] === SKU);
+    if (!currentShopifyProduct) {
+      return;
+    }
+    const VAT = +newStockItem.VAT / 100;
+    const newPrice = Math.ceil(+newStockItem.Your_Price * 1.4 * (1+VAT) + 3) - 0.01;
+    if (currentShopifyProduct['Variant Price'].toString() !== newPrice.toString()) {
+      console.warn(`Updating ${vendor} ${SKU} price from`, currentShopifyProduct['Variant Price'], 'to',newPrice);
+      currentShopifyProduct['Variant Price'] = newPrice;
     }
   });
   return { vendorUpdates, newProducts };
@@ -328,6 +341,8 @@ const importShopify = async (event, vendorConfig, type) => {
   const form = document.getElementById('myform'); // Get the submitted form element
   const shopify = form.querySelector('#shopify'); // Get file inputs within the submitted form
   const shopifyCSV = await parseFileAsCSV(shopify);
+  const shopifyProducts = form.querySelector('#shopify-products'); // Get file inputs within the submitted form
+  const shopifyProductsCSV = await parseFileAsCSV(shopifyProducts);
   const allChangedItems = [];
   const allNewProducts = [];
 
@@ -341,6 +356,7 @@ const importShopify = async (event, vendorConfig, type) => {
       vendor: vendor.name,
       vendorCSV,
       shopifyCSV,
+      shopifyProductsCSV,
       ...vendor
     });
     allChangedItems.push(...vendorUpdates);
@@ -371,6 +387,12 @@ const importShopify = async (event, vendorConfig, type) => {
     } else {
       messageDiv.textContent = 'Nothing new';
     }
+  } else if (type === 'editproducts') {
+    const csv = Papa.unparse(shopifyProductsCSV, {
+      header: true,
+      newline: '\n'
+    });
+    downloadCSV(csv, DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME);
   } else {
     messageDiv.textContent = 'error code 1 contact support';
   }
@@ -390,6 +412,10 @@ function App() {
           <label htmlFor="shopify">Shopify inventory CSV:</label>
           <input type="file" id="shopify" name="shopify" />
           <p/>
+          <h2>Shopify Products</h2>
+          <label htmlFor="shopify-products">Shopify products CSV:</label>
+          <input type="file" id="shopify-products" name="shopify-products" />
+          <p/>
           <h2>Vendor Inventory</h2>
           {vendorConfig.map(vendor => (
             <div key={vendor.name}>
@@ -401,6 +427,8 @@ function App() {
           <input onClick={(e) => importShopify(e, vendorConfig, "inventory")} type="submit" value="Download Inventory CSV (quantity)" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
           <p/>
           <input onClick={(e) => importShopify(e, vendorConfig, "newproducts")} type="submit" name="newProducts" value="Download Products CSV (new)" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
+          <p/>
+          <input onClick={(e) => importShopify(e, vendorConfig, "editproducts")} type="submit" value="Download Products CSV (edited price)" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
           <div id="message" />
           <p/>
           <p/>
