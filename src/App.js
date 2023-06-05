@@ -1,15 +1,26 @@
-import { useState } from 'react';
 import Papa from 'papaparse';
 import he from 'he';
+import { diceCoefficient } from 'string-comparison';
 import './App.css';
-import defaultVendorConfig from './vendors.json';
+import vendors from './vendors';
 
 const STOCK_CAP = 50;
-const DONWLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
+const DOWNLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
 const DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME = 'completed_products_update_for_shopify.csv';
 const DONWLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
 const DEFAULT_SHOPIFY_PRODUCT = {
   'Handle': '', 'Title': '', 'Body (HTML)': '', 'Vendor': '', 'Product Category': '', 'Type': '', 'Tags': '', 'Published': '', 'Option1 Name': '', 'Option1 Value': '', 'Option2 Name': '', 'Option2 Value': '', 'Option3 Name': '', 'Option3 Value': '', 'Variant SKU': '', 'Variant Grams': '', 'Variant Inventory Tracker': '', 'Variant Inventory Qty': '', 'Variant Inventory Policy': '', 'Variant Fulfillment Service': '', 'Variant Price': '', 'Variant Compare At Price': '', 'Variant Requires Shipping': '', 'Variant Taxable': '', 'Variant Barcode': '', 'Image Src': '', 'Image Position': '', 'Image Alt Text': '', 'Gift Card': '', 'SEO Title': '', 'SEO Description': '', 'Google Shopping / Google Product Category': '', 'Google Shopping / Gender': '', 'Google Shopping / Age Group': '', 'Google Shopping / MPN': '', 'Google Shopping / AdWords Grouping': '', 'Google Shopping / AdWords Labels': '', 'Google Shopping / Condition': '', 'Google Shopping / Custom Product': '', 'Google Shopping / Custom Label 0': '', 'Google Shopping / Custom Label 1': '', 'Google Shopping / Custom Label 2': '', 'Google Shopping / Custom Label 3': '', 'Google Shopping / Custom Label 4': '', 'Variant Image': '', 'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Included / United Kingdom': '', 'Status': ''
+}
+
+let logger = {
+  log: () => {},
+  warn: () => {},
+  error: () => {}
+};
+
+const DEBUG = true;
+if (DEBUG) {
+  logger = console;
 }
 
 function downloadCSV(csvContent, filename) {
@@ -99,7 +110,7 @@ async function parseFileAsCSV(field, props) {
       // singular
       if (i.Type === 'Standard') {
         newCSV.push(i);
-        continue
+        continue;
       }
       const newItem = {...parentItem};
       for (const key in i) {
@@ -110,7 +121,6 @@ async function parseFileAsCSV(field, props) {
       // variant
       newCSV.push(newItem);
     }
-    console.log(newCSV);
     return newCSV;
   }
 
@@ -138,9 +148,9 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, ve
     const rawNewQuantity = isNaN(+newStockItem[vendorQuantityKey]) ? (newStockItem[vendorQuantityKey] === 'True' ? 25 : 0) : +newStockItem[vendorQuantityKey];
     const newQuantity = Math.min(rawNewQuantity, STOCK_CAP);
     if (!currentShopifyInventoryItem) {
-      console.error(`no item found in shopify with ${vendor} SKU ${SKU}`);
+      logger.error(`no item found in shopify with ${vendor} SKU ${SKU}`);
       if (addMissing) {
-        console.warn(`creating new item for SKU ${SKU} from ${vendor} product listing`, newStockItem)
+        logger.warn(`creating new item for SKU ${SKU} from ${vendor} product listing`, newStockItem)
       }
       const prevProduct = newProducts[newProducts.length - 1];
       if (vendor === 'muaythai' && addMissing) {
@@ -261,7 +271,7 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, ve
             'Option1 Name': 'Title',
             'Option1 Value': 'Default Title'
           };
-          console.log(newProductInfo);
+          logger.log(newProductInfo);
           // add images for previous product
           if (prevStockItem) {
             for (let i = 1; i <=5; i++) {
@@ -275,7 +285,7 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, ve
           }
         } else if (newStockItem.ParentSku !== prevStockItem.ParentSku) {
           // something is wrong here since it should be the same
-          console.error('ERROR: missing parent', newStockItem)
+          logger.error('ERROR: missing parent', newStockItem)
           return;
         }
         newProducts.push({
@@ -307,14 +317,14 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, ve
       // update inventory
       const currentQuantity = +currentShopifyInventoryItem['On hand'];
       if (currentQuantity === newQuantity) {
-        console.log(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock matches what is in ${vendor}`);
+        logger.log(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock matches what is in ${vendor}`);
       } else {
         if (updateInventory) {
-          console.warn(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
+          logger.warn(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
           currentShopifyInventoryItem['On hand'] = newQuantity;
           vendorUpdates.push(currentShopifyInventoryItem);
         } else {
-          console.warn(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock: ${currentQuantity}, should be: ${newQuantity}`);
+          logger.warn(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock: ${currentQuantity}, should be: ${newQuantity}`);
         }
       }
     }
@@ -329,24 +339,311 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, ve
     const VAT = +newStockItem.VAT / 100;
     const newPrice = Math.ceil(+newStockItem.Your_Price * 1.4 * (1+VAT) + 3) - 0.01;
     if (currentShopifyProduct['Variant Price'].toString() !== newPrice.toString()) {
-      console.warn(`Updating ${vendor} ${SKU} price from`, currentShopifyProduct['Variant Price'], 'to',newPrice);
+      logger.warn(`Updating ${vendor} ${SKU} price from`, currentShopifyProduct['Variant Price'], 'to',newPrice);
       currentShopifyProduct['Variant Price'] = newPrice;
     }
   });
   return { vendorUpdates, newProducts };
 }
 
-const importShopify = async (event, vendorConfig, type) => {
+const getFiles = (inputID) => {
+  const form = document.getElementById('myform');
+  const input = form?.querySelector(`#${inputID}`);
+  return input?.files || [];
+}
+
+// Updates existing items in inventory
+// The full inventory is not downloaded, only updated rows
+const updateInventory = async () => {
+  const shopifyInventoryFiles = getFiles('shopify-inventory');
+  if (!shopifyInventoryFiles.length) {
+    logger.error('[ERROR] no shopify inventory CSV selected');
+    return;
+  }
+  const shopifyInventoryCSV = await parseFileAsCSV({ files: shopifyInventoryFiles });
+  const shopifyInventoryUpdates = [];
+  for (const vendor of vendors) {
+    if (!vendor.updateInventory) {
+      logger.log(`[SKIP] inventory update not applicable to ${vendor.name}`);
+      continue;
+    }
+    const vendorInventory = getFiles(vendor.name);
+    let vendorInventoryCSV = await parseFileAsCSV({ files: vendorInventory }, vendor);
+    if (!vendorInventoryCSV) {
+      logger.log(`[SKIP] no inventory file selected for ${vendor.name}`);
+      continue;
+    }
+    // TODO: move orderBy into parse
+    if (vendor.orderBy) {
+      vendorInventoryCSV = vendorInventoryCSV.sort((a, b) => {
+        return a[vendor.orderBy].localeCompare(b[vendor.orderBy]);
+      });
+    }
+    for (const vendorItem of vendorInventoryCSV) {
+      const vendorItemSKU = vendor.getSKU(vendorItem);
+      if (!vendorItemSKU) {
+        continue;
+      }
+
+      const shopifyItem = shopifyInventoryCSV.find(r => {
+        return !!matchInventory(r, vendor, vendorItem)
+      });
+
+      if (!shopifyItem) {
+        logger.log(`[NOT FOUND] ${vendor.name} SKU ${vendorItemSKU} in shopify inventory`);
+        continue;
+      }
+      logger.log(`[FOUND] ${vendor.name} SKU ${vendorItemSKU} in shopify inventory`);
+      let updated = false
+
+      // Update quantity
+
+      // Cap the new quantity
+      const vendorItemQuantity = Math.min(vendor.getQuantity(vendorItem), STOCK_CAP);
+      const shopifyItemQuantity = +shopifyItem['On hand'];
+      if (shopifyItemQuantity === vendorItemQuantity) {
+        logger.log(`[QUANTITY MATCH] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} matches shopify inventory: ${shopifyItemQuantity}`);
+      } else {
+        logger.warn(`[QUANTITY UPDATE] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} differs in shopify inventory: ${shopifyItemQuantity}`);
+        shopifyItem['On hand'] = vendorItemQuantity;
+        updated = true;
+      }
+
+      // If there are any updates, push to updates array
+      if (updated) {
+        shopifyInventoryUpdates.push(shopifyItem);
+      }
+    }
+  }
+  if (!shopifyInventoryUpdates.length) {
+    logger.warn('[DONE] Nothing to download');
+    return;
+  }
+  logger.warn('[DONE] Downloading CSV');
+  const csv = Papa.unparse(shopifyInventoryUpdates, {
+    header: true,
+    newline: '\n',
+  });
+  downloadCSV(csv, DOWNLOAD_INVENTORY_FILE_NAME);
+}
+
+
+const matchShopifyItems = (shopifyItemSKU, shopifyItemTitle, shopifyItemBarcode, vendor, vendorProduct) => {
+  const vendorProductSKU = vendor.getSKU(vendorProduct);
+  if (shopifyItemSKU !== vendorProductSKU) {
+    return;
+  }
+
+  const shopifyItemLabel = `${shopifyItemSKU} (${shopifyItemTitle}/${shopifyItemBarcode})`;
+  const vendorProductTitle = vendor.getTitle(vendorProduct);
+  const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) || 'does not apply';
+  const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
+  if (shopifyItemBarcode === vendorProductBarcode) {
+    return shopifyItemLabel;
+  } else {
+    // barcode is different for same SKU - log an ERROR but this can be wrong so try title too
+    logger.warn(`[WARN] ${vendor.name} ${vendorProductLabel} matches SKU but does not match shopify product barcode ${shopifyItemLabel}. ${vendor.useTitleForMatching ? 'Checking title instead...' : ''}`);
+    if (vendor.useBarcodeForExclusiveMatching) {
+      return;
+    }
+  }
+  // Some vendors have shitty titles
+  if (vendor.useTitleForMatching) {
+    // compare titles to have some safety net
+    const similarity = diceCoefficient.similarity(vendorProductTitle, shopifyItemTitle);
+    if (similarity <= 0.4) {
+      logger.error(`[ERROR] ${vendor.name} SKU ${vendorProductLabel} matches SKU but does not match shopify product title ${shopifyItemLabel}. (${similarity} similar)`);
+      return;
+    }
+  }
+
+  // If the barcode is wrong but the title is close enough then let it match
+  return shopifyItemLabel;
+};
+
+const matchInventory = (shopifyInventory, vendor, vendorProduct) => {
+  return matchShopifyItems(
+    shopifyInventory.SKU.replace(/^'/, ''),
+    shopifyInventory.Title,
+    '',
+    vendor,
+    vendorProduct
+  );
+};
+
+const matchProduct = (shopifyParent, shopifyProduct, vendor, vendorProduct) => {
+  return matchShopifyItems(
+    shopifyProduct['Variant SKU'],
+    shopifyParent.primaryRow.Title,
+    shopifyProduct['Variant Barcode'],
+    vendor,
+    vendorProduct
+  );
+};
+
+const getShopifyProductAndParent = (shopifyProducts, vendor, vendorProduct) => {
+  let shopifyProduct;
+  let shopifyProductLabel;
+  const shopifyParent = shopifyProducts.find(r => {
+    if (shopifyProductLabel = matchProduct(r, r.primaryRow, vendor, vendorProduct)) {
+      shopifyProduct = r.primaryRow;
+      return true;
+    }
+    return !!r.secondaryRows.find(secondaryRow => {
+      if (shopifyProductLabel = matchProduct(r, secondaryRow, vendor, vendorProduct)) {
+        shopifyProduct = secondaryRow;
+        return true;
+      }
+      return false;
+    });
+  });
+  return { shopifyProduct, shopifyParent, shopifyProductLabel };
+}
+
+const updateProducts = async () => {
+  const shopifyProductsFiles = getFiles('shopify-products');
+  if (!shopifyProductsFiles.length) {
+    logger.error('[ERROR] no shopify products CSV selected');
+    return;
+  }
+  const shopifyProductsCSV = await parseFileAsCSV({ files: shopifyProductsFiles });
+  const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
+
+  for (const vendor of vendors) {
+    if (!vendor.updateProducts) {
+      logger.log(`[SKIP] product update not applicable to ${vendor.name}`);
+      continue;
+    }
+    const vendorProductFiles = getFiles(vendor.name);
+    let vendorProductCSV = await parseFileAsCSV({ files: vendorProductFiles }, vendor);
+    if (!vendorProductCSV) {
+      logger.log(`[SKIP] no product file selected for ${vendor.name}`);
+      continue;
+    }
+    // TODO: move orderBy into parse
+    if (vendor.orderBy) {
+      vendorProductCSV = vendorProductCSV.sort((a, b) => {
+        return a[vendor.orderBy].localeCompare(b[vendor.orderBy]);
+      });
+    }
+
+    for (const vendorProduct of vendorProductCSV) {
+      const vendorProductSKU = vendor.getSKU(vendorProduct);
+      if (!vendorProductSKU) {
+        logger.log(`[NOT FOUND] ${vendor.name} no SKU found for product`, vendorProduct);
+        continue;
+      }
+
+      const vendorProductTitle = vendor.getTitle(vendorProduct);
+      const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) || 'does not apply';
+      const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
+      const { shopifyProduct, shopifyParent, shopifyProductLabel } = getShopifyProductAndParent(
+        shopifyProducts, vendor, vendorProduct
+      );
+        
+      if (!shopifyProduct) {
+        logger.log(`[NOT FOUND] ${vendor.name} SKU ${vendorProductLabel} in shopify products`);
+        continue;
+      }
+      
+      // Update price
+      if (!vendor.getPrice) {
+        logger.error(`[ERROR] cannot update price for vendor ${vendor.name} getPrice not implemented`);
+      } else {
+        const vendorProductPrice = vendor.getPrice(vendorProduct).toString();
+        const shopifyProductPrice = shopifyProduct['Variant Price'].toString();
+
+        if (shopifyProductPrice === vendorProductPrice) {
+          logger.log(`[PRICE MATCH] ${vendor.name} SKU ${vendorProductLabel} price ${vendorProductPrice} matches shopify product ${shopifyProductLabel}: ${shopifyProductPrice}`);
+        } else {
+          logger.warn(`[PRICE UPDATE] ${vendor.name} SKU ${vendorProductLabel} price ${vendorProductPrice} differs in shopify product ${shopifyProductLabel}: ${shopifyProductPrice}`);
+          shopifyProduct['Variant Price'] = vendorProductPrice;
+          shopifyParent.edited = true;
+        }
+      }
+
+      // Update barcode
+      if (!vendor.getBarcode) {
+        logger.error(`[ERROR] cannot update barcode for vendor ${vendor.name} getBarcode not implemented`);
+      } else {
+        const shopifyProductBarcode = shopifyProduct['Variant Barcode'];
+        if (shopifyProductBarcode === vendorProductBarcode) {
+          logger.log(`[BARCODE MATCH] ${vendor.name} SKU ${vendorProductLabel} barcode matches shopify product ${shopifyProductLabel}`);
+        } else {
+          logger.warn(`[BARCODE UPDATE] ${vendor.name} SKU ${vendorProductLabel} barcode differs in shopify product ${shopifyProductLabel}`);
+          shopifyProduct['Variant Barcode'] = vendorProductBarcode;
+          shopifyParent.edited = true;
+        }
+      }
+    }
+  }
+
+  const shopifyProductsCSVExport = convertShopifyProductsToExternal(shopifyProducts, { onlyEdited: true });
+  if (!shopifyProductsCSVExport.length) {
+    logger.warn('[DONE] Nothing to download');
+    return;
+  }
+  logger.warn('[DONE] Downloading CSV');
+  const csv = Papa.unparse(shopifyProductsCSVExport, {
+    header: true,
+    newline: '\n',
+  });
+  downloadCSV(csv, DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME);
+}
+
+
+// products format
+
+const convertShopifyProductsToInternal = (shopifyProductsCSV) => {
+  shopifyProductsCSV = shopifyProductsCSV.sort((a, b) => {
+    return a.Handle.localeCompare(b.Handle);
+  });
+
+  // reformat
+  const shopifyProductsNewFormat = [];
+  let currentProduct;
+  let barcodeEscaped;
+  for (const shopifyProduct of shopifyProductsCSV) {
+    shopifyProduct['Variant Barcode'] = shopifyProduct['Variant Barcode'].replace(/^'/, '');
+    shopifyProduct['Variant SKU'] = shopifyProduct['Variant SKU'].replace(/^'/, '');
+    if (currentProduct?.primaryRow.Handle !== shopifyProduct.Handle) {
+      currentProduct = {
+        primaryRow: shopifyProduct,
+        secondaryRows: [],
+        edited: false,
+        barcodeEscaped
+      };
+      shopifyProductsNewFormat.push(currentProduct);
+    } else {
+      currentProduct.secondaryRows.push(shopifyProduct);
+    }
+  }
+  return shopifyProductsNewFormat;
+}
+
+const convertShopifyProductsToExternal = (products, options = {}) => {
+  const shopifyProductsCSV = [];
+  for (const product of products) {
+    if (options.onlyEdited && !product.edited) {
+      continue;
+    }
+    shopifyProductsCSV.push(product.primaryRow);
+    shopifyProductsCSV.push(...product.secondaryRows);
+  }
+  return shopifyProductsCSV;
+}
+
+const importShopify = async (event, type) => {
   event.preventDefault(); // Prevents the form from submitting and refreshing the page
   const form = document.getElementById('myform'); // Get the submitted form element
-  const shopify = form.querySelector('#shopify'); // Get file inputs within the submitted form
-  const shopifyCSV = await parseFileAsCSV(shopify);
+  const shopifyInventory = form.querySelector('#shopify-inventory'); // Get file inputs within the submitted form
+  const shopifyCSV = await parseFileAsCSV(shopifyInventory);
   const shopifyProducts = form.querySelector('#shopify-products'); // Get file inputs within the submitted form
   const shopifyProductsCSV = await parseFileAsCSV(shopifyProducts);
   const allChangedItems = [];
   const allNewProducts = [];
 
-  for (const vendor of vendorConfig) {
+  for (const vendor of vendors) {
     const htmlFormFile = form.querySelector(`#${vendor.name}`);
     const vendorCSV = await parseFileAsCSV(htmlFormFile, vendor);
     if (!vendorCSV) {
@@ -371,12 +668,12 @@ const importShopify = async (event, vendorConfig, type) => {
         header: true,
         newline: '\n',
       });
-      downloadCSV(csv, DONWLOAD_INVENTORY_FILE_NAME);
+      downloadCSV(csv, DOWNLOAD_INVENTORY_FILE_NAME);
     } else {
       messageDiv.textContent = 'Nothing changed';
-      console.log('Nothing changed!')
+      logger.log('Nothing changed!')
     }
-    console.log(allNewProducts.length, 'new items ready to add to store');
+    logger.log(allNewProducts.length, 'new items ready to add to store');
   } else if (type === 'newproducts') {
     if (allNewProducts.length) {
       const csv = Papa.unparse(allNewProducts, {
@@ -399,61 +696,45 @@ const importShopify = async (event, vendorConfig, type) => {
 }
 
 function App() {
-
-  const [ vendorConfig, setVendorConfig ] = useState(defaultVendorConfig);
-  const [ vendorConfigText, setVendorConfigText ] = useState(JSON.stringify(vendorConfig, null, 2));
-  const [ showConfigEditor, setShowConfigEditor ] = useState(false);
-
   return (
     <div className="App">
       <header className="App-header">
-        <form id="myform" className="form" onSubmit={() => {}}>
+        <form id="myform" className="form" onSubmit={e => {e.preventDefault()}}>
           <h2>Shopify Inventory</h2>
-          <label htmlFor="shopify">Shopify inventory CSV:</label>
-          <input type="file" id="shopify" name="shopify" />
+          <label htmlFor="shopify-inventory">Shopify inventory CSV:</label>
+          <input type="file" id="shopify-inventory" name="shopify-inventory" />
           <p/>
           <h2>Shopify Products</h2>
           <label htmlFor="shopify-products">Shopify products CSV:</label>
           <input type="file" id="shopify-products" name="shopify-products" />
           <p/>
           <h2>Vendor Inventory</h2>
-          {vendorConfig.map(vendor => (
+          {vendors.map(vendor => (
             <div key={vendor.name}>
               <label htmlFor={vendor.name}>{vendor.importLabel}</label>
               <input type="file" id={vendor.name} name={vendor.name} />
               <p/>
             </div>
           ))}
-          <input onClick={(e) => importShopify(e, vendorConfig, "inventory")} type="submit" value="Download Inventory CSV (quantity)" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
+          <button
+            onClick={updateInventory}
+            style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}
+          >
+            Download Inventory CSV (quantity)
+          </button>
           <p/>
-          <input onClick={(e) => importShopify(e, vendorConfig, "newproducts")} type="submit" name="newProducts" value="Download Products CSV (new)" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
+          <input onClick={(e) => importShopify(e, "newproducts")} type="submit" name="newProducts" value="Download Products CSV (new)" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
           <p/>
-          <input onClick={(e) => importShopify(e, vendorConfig, "editproducts")} type="submit" value="Download Products CSV (edited price)" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
+          <button
+            onClick={updateProducts}
+            style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}
+          >
+            Download Products CSV (edited price)
+          </button>
           <div id="message" />
           <p/>
           <p/>
         </form>
-        <button style={{color: 'grey', backgroundColor: 'yellow'}} onClick={() => setShowConfigEditor(!showConfigEditor)}>
-          Edit vendor config
-        </button>
-        {showConfigEditor && (
-          <textarea
-            value={vendorConfigText}
-            cols={75}
-            rows={vendorConfigText.split('\n').length + 1}
-            onChange={e => {
-              e.preventDefault();
-              const text = e.target.value;
-              setVendorConfigText(text);
-              try {
-                let newConfig = JSON.parse(text);
-                setVendorConfig(newConfig);
-              } catch (e) {
-                // ignore
-              }
-            }}
-          />
-        )}
       </header>
     </div>
   );
