@@ -428,7 +428,7 @@ const updateInventory = async () => {
 }
 
 
-const matchShopifyItems = (shopifyItemSKU, shopifyItemTitle, shopifyItemBarcode, vendor, vendorProduct) => {
+const matchShopifyItems = (shopifyItemSKU, shopifyItemTitle, shopifyItemBarcode, vendor, vendorProduct, matchBarcode) => {
   const vendorProductSKU = vendor.getSKU(vendorProduct);
   if (shopifyItemSKU !== vendorProductSKU) {
     return;
@@ -438,15 +438,18 @@ const matchShopifyItems = (shopifyItemSKU, shopifyItemTitle, shopifyItemBarcode,
   const vendorProductTitle = vendor.getTitle(vendorProduct);
   const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) || 'does not apply';
   const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
-  if (shopifyItemBarcode === vendorProductBarcode) {
-    return shopifyItemLabel;
-  } else {
-    // barcode is different for same SKU - log an ERROR but this can be wrong so try title too
-    logger.warn(`[WARN] ${vendor.name} ${vendorProductLabel} matches SKU but does not match shopify product barcode ${shopifyItemLabel}. ${vendor.useTitleForMatching ? 'Checking title instead...' : ''}`);
-    if (vendor.useBarcodeForExclusiveMatching) {
-      return;
+  if (matchBarcode) {
+    if (shopifyItemBarcode === vendorProductBarcode) {
+      return shopifyItemLabel;
+    } else {
+      // barcode is different for same SKU - log an ERROR but this can be wrong so try title too
+      logger.warn(`[WARN] ${vendor.name} ${vendorProductLabel} matches SKU but does not match shopify product barcode ${shopifyItemLabel}. ${vendor.useTitleForMatching ? 'Checking title instead...' : ''}`);
+      if (vendor.useBarcodeForExclusiveMatching) {
+        return;
+      }
     }
   }
+  
   // Some vendors have shitty titles
   if (vendor.useTitleForMatching) {
     // compare titles to have some safety net
@@ -467,7 +470,8 @@ const matchInventory = (shopifyInventory, vendor, vendorProduct) => {
     shopifyInventory.Title,
     '',
     vendor,
-    vendorProduct
+    vendorProduct,
+    false
   );
 };
 
@@ -477,7 +481,8 @@ const matchProduct = (shopifyParent, shopifyProduct, vendor, vendorProduct) => {
     shopifyParent.primaryRow.Title,
     shopifyProduct['Variant Barcode'],
     vendor,
-    vendorProduct
+    vendorProduct,
+    true
   );
 };
 
