@@ -127,10 +127,10 @@ async function parseFileAsCSV(field, props) {
   return csv;
 }
 
-function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, vendorSKUKey, vendorQuantityKey, addMissing, updateInventory, orderBy}) {
+function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, getQuantity, getSKU, addMissing, updateInventory, orderBy}) {
   const vendorUpdates = [];
   const newProducts = [];
-  if (!vendorCSV) {
+  if (!vendorCSV || !shopifyCSV) {
     return { vendorUpdates, newProducts };
   }
   if (orderBy) {
@@ -140,12 +140,12 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, ve
   }
   vendorCSV.forEach((newStockItem, i) => {
     const prevStockItem = vendorCSV[i-1];
-    const SKU = newStockItem[vendorSKUKey].replace('\n', '');
+    const SKU = getSKU(newStockItem);
     if (!SKU) {
       return;
     }
     const currentShopifyInventoryItem = shopifyCSV?.find(r => r.SKU && r.SKU === SKU);
-    const rawNewQuantity = isNaN(+newStockItem[vendorQuantityKey]) ? (newStockItem[vendorQuantityKey] === 'True' ? 25 : 0) : +newStockItem[vendorQuantityKey];
+    const rawNewQuantity = getQuantity(newStockItem);
     const newQuantity = Math.min(rawNewQuantity, STOCK_CAP);
     if (!currentShopifyInventoryItem) {
       logger.error(`no item found in shopify with ${vendor} SKU ${SKU}`);
@@ -654,6 +654,7 @@ const importShopify = async (event, type) => {
     if (!vendorCSV) {
       continue;
     }
+    console.log(vendor)
     const { vendorUpdates, newProducts } = getStockUpdates({
       vendor: vendor.name,
       vendorCSV,

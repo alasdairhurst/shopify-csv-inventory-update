@@ -9,7 +9,6 @@ const blitzShipping = {
 	6371: 42
 };
 
-
 const vendors = [
 	{
 		name: "reydon",
@@ -38,7 +37,9 @@ const vendors = [
 		},
 		getBarcode: item => item.Barcode.trim(),
 		"addMissing": true,
-		"orderBy": "Product_Name"
+		"orderBy": "Product_Name",
+		vendorQuantityKey: 'Free_Stock',
+		
 	},
 	{
 		"name": "cartas",
