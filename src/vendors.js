@@ -298,11 +298,15 @@ const vendors = [
 		],
 		parseImport: items => {
 			const csv = [];
-			let parentItem;
+			const parents = {};
 			for (const item of items) {
 				// variant parent
 				if (item.Type === 'Parent') {
-					parentItem = item;
+					if (parents[item.Sku]) {
+						console.error(`[ERROR] blitz duplicate parent SKU ${item.Sku}`);
+						continue;
+					}
+					parents[item.Sku] = item;
 					continue;
 				}
 				// singular
@@ -314,6 +318,14 @@ const vendors = [
 					continue;
 				}
 				// variant
+				const parentItem = parents[item.ParentSku];
+				if (!parentItem) {
+					// there are one or two missing a parent, add as a regular?
+					console.warn(`[WARN] blitz dangling child/variant without parent SKU ${item.Sku}`)
+					parents[item.Sku] = item;
+					csv.push(item);
+					continue;
+				}
 				// use parent as a base and override with non-empty values for each key, ignoring title
 				const newItem = {...parentItem};
 				for (const key in item) {
