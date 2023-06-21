@@ -3,6 +3,7 @@ import he from 'he';
 import { diceCoefficient } from 'string-comparison';
 import './App.css';
 import vendors from './vendors';
+import { useState } from 'react';
 
 const STOCK_CAP = 50;
 const DOWNLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
@@ -11,6 +12,7 @@ const DONWLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
 const DEFAULT_SHOPIFY_PRODUCT = {
   'Handle': '', 'Title': '', 'Body (HTML)': '', 'Vendor': '', 'Product Category': '', 'Type': '', 'Tags': '', 'Published': '', 'Option1 Name': '', 'Option1 Value': '', 'Option2 Name': '', 'Option2 Value': '', 'Option3 Name': '', 'Option3 Value': '', 'Variant SKU': '', 'Variant Grams': '', 'Variant Inventory Tracker': '', 'Variant Inventory Qty': '', 'Variant Inventory Policy': '', 'Variant Fulfillment Service': '', 'Variant Price': '', 'Variant Compare At Price': '', 'Variant Requires Shipping': '', 'Variant Taxable': '', 'Variant Barcode': '', 'Image Src': '', 'Image Position': '', 'Image Alt Text': '', 'Gift Card': '', 'SEO Title': '', 'SEO Description': '', 'Google Shopping / Google Product Category': '', 'Google Shopping / Gender': '', 'Google Shopping / Age Group': '', 'Google Shopping / MPN': '', 'Google Shopping / AdWords Grouping': '', 'Google Shopping / AdWords Labels': '', 'Google Shopping / Condition': '', 'Google Shopping / Custom Product': '', 'Google Shopping / Custom Label 0': '', 'Google Shopping / Custom Label 1': '', 'Google Shopping / Custom Label 2': '', 'Google Shopping / Custom Label 3': '', 'Google Shopping / Custom Label 4': '', 'Variant Image': '', 'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Included / United Kingdom': '', 'Status': ''
 }
+const PARENT_SYMBOL = Symbol.for('parent');
 
 let logger = {
   log: () => {},
@@ -22,6 +24,9 @@ const DEBUG = true;
 if (DEBUG) {
   logger = console;
 }
+
+
+let cancelled = false;
 
 function downloadCSV(csvContent, filename) {
   const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -55,7 +60,7 @@ function parseCSVString(csvString) {
   });
 }
 
-async function parseFileAsCSV(field, props) {
+async function parseFileAsCSV(field, vendor) {
   const file = field.files[0];
   if (!file) return;
 
@@ -68,60 +73,32 @@ async function parseFileAsCSV(field, props) {
 
   let fileContent = reader.result; // Get the file content
   let headerRow = '';
-  if (props?.headers) {
-    headerRow = props.headers.join(',') + '\n';
+  if (vendor?.headers) {
+    headerRow = vendor.headers.join(',') + '\n';
   }
-  if (props?.name === 'blitz') {
+  if (vendor?.htmlDecode) {
     fileContent = he.decode(fileContent);
   }
-  const csv = await parseCSVString(headerRow + fileContent);
-  if (props?.variantFormat === 'multiline-mtb') {
-    const newCSV = [];
-    let parentItem;
-    for (const i of csv) {
-      // variant parent
-      if (!i.SKU && !i['Option SKU']) {
-        parentItem = i;
-        continue;
+  let csv = await parseCSVString(headerRow + fileContent);
+
+  if (vendor?.parseImport) {
+    csv = vendor.parseImport(csv);
+  }
+  if (vendor?.orderBy) {
+    csv = csv.sort((a, b) => {
+      return vendor.orderBy(a).localeCompare(vendor.orderBy(b));
+    });
+  }
+  if (vendor?.getVariantCorrelationId) {
+    const parents = {};
+    for (const item of csv) {
+      const id = vendor.getVariantCorrelationId(item);
+      if (parents[id]) {
+        item[PARENT_SYMBOL] = parents[id];
+      } else if (id) {
+        parents[id] = item;
       }
-      // singular
-      if (i.SKU) {
-        newCSV.push(i);
-        continue
-      }
-      // variant
-      newCSV.push({
-        ...parentItem,
-        SKU: i['Option SKU'],
-        Quantity: i['Option quantity'],
-        'Option value': i['Option value']
-      });
     }
-    return newCSV;
-  } else if (props?.variantFormat === 'blitz') {
-    const newCSV = [];
-    let parentItem;
-    for (const i of csv) {
-      // variant parent
-      if (i.Type === 'Parent') {
-        parentItem = i;
-        continue;
-      }
-      // singular
-      if (i.Type === 'Standard') {
-        newCSV.push(i);
-        continue;
-      }
-      const newItem = {...parentItem};
-      for (const key in i) {
-        if (i[key] !== '' && !['Title'].includes(key)) {
-          newItem[key] = i[key];
-        }
-      }
-      // variant
-      newCSV.push(newItem);
-    }
-    return newCSV;
   }
 
   return csv;
@@ -153,166 +130,7 @@ function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, ge
         logger.warn(`creating new item for SKU ${SKU} from ${vendor} product listing`, newStockItem)
       }
       const prevProduct = newProducts[newProducts.length - 1];
-      if (vendor === 'muaythai' && addMissing) {
-        const Handle = newStockItem.Name.toLowerCase().replace(/\s/g, '-');
-        const isNewProduct = Handle !== prevProduct?.Handle;
-        let newProductInfo = {};
-        // if no prev product or 
-        if (isNewProduct) {
-          newProductInfo = {
-            Title: newStockItem.Name,
-            'Body (HTML)': newStockItem.Description,
-            Vendor: newStockItem.Manufacturer,
-            'Product Category': 'Sporting Goods',
-            Type: 'Sporting Goods',
-            Published: 'TRUE',
-            'Image Src': newStockItem['Main image'],
-            'Option1 Name': 'Title',
-            'Option1 Value': 'Default Title'
-          };
-          if (prevProduct?.Title) {
-            prevProduct['Option1 Name'] = 'Title';
-            prevProduct['Option1 Value'] = 'Default Title';
-          }
-        }
-        newProducts.push({
-          ...DEFAULT_SHOPIFY_PRODUCT,
-          Handle,
-          ...newProductInfo,
-          'Option1 Name': 'Variant',
-          'Option1 Value': newStockItem['Option value'],
-          'Variant SKU': newStockItem.SKU,
-          'Variant Grams': Math.min(+newStockItem.Weight, 999),
-          'Variant Inventory Tracker': 'shopify',
-          'Variant Inventory Qty': newQuantity,
-          'Variant Inventory Policy': 'deny',
-          'Variant Fulfillment Service': 'manual',
-          'Variant Price': Math.ceil(+newStockItem.Price * 1.2) - 0.01,
-          'Variant Compare At Price': Math.ceil(+newStockItem.Price * 1.2) - 0.01,
-          'Variant Requires Shipping': 'TRUE',
-          'Variant Taxable': 'TRUE',
-          'Variant Barcode': newStockItem.SKU,
-          'Gift Card': 'FALSE',
-          'Variant Weight Unit': 'kg',
-          'Included / United Kingdom': 'TRUE',
-          'Status': 'active'
-        });
-      } else if (vendor === 'reydon-products' && addMissing) {
-        const Handle = currentShopifyInventoryItem?.Handle || newStockItem['Product_Name'].toLowerCase().replace(/\s/g, '-');
-        let newProductInfo = {};
-        const VAT = +newStockItem.VAT / 100;
-        const isNewProduct = Handle !== prevProduct?.Handle;
-        if (isNewProduct) {
-          newProductInfo = {
-            Title: newStockItem['Product_Name'],
-            'Body (HTML)': newStockItem.Description,
-            Vendor: newStockItem.Brand,
-            'Product Category': 'Sporting Goods',
-            Type: 'Sporting Goods',
-            Published: 'TRUE',
-            'Image Src': newStockItem['Image_FTP'],
-            'Option1 Name': 'Title',
-            'Option1 Value': 'Default Title'
-          };
-          if (prevProduct?.Title) {
-            prevProduct['Option1 Name'] = 'Title';
-            prevProduct['Option1 Value'] = 'Default Title';
-            prevProduct['Option2 Name'] = undefined;
-            prevProduct['Option2 Value'] = undefined;
-          }
-        }
-
-        newProducts.push({
-          ...DEFAULT_SHOPIFY_PRODUCT,
-          Handle,
-          ...newProductInfo,
-          'Option1 Name': newStockItem.Size ? 'Size' : newStockItem.Colour ? 'Colour': 'Title',
-          'Option1 Value': newStockItem.Size || newStockItem.Colour || 'Default Title',
-          'Option2 Name': newStockItem.Size && newStockItem.Colour ? 'Colour': undefined,
-          'Option2 Value': newStockItem.Size ? newStockItem.Colour : undefined,
-          'Variant SKU': SKU,
-          'Variant Grams': Math.min(+newStockItem.Weight_KG, 999),
-          'Variant Inventory Tracker': 'shopify',
-          'Variant Inventory Qty': newQuantity,
-          'Variant Inventory Policy': 'deny',
-          'Variant Fulfillment Service': 'manual',
-          'Variant Price': Math.ceil(+newStockItem.Your_Price * 1.4 * (1+VAT) + 3) - 0.01,
-          'Variant Compare At Price': newStockItem.SRP,
-          'Variant Requires Shipping': 'TRUE',
-          'Variant Taxable': VAT > 0 ? 'TRUE' : 'FALSE',
-          'Variant Barcode': newStockItem.Barcode,
-          'Gift Card': 'FALSE',
-          'Variant Weight Unit': 'kg',
-          'Included / United Kingdom': 'TRUE',
-          'Status': 'active'
-        });
-      } else if (vendor === 'blitz' && addMissing) {
-        let newProductInfo = {};
-        const VAT = newStockItem.Taxable === 'True' ? 0.2 : 0;
-        const curHandle = newStockItem.LinkComponent || newStockItem.Link.replace('https://www.blitzsport.com/', '');
-        const prevHandle = prevStockItem?.LinkComponent || prevStockItem?.Link?.replace('https://www.blitzsport.com/', '');
-        const isNewProduct = newStockItem.Type === 'Standard' || (curHandle !== prevHandle);
-        if (isNewProduct) {
-          const features = [];
-          for (let i = 1; i <=5; i++) {
-            if (newStockItem[`Feature${i}`] !== '') {
-              features.push(newStockItem[`Feature${i}`]);
-            }
-          }
-          const featureHTML = features.length ? `<br><ul>${features.map(f => `<li><p>${f}</p></li>`).join('')}</ul>` : '';
-          newProductInfo = {
-            Title: newStockItem.Title,
-            'Body (HTML)': newStockItem.Description + featureHTML,
-            Vendor: newStockItem.Brand,
-            'Product Category': 'Sporting Goods',
-            Type: newStockItem.Category,
-            Published: 'TRUE',
-            'Image Src': newStockItem.ImageUrl,
-            'Option1 Name': 'Title',
-            'Option1 Value': 'Default Title'
-          };
-          logger.log(newProductInfo);
-          // add images for previous product
-          if (prevStockItem) {
-            for (let i = 1; i <=5; i++) {
-              if (!!prevStockItem[`AltImage${i}`]) {
-                newProducts.push({
-                  Handle: prevHandle,
-                  'Image Src': prevStockItem[`AltImage${i}`]
-                });
-              }
-            }
-          }
-        } else if (newStockItem.ParentSku !== prevStockItem.ParentSku) {
-          // something is wrong here since it should be the same
-          logger.error('ERROR: missing parent', newStockItem)
-          return;
-        }
-        newProducts.push({
-          ...DEFAULT_SHOPIFY_PRODUCT,
-          Handle: curHandle,
-          ...newProductInfo,
-          'Option1 Name': newStockItem.Size ? 'Size' : newStockItem.Colour ? 'Colour': 'Title',
-          'Option1 Value': newStockItem.Size || newStockItem.Colour || 'Default Title',
-          'Option2 Name': newStockItem.Size && newStockItem.Colour ? 'Colour': undefined,
-          'Option2 Value': newStockItem.Size ? newStockItem.Colour : undefined,
-          'Variant SKU': SKU,
-          'Variant Grams': Math.min(+newStockItem.Weight, 999),
-          'Variant Inventory Tracker': 'shopify',
-          'Variant Inventory Qty': newQuantity,
-          'Variant Inventory Policy': 'deny',
-          'Variant Fulfillment Service': 'manual',
-          'Variant Price': Math.ceil(+newStockItem.TradePrice * 1.3 * (1+VAT) + 3) - 0.01,
-          'Variant Compare At Price': newStockItem.RetailPrice,
-          'Variant Requires Shipping': 'TRUE',
-          'Variant Taxable': newStockItem.Taxable,
-          'Variant Barcode': newStockItem.Ean,
-          'Gift Card': 'FALSE',
-          'Variant Weight Unit': 'g',
-          'Included / United Kingdom': 'TRUE',
-          'Status': 'active'
-        });
-      }
+      
     } else {
       // update inventory
       const currentQuantity = +currentShopifyInventoryItem['On hand'];
@@ -363,6 +181,9 @@ const updateInventory = async () => {
   const shopifyInventoryCSV = await parseFileAsCSV({ files: shopifyInventoryFiles });
   const shopifyInventoryUpdates = [];
   for (const vendor of vendors) {
+    if (cancelled) {
+      return;
+    }
     if (!vendor.updateInventory) {
       logger.log(`[SKIP] inventory update not applicable to ${vendor.name}`);
       continue;
@@ -373,13 +194,11 @@ const updateInventory = async () => {
       logger.log(`[SKIP] no inventory file selected for ${vendor.name}`);
       continue;
     }
-    // TODO: move orderBy into parse
-    if (vendor.orderBy) {
-      vendorInventoryCSV = vendorInventoryCSV.sort((a, b) => {
-        return a[vendor.orderBy].localeCompare(b[vendor.orderBy]);
-      });
-    }
+
     for (const vendorItem of vendorInventoryCSV) {
+      if (cancelled) {
+        return;
+      }
       const vendorItemSKU = vendor.getSKU(vendorItem);
       if (!vendorItemSKU) {
         continue;
@@ -427,15 +246,17 @@ const updateInventory = async () => {
   downloadCSV(csv, DOWNLOAD_INVENTORY_FILE_NAME);
 }
 
-
 const matchShopifyItems = (shopifyItemSKU, shopifyItemTitle, shopifyItemBarcode, vendor, vendorProduct, matchBarcode) => {
   const vendorProductSKU = vendor.getSKU(vendorProduct);
   if (shopifyItemSKU !== vendorProductSKU) {
     return;
   }
+  if (vendor.deny?.includes(vendorProductSKU)) {
+    return;
+  }
 
   const shopifyItemLabel = `${shopifyItemSKU} (${shopifyItemTitle}/${shopifyItemBarcode})`;
-  const vendorProductTitle = vendor.getTitle(vendorProduct);
+  const vendorProductTitle = vendor.getTitle?.(vendorProduct) || '';
   const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) || 'does not apply';
   const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
   if (matchBarcode) {
@@ -506,6 +327,7 @@ const getShopifyProductAndParent = (shopifyProducts, vendor, vendorProduct) => {
 }
 
 const updateProducts = async () => {
+  logger.info('Update products');
   const shopifyProductsFiles = getFiles('shopify-products');
   if (!shopifyProductsFiles.length) {
     logger.error('[ERROR] no shopify products CSV selected');
@@ -515,6 +337,9 @@ const updateProducts = async () => {
   const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
 
   for (const vendor of vendors) {
+    if (cancelled) {
+      return;
+    }
     if (!vendor.updateProducts) {
       logger.log(`[SKIP] product update not applicable to ${vendor.name}`);
       continue;
@@ -525,21 +350,18 @@ const updateProducts = async () => {
       logger.log(`[SKIP] no product file selected for ${vendor.name}`);
       continue;
     }
-    // TODO: move orderBy into parse
-    if (vendor.orderBy) {
-      vendorProductCSV = vendorProductCSV.sort((a, b) => {
-        return a[vendor.orderBy].localeCompare(b[vendor.orderBy]);
-      });
-    }
 
     for (const vendorProduct of vendorProductCSV) {
+      if (cancelled) {
+        return;
+      }
       const vendorProductSKU = vendor.getSKU(vendorProduct);
       if (!vendorProductSKU) {
         logger.log(`[NOT FOUND] ${vendor.name} no SKU found for product`, vendorProduct);
         continue;
       }
 
-      const vendorProductTitle = vendor.getTitle(vendorProduct);
+      const vendorProductTitle = vendor.getTitle?.(vendorProduct) || '';
       const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) || 'does not apply';
       const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
       const { shopifyProduct, shopifyParent, shopifyProductLabel } = getShopifyProductAndParent(
@@ -596,9 +418,162 @@ const updateProducts = async () => {
   downloadCSV(csv, DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME);
 }
 
+const addProducts = async () => {
+  const shopifyProductsFiles = getFiles('shopify-products');
+  if (!shopifyProductsFiles.length) {
+    logger.error('[ERROR] no shopify products CSV selected');
+    return;
+  }
+  const shopifyProductsCSV = await parseFileAsCSV({ files: shopifyProductsFiles });
+  const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
+
+  for (const vendor of vendors) {
+    if (cancelled) {
+      return;
+    }
+    if (!vendor.addProducts) {
+      logger.log(`[SKIP] add product not applicable to ${vendor.name}`);
+      continue;
+    }
+    const vendorProductFiles = getFiles(vendor.name);
+    let vendorProductCSV = await parseFileAsCSV({ files: vendorProductFiles }, vendor);
+    if (!vendorProductCSV) {
+      logger.log(`[SKIP] no product file selected for ${vendor.name}`);
+      continue;
+    }
+
+    for (const vendorProduct of vendorProductCSV) {
+      if (cancelled) {
+        return;
+      }
+      const vendorProductSKU = vendor.getSKU(vendorProduct);
+      if (!vendorProductSKU) {
+        logger.log(`[NOT FOUND] ${vendor.name} no SKU found for product`, vendorProduct);
+        continue;
+      }
+
+      const vendorProductTitle = vendor.getTitle(vendorProduct);
+      const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) || 'does not apply';
+      const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
+      const { shopifyProduct } = getShopifyProductAndParent(
+        shopifyProducts, vendor, vendorProduct
+      );
+        
+      if (shopifyProduct) {
+        logger.log(`[FOUND] ${vendor.name} SKU ${vendorProductLabel} in shopify products`, shopifyProduct);
+        continue;
+      }
+    
+      const vendorParent = vendorProduct[PARENT_SYMBOL];
+      const { shopifyParent } = vendorParent ? getShopifyProductAndParent(
+        shopifyProducts, vendor, vendorParent
+      ) : { shopifyParent: undefined };
+      const isNewProduct = !shopifyParent;
+
+      const Title = vendor.getTitle(vendorProduct).trim();
+      // Generate a handle
+      const Handle = isNewProduct
+        ? Title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+        : shopifyParent.primaryRow.Handle;
+
+      let product;
+      if (isNewProduct) {
+        const features = vendor.getFeatures?.(vendorProduct) || [];
+        const featureHTML = features.length ? `<br><ul>${features.map(f => `<li><p>${f}</p></li>`).join('')}</ul>` : '';
+
+        // create product as parent
+        product = {
+          Title,
+          Handle,
+          'Body (HTML)': featureHTML + vendor.getDescription(vendorProduct),
+          Vendor: vendor.getVendor(vendorProduct),
+          'Product Category': 'Sporting Goods',
+          Type: vendor.getType?.(vendorProduct) ?? 'Sporting Goods',
+          Published: 'TRUE',
+          'Image Src': vendor.getMainImageURL(vendorProduct)
+        };
+        logger.warn(`[ADDING] ${vendor.name} new product SKU ${vendorProductLabel} to shopify`);
+      } else {
+        logger.warn(`[ADDING] ${vendor.name} SKU ${vendorProductLabel} to existing product in shopify`);
+      }
+
+      product = {
+        ...DEFAULT_SHOPIFY_PRODUCT,
+        ...product,
+        Handle,
+        'Variant SKU': vendorProductSKU,
+        'Variant Inventory Tracker': 'shopify',
+        'Variant Inventory Qty': vendor.getQuantity(vendorProduct),
+        'Variant Inventory Policy': 'deny',
+        'Variant Fulfillment Service': 'manual',
+        'Variant Price': vendor.getPrice(vendorProduct),
+        'Variant Compare At Price': vendor.getRRP(vendorProduct),
+        'Variant Requires Shipping': 'TRUE',
+        'Variant Taxable': vendor.getTaxable?.(vendorProduct)  ? 'TRUE' : 'FALSE',
+        'Variant Barcode': vendorProductBarcode,
+        'Gift Card': 'FALSE',
+        'Variant Weight Unit': 'kg',
+        'Included / United Kingdom': 'TRUE',
+        'Status': 'active'
+      };
+      if (vendor.getWeight) {
+        product['Variant Grams'] = Math.min(vendor.getWeight(vendorProduct), 999);
+      }
+      if (vendor.getTaxCode) {
+        product['Variant Tax Code'] = vendor.getTaxCode(vendorProduct);
+      }
+      if (vendor.getTags) {
+        product['Tags'] = vendor.getTags(vendorProduct);
+      }
+      const variants = vendor.getVariants?.(vendorProduct);
+      if (variants?.length) {
+        for (let i = 0; i <= variants.length && i <= 3; i++) {
+          if (variants[i]) {
+            product[`Option${i+1} Name`] = variants[i].name;
+            product[`Option${i+1} Value`] = variants[i].value;
+          }
+        }
+      } else {
+        product['Option1 Name'] = 'Title';
+        product['Option1 Value'] = 'Default Title';
+      }
+      let additionalImages = [];
+      if (vendor.getAdditionalImages) {
+        additionalImages = vendor.getAdditionalImages(vendorProduct).map(image => ({
+          ...DEFAULT_SHOPIFY_PRODUCT,
+          Handle,
+          'Image Src': image,
+        }))
+      }
+      
+      if (!isNewProduct) {
+        shopifyParent.secondaryRows.push(product);
+        shopifyParent.secondaryRows.push(...additionalImages);
+        shopifyParent.edited = true;
+      } else {
+        shopifyProducts.push({
+          primaryRow: product,
+          secondaryRows: additionalImages,
+          edited: true
+        });
+      }
+    }
+  }
+
+  const shopifyProductsCSVExport = convertShopifyProductsToExternal(shopifyProducts, { onlyEdited: true });
+  if (!shopifyProductsCSVExport.length) {
+    logger.warn('[DONE] Nothing to download');
+    return;
+  }
+  logger.warn('[DONE] Downloading CSV');
+  const csv = Papa.unparse(shopifyProductsCSVExport, {
+    header: true,
+    newline: '\n',
+  });
+  downloadCSV(csv, DONWLOAD_PRODUCTS_FILE_NAME);
+}
 
 // products format
-
 const convertShopifyProductsToInternal = (shopifyProductsCSV) => {
   shopifyProductsCSV = shopifyProductsCSV.sort((a, b) => {
     return a.Handle.localeCompare(b.Handle);
@@ -607,7 +582,6 @@ const convertShopifyProductsToInternal = (shopifyProductsCSV) => {
   // reformat
   const shopifyProductsNewFormat = [];
   let currentProduct;
-  let barcodeEscaped;
   for (const shopifyProduct of shopifyProductsCSV) {
     shopifyProduct['Variant Barcode'] = shopifyProduct['Variant Barcode'].replace(/^'/, '');
     shopifyProduct['Variant SKU'] = shopifyProduct['Variant SKU'].replace(/^'/, '');
@@ -615,8 +589,7 @@ const convertShopifyProductsToInternal = (shopifyProductsCSV) => {
       currentProduct = {
         primaryRow: shopifyProduct,
         secondaryRows: [],
-        edited: false,
-        barcodeEscaped
+        edited: false
       };
       shopifyProductsNewFormat.push(currentProduct);
     } else {
@@ -638,70 +611,22 @@ const convertShopifyProductsToExternal = (products, options = {}) => {
   return shopifyProductsCSV;
 }
 
-const importShopify = async (event, type) => {
-  event.preventDefault(); // Prevents the form from submitting and refreshing the page
-  const form = document.getElementById('myform'); // Get the submitted form element
-  const shopifyInventory = form.querySelector('#shopify-inventory'); // Get file inputs within the submitted form
-  const shopifyCSV = await parseFileAsCSV(shopifyInventory);
-  const shopifyProducts = form.querySelector('#shopify-products'); // Get file inputs within the submitted form
-  const shopifyProductsCSV = await parseFileAsCSV(shopifyProducts);
-  const allChangedItems = [];
-  const allNewProducts = [];
-
-  for (const vendor of vendors) {
-    const htmlFormFile = form.querySelector(`#${vendor.name}`);
-    const vendorCSV = await parseFileAsCSV(htmlFormFile, vendor);
-    if (!vendorCSV) {
-      continue;
-    }
-    console.log(vendor)
-    const { vendorUpdates, newProducts } = getStockUpdates({
-      vendor: vendor.name,
-      vendorCSV,
-      shopifyCSV,
-      shopifyProductsCSV,
-      ...vendor
-    });
-    allChangedItems.push(...vendorUpdates);
-    allNewProducts.push(...newProducts);
-  }
-  
-  const messageDiv = document.getElementById('message');
-  if (type === 'inventory') {
-    if (allChangedItems.length) {
-      messageDiv.textContent = '';
-      const csv = Papa.unparse(allChangedItems, {
-        header: true,
-        newline: '\n',
-      });
-      downloadCSV(csv, DOWNLOAD_INVENTORY_FILE_NAME);
-    } else {
-      messageDiv.textContent = 'Nothing changed';
-      logger.log('Nothing changed!')
-    }
-    logger.log(allNewProducts.length, 'new items ready to add to store');
-  } else if (type === 'newproducts') {
-    if (allNewProducts.length) {
-      const csv = Papa.unparse(allNewProducts, {
-        header: true,
-        newline: '\n',
-      });
-      downloadCSV(csv, DONWLOAD_PRODUCTS_FILE_NAME);
-    } else {
-      messageDiv.textContent = 'Nothing new';
-    }
-  } else if (type === 'editproducts') {
-    const csv = Papa.unparse(shopifyProductsCSV, {
-      header: true,
-      newline: '\n'
-    });
-    downloadCSV(csv, DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME);
-  } else {
-    messageDiv.textContent = 'error code 1 contact support';
-  }
-}
-
 function App() {
+  const [ loading, setLoading ] = useState(false);
+  const cancel = () => {
+    cancelled = true;
+    setLoading(false);
+  }
+  const withLoading = (fn) => {
+    return async (e) => {
+      cancelled = false;
+      e.preventDefault();
+      e.stopPropagation();
+      setLoading(true);
+      await fn(e).catch();
+      setLoading(false);
+    }
+  }
   return (
     <div className="App">
       <header className="App-header">
@@ -722,24 +647,41 @@ function App() {
               <p/>
             </div>
           ))}
-          <button
-            onClick={updateInventory}
-            style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}
-          >
-            Download Inventory CSV (quantity)
-          </button>
-          <p/>
-          <input onClick={(e) => importShopify(e, "newproducts")} type="submit" name="newProducts" value="Download Products CSV (new)" style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}/>
-          <p/>
-          <button
-            onClick={updateProducts}
-            style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}
-          >
-            Download Products CSV (edited price)
-          </button>
-          <div id="message" />
-          <p/>
-          <p/>
+          {loading ? (
+            <>
+              <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+              <button
+                onClick={cancel}
+                >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={withLoading(updateInventory)}
+                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}
+              >
+                Download Inventory CSV (Update Quantity)
+              </button>
+              <p/>
+              <button
+                onClick={withLoading(addProducts)}
+                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}
+              >
+                Download Products CSV (Add missing products)
+              </button>
+              <p/>
+              <button
+                onClick={withLoading(updateProducts)}
+                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}
+              >
+                Download Products CSV (Edit products)
+              </button>
+              <p/>
+              <p/>
+            </>
+          )}
         </form>
       </header>
     </div>
