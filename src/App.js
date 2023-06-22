@@ -432,9 +432,9 @@ const addProducts = async () => {
           Published: 'TRUE',
           'Image Src': vendor.getMainImageURL(vendorProduct)
         };
-        logger.warn(`[ADDING] ${vendor.name} new product SKU ${vendorProductLabel} to shopify`);
+        logger.warn(`[ADDING] ${vendor.name} new product SKU ${vendorProductLabel} to shopify`, vendorProduct);
       } else {
-        logger.warn(`[ADDING] ${vendor.name} SKU ${vendorProductLabel} to existing product in shopify`);
+        logger.warn(`[ADDING] ${vendor.name} SKU ${vendorProductLabel} to existing product in shopify`, vendorProduct);
       }
 
       product = {
@@ -589,7 +589,7 @@ function App() {
           ))}
           {loading ? (
             <>
-              <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+              <div className="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
               <button
                 onClick={cancel}
                 >

@@ -180,7 +180,12 @@ const vendors = [
 		getSKU: item => item['Item code'],
 		getBarcode: item => item.EAN,
 		getQuantity: item => 25,
-		getTitle: item => `Arena Swimming ${item.Title} (${item.Col})`,
+		getTitle: item => {
+			if (item.COO === 'Turkey') {
+				return `Comfyballs Underwear ${item.Title} (${item.Col})`;
+			}
+			return `Arena Swimming ${item.Title} (${item.Col})`;
+		},
 		getPrice: item => Math.ceil(+item['Your Price £'] * 1.4 * 1.2 + 3) - 0.01,
 		getRRP: item => +item.RRP,
 		getFeatures: item => {
@@ -193,7 +198,12 @@ const vendors = [
 			return features;
 		},
 		getDescription: item => item['extended descriptiom'],
-		getVendor: item => 'Arena',
+		getVendor: item => {
+			if (item.COO === 'Turkey') {
+				return 'Comfyballs';
+			}
+			return 'Arena';
+		},
 		getMainImageURL: item => item['Image link 1'].replace('dropbox.com', 'dl.dropboxusercontent.com'),
 		getAdditionalImages: item => {
 			const image = item['Image link 2'];
