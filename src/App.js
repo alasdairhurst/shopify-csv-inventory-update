@@ -104,66 +104,6 @@ async function parseFileAsCSV(field, vendor) {
   return csv;
 }
 
-function getStockUpdates ({vendor, vendorCSV, shopifyCSV, shopifyProductsCSV, getQuantity, getSKU, addMissing, updateInventory, orderBy}) {
-  const vendorUpdates = [];
-  const newProducts = [];
-  if (!vendorCSV || !shopifyCSV) {
-    return { vendorUpdates, newProducts };
-  }
-  if (orderBy) {
-    vendorCSV = vendorCSV.sort((a, b) => {
-      return a[orderBy].localeCompare(b[orderBy]);
-    });
-  }
-  vendorCSV.forEach((newStockItem, i) => {
-    const prevStockItem = vendorCSV[i-1];
-    const SKU = getSKU(newStockItem);
-    if (!SKU) {
-      return;
-    }
-    const currentShopifyInventoryItem = shopifyCSV?.find(r => r.SKU && r.SKU === SKU);
-    const rawNewQuantity = getQuantity(newStockItem);
-    const newQuantity = Math.min(rawNewQuantity, STOCK_CAP);
-    if (!currentShopifyInventoryItem) {
-      logger.error(`no item found in shopify with ${vendor} SKU ${SKU}`);
-      if (addMissing) {
-        logger.warn(`creating new item for SKU ${SKU} from ${vendor} product listing`, newStockItem)
-      }
-      const prevProduct = newProducts[newProducts.length - 1];
-      
-    } else {
-      // update inventory
-      const currentQuantity = +currentShopifyInventoryItem['On hand'];
-      if (currentQuantity === newQuantity) {
-        logger.log(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock matches what is in ${vendor}`);
-      } else {
-        if (updateInventory) {
-          logger.warn(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock: ${currentQuantity}, updated to: ${newQuantity}`);
-          currentShopifyInventoryItem['On hand'] = newQuantity;
-          vendorUpdates.push(currentShopifyInventoryItem);
-        } else {
-          logger.warn(`Found item in shopify ${JSON.stringify(currentShopifyInventoryItem)} stock: ${currentQuantity}, should be: ${newQuantity}`);
-        }
-      }
-    }
-    // update product only for reydon products for now
-    if (vendor !== 'reydon-products') {
-      return;
-    }
-    const currentShopifyProduct = shopifyProductsCSV?.find(r => r['Variant SKU'] && r['Variant SKU'] === SKU);
-    if (!currentShopifyProduct) {
-      return;
-    }
-    const VAT = +newStockItem.VAT / 100;
-    const newPrice = Math.ceil(+newStockItem.Your_Price * 1.4 * (1+VAT) + 3) - 0.01;
-    if (currentShopifyProduct['Variant Price'].toString() !== newPrice.toString()) {
-      logger.warn(`Updating ${vendor} ${SKU} price from`, currentShopifyProduct['Variant Price'], 'to',newPrice);
-      currentShopifyProduct['Variant Price'] = newPrice;
-    }
-  });
-  return { vendorUpdates, newProducts };
-}
-
 const getFiles = (inputID) => {
   const form = document.getElementById('myform');
   const input = form?.querySelector(`#${inputID}`);

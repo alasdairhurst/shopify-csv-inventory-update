@@ -73,7 +73,7 @@ const vendors = [
 		updateInventory: true,
 		updateProducts: false,
 		getSKU: item => item.SKU,
-		getQuantity: item => Math.min(+item.quantity, 50),
+		getQuantity: item => Math.min(+item.Quantity, 50),
 		useTitleForMatching: false,
 		getTitle: item => item.Title
 	},
