@@ -50,18 +50,30 @@ function parseCSVString(csvString) {
     Papa.parse(csvString, {
       header: true,
       skipEmptyLines: true,
-      complete: function(results) {
+      complete (results) {
         resolve(results.data);
       },
-      error: function(error) {
-        reject(error);
-      }
+      error: reject
     });
   });
 }
 
-async function parseFileAsCSV(field, vendor) {
-  const file = field.files[0];
+const SHOPIFY_MULTIPLE_OPTIONS = {
+  orderBy: item => item.Handle
+}
+
+async function parseFilesAsCSV(files, vendor, multipleOptions) {
+  const allFiles = await Promise.all(Array.from(files).map(f => parseFileAsCSV(f, vendor)));
+  let csv = [].concat(...allFiles);
+  if (multipleOptions?.orderBy) {
+    csv = csv.sort((a, b) => {
+      return multipleOptions.orderBy(a).localeCompare(multipleOptions.orderBy(b));
+    });
+  }
+  return csv;
+}
+
+async function parseFileAsCSV(file, vendor) {
   if (!file) return;
 
   const reader = new FileReader();
@@ -118,7 +130,7 @@ const updateInventory = async () => {
     logger.error('[ERROR] no shopify inventory CSV selected');
     return;
   }
-  const shopifyInventoryCSV = await parseFileAsCSV({ files: shopifyInventoryFiles });
+  const shopifyInventoryCSV = await parseFilesAsCSV(shopifyInventoryFiles, undefined, SHOPIFY_MULTIPLE_OPTIONS);
   const shopifyInventoryUpdates = [];
   for (const vendor of vendors) {
     if (cancelled) {
@@ -129,7 +141,7 @@ const updateInventory = async () => {
       continue;
     }
     const vendorInventory = getFiles(vendor.name);
-    let vendorInventoryCSV = await parseFileAsCSV({ files: vendorInventory }, vendor);
+    let vendorInventoryCSV = await parseFileAsCSV(vendorInventory[0], vendor);
     if (!vendorInventoryCSV) {
       logger.log(`[SKIP] no inventory file selected for ${vendor.name}`);
       continue;
@@ -273,7 +285,7 @@ const updateProducts = async () => {
     logger.error('[ERROR] no shopify products CSV selected');
     return;
   }
-  const shopifyProductsCSV = await parseFileAsCSV({ files: shopifyProductsFiles });
+  const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, undefined, SHOPIFY_MULTIPLE_OPTIONS);
   const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
 
   for (const vendor of vendors) {
@@ -285,7 +297,7 @@ const updateProducts = async () => {
       continue;
     }
     const vendorProductFiles = getFiles(vendor.name);
-    let vendorProductCSV = await parseFileAsCSV({ files: vendorProductFiles }, vendor);
+    let vendorProductCSV = await parseFileAsCSV(vendorProductFiles[0], vendor);
     if (!vendorProductCSV) {
       logger.log(`[SKIP] no product file selected for ${vendor.name}`);
       continue;
@@ -364,7 +376,7 @@ const addProducts = async () => {
     logger.error('[ERROR] no shopify products CSV selected');
     return;
   }
-  const shopifyProductsCSV = await parseFileAsCSV({ files: shopifyProductsFiles });
+  const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, undefined, SHOPIFY_MULTIPLE_OPTIONS);
   const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
 
   for (const vendor of vendors) {
@@ -376,7 +388,7 @@ const addProducts = async () => {
       continue;
     }
     const vendorProductFiles = getFiles(vendor.name);
-    let vendorProductCSV = await parseFileAsCSV({ files: vendorProductFiles }, vendor);
+    let vendorProductCSV = await parseFileAsCSV(vendorProductFiles[0], vendor);
     if (!vendorProductCSV) {
       logger.log(`[SKIP] no product file selected for ${vendor.name}`);
       continue;
@@ -563,7 +575,7 @@ function App() {
       e.preventDefault();
       e.stopPropagation();
       setLoading(true);
-      await fn(e).catch();
+      await fn(e).catch(console.error);
       setLoading(false);
     }
   }
@@ -573,17 +585,17 @@ function App() {
         <form id="myform" className="form" onSubmit={e => {e.preventDefault()}}>
           <h2>Shopify Inventory</h2>
           <label htmlFor="shopify-inventory">Shopify inventory CSV:</label>
-          <input type="file" id="shopify-inventory" name="shopify-inventory" />
+          <input type="file" multiple accept="text/csv" id="shopify-inventory" name="shopify-inventory" />
           <p/>
           <h2>Shopify Products</h2>
           <label htmlFor="shopify-products">Shopify products CSV:</label>
-          <input type="file" id="shopify-products" name="shopify-products" />
+          <input type="file" multiple accept="text/csv" id="shopify-products" name="shopify-products" />
           <p/>
           <h2>Vendor Inventory</h2>
           {vendors.map(vendor => (
             <div key={vendor.name}>
               <label htmlFor={vendor.name}>{vendor.importLabel}</label>
-              <input type="file" id={vendor.name} name={vendor.name} />
+              <input type="file" accept="text/csv" id={vendor.name} name={vendor.name} />
               <p/>
             </div>
           ))}
