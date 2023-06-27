@@ -347,7 +347,16 @@ const vendors = [
 			}
 			return csv;
 		}
-	}
+	},
+	{
+		"name": "fitnessmad",
+		"importLabel": "Fitness Mad CSV",
+		updateInventory: true,
+		getSKU: item => `${item['No.'].trim()}-${item.Variant.trim() || ''}`,
+		getQuantity: item => Math.min(+item['Free Stock Today'], 50),
+		useTitleForMatching: false,
+		getTitle: item => item.Description
+	},
 ];
 
 export default vendors;

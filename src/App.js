@@ -624,6 +624,9 @@ function App() {
           )}
         </form>
       </header>
+      <div style={{ position: 'absolute', bottom: '10px', left: '10px', color: 'white' }}>
+        Version: {new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(+process.env.BUILD_TIME)}
+      </div>
     </div>
   );
 }
