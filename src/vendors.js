@@ -352,11 +352,71 @@ const vendors = [
 		"name": "fitnessmad",
 		"importLabel": "Fitness Mad CSV",
 		updateInventory: true,
-		getSKU: item => `${item['No.'].trim()}-${item.Variant.trim() || ''}`,
+		getSKU: item => {
+			const variant = item.Variant.trim();
+			const SKU = item['No.'].trim();
+			if (variant) {
+				return `${SKU}-${variant}`;
+			}
+			return SKU;
+		},
 		getQuantity: item => Math.min(+item['Free Stock Today'], 50),
 		useTitleForMatching: false,
 		getTitle: item => item.Description
 	},
+	// {
+	// 	"name": "transglobal",
+	// 	"importLabel": "Transglobal CSV",
+	// 	updateInventory: true,
+	// 	updateProducts: true,
+	// 	addProducts: true,
+	// 	useBarcodeForExclusiveMatching: true,
+	// 	getSKU: item => {
+	// 		return item['Variant SKU'] ? 'TRANSGLOBAL-' + item['Variant SKU'] : undefined
+	// 	},
+	// 	getQuantity: item => item['Variant Inventory Qty'],
+	// 	getPrice: item => item['Variant Price'],
+	// 	getRRP: item => item['Variant Price'],
+	// 	getMainImageURL: item => item['Image Src'],
+	// 	getAdditionalImages: item => {
+	// 		if (item['Variant Image']) {
+	// 			return [item['Variant Image']];
+	// 		}
+	// 		return [];
+	// 	},
+	// 	getTitle: item => item.Vendor + ' ' + item.Title,
+	// 	useTitleForMatching: true,
+	// 	getBarcode: item => item['Variant Barcode'],
+	// 	getTaxable: item => item['Variant Taxable'],
+	// 	getVariantCorrelationId: item => item.Handle,
+	// 	getWeight: item => item['Variant Grams'],
+	// 	getType: item => item.Type,
+	// 	getTags: item => 'new in,transglobal',
+	// 	getVendor: item => item.Vendor,
+	// 	getDescription: item => item['Body (HTML)'],
+	// 	getVariants: item => {
+	// 		const variants = [];
+	// 		if (item['Option1 Name']) {
+	// 			variants.push({
+	// 				name: item['Option1 Name'],
+	// 				value: item['Option1 Value']
+	// 			});
+	// 		}
+	// 		if (item['Option2 Name']) {
+	// 			variants.push({
+	// 				name: item['Option2 Name'],
+	// 				value: item['Option2 Value']
+	// 			});
+	// 		}
+	// 		if (item['Option3 Name']) {
+	// 			variants.push({
+	// 				name: item['Option3 Name'],
+	// 				value: item['Option3 Value']
+	// 			});
+	// 		}
+	// 		return variants;
+	// 	}
+	// }
 ];
 
 export default vendors;
