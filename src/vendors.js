@@ -33,6 +33,7 @@ const vendors = [
 		getVendor: item => item.Brand,
 		getSKU: item => item.Sku_Code.replace('\n', ''),
 		getMainImageURL: item => item['Image_FTP'],
+		getVariantImageURL: item => item['Image_FTP'],
 		getQuantity: item => +item.Free_Stock,
 		getTaxable: item => +item.VAT > 0,
 		getRRP: item => +item.SRP,
@@ -131,7 +132,7 @@ const vendors = [
 		addProducts: true,
 		useBarcodeForExclusiveMatching: true,
 		getSKU: item => item.SKU,
-		getBarcode: item => item.SKU,
+		getBarcode: item => item.EAN,
 		getQuantity: item => +item.Quantity,
 		getTitle: item => item.Name,
 		getWeight: item => +item.Weight,
@@ -140,6 +141,18 @@ const vendors = [
 		getDescription: item => item.Description,
 		getVendor: item => item.Manufacturer,
 		getMainImageURL: item => item['Main image'],
+		getAdditionalImages: item => {
+			const images = [];
+			for (let i = 2; i<= 5; i++) {
+				const image = item[`Image ${i}`];
+				if (image) {
+					images.push(image);
+				}
+
+			}
+			return images;
+		},
+		getTags: item => 'mtb, new in',
 		getVariants: item => [{
 			name: 'Variant',
 			value: item['Option value'],
@@ -150,19 +163,20 @@ const vendors = [
 			let parentItem;
 			for (const item of items) {
 				// variant parent
-				if (!item.SKU && !item['Option SKU']) {
+				if (!item.EAN && !item['Option EAN']) {
 					parentItem = item;
 					continue;
 				}
 				// singular
-				if (item.SKU) {
+				if (item.EAN) {
 					csv.push(item);
 					continue;
 				}
 				// variant
 				csv.push({
 					...parentItem,
-					SKU: item['Option SKU'],
+					SKU: item['Option EAN'], // change to SKU when they're done changing
+					EAN: item['Option EAN'],
 					Quantity: item['Option quantity'],
 					'Option value': item['Option value']
 				});

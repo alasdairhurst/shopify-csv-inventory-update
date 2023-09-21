@@ -335,6 +335,7 @@ const updateProducts = async () => {
         if (shopifyProductPrice === vendorProductPrice) {
           logger.log(`[PRICE MATCH] ${vendor.name} SKU ${vendorProductLabel} price ${vendorProductPrice} matches shopify product ${shopifyProductLabel}: ${shopifyProductPrice}`);
         } else {
+          logger.warn(shopifyProduct, shopifyParent)
           logger.warn(`[PRICE UPDATE] ${vendor.name} SKU ${vendorProductLabel} price ${vendorProductPrice} differs in shopify product ${shopifyProductLabel}: ${shopifyProductPrice}`);
           shopifyProduct['Variant Price'] = vendorProductPrice;
           shopifyParent.edited = true;
@@ -352,6 +353,44 @@ const updateProducts = async () => {
           logger.warn(`[BARCODE UPDATE] ${vendor.name} SKU ${vendorProductLabel} barcode differs in shopify product ${shopifyProductLabel}`);
           shopifyProduct['Variant Barcode'] = vendorProductBarcode;
           shopifyParent.edited = true;
+        }
+      }
+
+      // update main image
+      if (!vendor.getVariantImageURL) {
+        logger.error(`[ERROR] cannot update variant images for vendor ${vendor.name} getVariantImageURL not implemented`);
+      } else {
+        const vendorVariantImage = vendor.getVariantImageURL(vendorProduct);
+        if (!shopifyProduct['Image Src'] && vendorVariantImage) {
+          logger.warn(`[VARIANT IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} adding variant image to product ${shopifyProductLabel}`);
+          shopifyProduct['Image Src'] = vendorVariantImage;
+          shopifyParent.edited = true;
+        }
+      }
+
+      // Update images. Do this for every sub item??
+      if (!vendor.getAdditionalImages) {
+        logger.error(`[ERROR] cannot update additional images for vendor ${vendor.name} getAdditionalImages not implemented`);
+      } else {
+        const shopifyProductAdditionalImages = shopifyParent.secondaryRows.filter(row => {
+          return row['Image Src'] && !row['Title'] && !row['Variant SKU'];
+        });
+
+        // Currently we only add new secondary images if there are no existing ones.
+        // It's much harder to check if the images match between shopify and vendor because
+        // the URL changes on import and we don't want to modify every listing every time.
+        const vendorProductImages = vendor.getAdditionalImages(vendorProduct);
+        if (!shopifyProductAdditionalImages.length && vendorProductImages.length) {
+          logger.warn(`[ADDITIONAL IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} adding ${vendorProductImages.length} more images to product ${shopifyProductLabel}`);
+          // Add new images
+          for (const image of vendorProductImages) {
+            shopifyParent.secondaryRows.push({
+              ...DEFAULT_SHOPIFY_PRODUCT,
+              Handle: shopifyParent.primaryRow.Handle,
+              'Image Src': image,
+            });
+            shopifyParent.edited = true;
+          };
         }
       }
     }
@@ -463,6 +502,7 @@ const addProducts = async () => {
         'Variant Requires Shipping': 'TRUE',
         'Variant Taxable': vendor.getTaxable?.(vendorProduct)  ? 'TRUE' : 'FALSE',
         'Variant Barcode': vendorProductBarcode,
+        'Image Src': vendor.getMainImageURL?.(vendorProduct),
         'Gift Card': 'FALSE',
         'Variant Weight Unit': 'kg',
         'Included / United Kingdom': 'TRUE',
