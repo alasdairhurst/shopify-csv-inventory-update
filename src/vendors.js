@@ -11,6 +11,12 @@ const blitzShipping = {
 	6371: 42
 };
 
+const cartasProductVAT = item => {
+	const VATpc = +item.VAT.replace('%', '');
+	const VAT = (VATpc / 100) + 1
+	return VAT;
+}
+
 const vendors = [
 	{
 		name: "reydon",
@@ -111,6 +117,68 @@ const vendors = [
 		getTags: item => 'new in,cartas',
 		useTitleForMatching: false,
 		getTitle: item => item.name
+	},
+	{
+		name: 'cartas-products-new',
+		importLabel: 'Cartas Products CSV NEW',
+		updateInventory: false,
+		updateProducts: true,
+		addProducts: true,
+		useBarcodeForExclusiveMatching: false,
+		getSKU: item => item.STATUS === 'LIVE' ? item.CODE.trim() : undefined, 
+		getWeight: item => +item.WEIGHT.trim(),
+		getQuantity: item => Math.min(+item.STOCK, 50),
+		getBarcode: item => {
+			const barcode = item.EAN.replace(/"/g, '').trim();
+			if (barcode) {
+				return `'${barcode}`;
+			}
+		},
+		getPrice: item => {
+			const VAT = cartasProductVAT(item);
+			return Math.ceil(+item.TRADE_PRICE * 1.3 * VAT + 3) - 0.01;
+		},
+		getRRP: item => {
+			const VAT = cartasProductVAT(item);
+			return Math.ceil((+item.TRADE_PRICE * 1.3 * VAT + 3) * 1.2) - 0.01;
+		},
+		getTaxable: item => cartasProductVAT(item) > 1,
+		getVendor: item => item.BRAND.trim(),
+		getDescription: item => item.DESCRIPTION.replace(/^"/, '').replace(/"$/, '').trim(),
+		getMainImageURL: item => item.MAIN_IMAGE.trim(),
+		getTags: item => 'new in,cartas,cartas-new-csv',
+		useTitleForMatching: false,
+		getTitle: item => item.PRODUCT_NAME.trim(),
+		getAdditionalImages: item => {
+			const images = [];
+			for (let i = 1; i<= 4; i++) {
+				const image = item[`IMAGE_${i}`].trim();
+				if (image) {
+					images.push(image);
+				}
+
+			}
+			return images;
+		},
+		getVariants: item => {
+			const variants = [];
+			const size = item.SIZE.trim();
+			const colour = item.COLOUR.trim();
+			if (size) {
+				variants.push({
+					name: 'Size',
+					value: size
+				});
+			}
+			if (colour) {
+				variants.push({
+					name: 'Colour',
+					value: colour
+				});
+			}
+			return variants;
+		},
+		getVariantCorrelationId: item => item.PERANT_ID || item.PARENT_ID,
 	},
 	{
 		name: "unicorn",
