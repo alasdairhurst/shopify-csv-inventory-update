@@ -91,43 +91,10 @@ const vendors = [
 		updateProducts: true,
 		addProducts: true,
 		useBarcodeForExclusiveMatching: false,
-		// ZZ is discontinued
-		getSKU: item => item.name.startsWith('ZZ') ? undefined : item.stock_code.trim(),
-		getWeight: item => +item.weight.trim(),
-		getQuantity: item => Math.min(+item.quantity, 50),
-		getBarcode: item => {
-			const barcode = item.ean.replace(/"/g, '').trim();
-			if (barcode) {
-				return `'${barcode}`;
-			}
-		},
-		getPrice: item => {
-			const VAT = +item.vat_code === 1 ? 1.2 : 1;
-			return Math.ceil(+item.price * 1.3 * VAT + 3) - 0.01;
-		},
-		getRRP: item => {
-			const VAT = +item.vat_code === 1 ? 1.2 : 1;
-			return Math.ceil((+item.price * 1.3 * VAT + 3) * 1.2) - 0.01;
-		},
-		getTaxable: item => +item.vat_code === 1,
-		getTaxCode: item => +item.vat_code,
-		getVendor: item => 'Carta Sports',
-		getDescription: item => item.description.replace(/^"/, '').replace(/"$/, ''),
-		getMainImageURL: item => item.image_url,
-		getTags: item => 'new in,cartas',
-		useTitleForMatching: false,
-		getTitle: item => item.name
-	},
-	{
-		name: 'cartas-products-new',
-		importLabel: 'Cartas Products CSV NEW',
-		updateInventory: false,
-		updateProducts: true,
-		addProducts: true,
-		useBarcodeForExclusiveMatching: false,
 		getSKU: item => item.STATUS === 'LIVE' ? item.CODE.trim() : undefined, 
 		getWeight: item => +item.WEIGHT.trim(),
 		getQuantity: item => Math.min(+item.STOCK, 50),
+		getType: item => item.CATEGORY.replace(item.BRAND.toUpperCase(), '').replace(/-/g, ' ').trim(),
 		getBarcode: item => {
 			const barcode = item.EAN.replace(/"/g, '').trim();
 			if (barcode) {
