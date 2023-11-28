@@ -1,5 +1,8 @@
 const PARENT_SYMBOL = Symbol.for('parent');
 
+const RM_SMALL_SHIPPING = 3.5;
+const RM_LARGE_SHIPPING = 10;
+
 const blitzShipping = {
 	16098: 42,
 	16829: 15.84,
@@ -44,9 +47,9 @@ const vendors = [
 		getTaxable: item => +item.VAT > 0,
 		getRRP: item => +item.SRP,
 		getPrice: item => {
-			let shipping = 3;
+			let shipping = RM_SMALL_SHIPPING;
 			if (Math.max(item.Width_CM, item.Length_CM, item.Height_CM) >= 110) {
-				shipping = 10;
+				shipping = RM_LARGE_SHIPPING;
 			}
 			return Math.ceil(+item.Your_Price * 1.4 * (1 + (+item.VAT / 100)) + shipping) - 0.01
 		},
@@ -103,11 +106,11 @@ const vendors = [
 		},
 		getPrice: item => {
 			const VAT = cartasProductVAT(item);
-			return Math.ceil(+item.TRADE_PRICE * 1.3 * VAT + 3) - 0.01;
+			return Math.ceil(+item.TRADE_PRICE * 1.3 * VAT + RM_SMALL_SHIPPING) - 0.01;
 		},
 		getRRP: item => {
 			const VAT = cartasProductVAT(item);
-			return Math.ceil((+item.TRADE_PRICE * 1.3 * VAT + 3) * 1.2) - 0.01;
+			return Math.ceil((+item.TRADE_PRICE * 1.3 * VAT + RM_SMALL_SHIPPING) * 1.2) - 0.01;
 		},
 		getTaxable: item => cartasProductVAT(item) > 1,
 		getVendor: item => item.BRAND.trim(),
@@ -235,7 +238,7 @@ const vendors = [
 			}
 			return `Arena Swimming ${item.Title} (${item.Col})`;
 		},
-		getPrice: item => Math.ceil(+item['Your Price £'] * 1.4 * 1.2 + 3) - 0.01,
+		getPrice: item => Math.ceil(+item['Your Price £'] * 1.4 * 1.2 + RM_SMALL_SHIPPING) - 0.01,
 		getRRP: item => +item.RRP,
 		getFeatures: item => {
 			const features = [];
@@ -297,7 +300,7 @@ const vendors = [
 		getQuantity: item => item.InStock === 'True' ? 25 : 0,
 		getPrice: item => {
 			const VAT = item.Taxable === 'True' ? 0.2 : 0;
-			const shipping = blitzShipping[item.Sku] || 3;
+			const shipping = blitzShipping[item.Sku] || RM_SMALL_SHIPPING;
 			return Math.ceil(+item.TradePrice * 1.3 * (1+VAT) + shipping) - 0.01;
 		},
 		getRRP: item => item.RetailPrice,
