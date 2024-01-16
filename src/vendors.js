@@ -416,6 +416,15 @@ const vendors = [
 		useTitleForMatching: false,
 		getTitle: item => item.Description
 	},
+	{
+		"name": "victor",
+		"importLabel": "Victor CSV",
+		updateInventory: true,
+		getSKU: item => item['RSG Code'].trim(),
+		getQuantity: item => +item['STOCK'],
+		useTitleForMatching: false,
+		getTitle: item => item['Product Description']
+	},
 	// {
 	// 	"name": "transglobal",
 	// 	"importLabel": "Transglobal CSV",
