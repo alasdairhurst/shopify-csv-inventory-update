@@ -1,7 +1,11 @@
 const PARENT_SYMBOL = Symbol.for('parent');
 
+const RM_LARGE_LETTER = 2;
 const RM_SMALL_SHIPPING = 3.5;
-const RM_LARGE_SHIPPING = 10;
+const RM_LARGE_SHIPPING = 15;
+
+// in milimeters
+const RM_LARGE_LETTER_SIZE = { LENGTH: 38, WIDTH: 28, HEIGHT: 3 };
 
 const blitzShipping = {
 	16098: 42,
@@ -13,6 +17,20 @@ const blitzShipping = {
 	12836: 15.84,
 	6371: 42
 };
+
+const cartasShipping = item => {
+	const isLL = +item.LENGTH <= RM_LARGE_LETTER_SIZE.LENGTH
+		&& +item.WIDTH <= RM_LARGE_LETTER_SIZE.WIDTH
+		&& +item.HEIGHT <= RM_LARGE_LETTER_SIZE.HEIGHT;
+	if (isLL) {
+		return RM_LARGE_LETTER;
+	}
+	return RM_SMALL_SHIPPING;
+}
+
+const raydonShipping = item => {
+	
+}
 
 const cartasProductVAT = item => {
 	const VATpc = +item.VAT.replace('%', '');
@@ -50,8 +68,15 @@ const vendors = [
 			let shipping = RM_SMALL_SHIPPING;
 			if (Math.max(item.Width_CM, item.Length_CM, item.Height_CM) >= 110) {
 				shipping = RM_LARGE_SHIPPING;
+			} else {
+				const isLL = +item.Length_CM <= RM_LARGE_LETTER_SIZE.LENGTH
+					&& +item.Width_CM <= RM_LARGE_LETTER_SIZE.WIDTH
+					&& +item.Height_CM <= RM_LARGE_LETTER_SIZE.HEIGHT;
+				if (isLL) {
+					shipping = RM_LARGE_LETTER;
+				}
 			}
-			return Math.ceil(+item.Your_Price * 1.4 * (1 + (+item.VAT / 100)) + shipping) - 0.01
+			return Math.ceil(+item.Your_Price * 1.45 * (1 + (+item.VAT / 100)) + shipping) - 0.01
 		},
 		getWeight: item => +item.Weight_KG,
 		getVariants: item => {
@@ -106,11 +131,11 @@ const vendors = [
 		},
 		getPrice: item => {
 			const VAT = cartasProductVAT(item);
-			return Math.ceil(+item.TRADE_PRICE * 1.3 * VAT + RM_SMALL_SHIPPING) - 0.01;
+			return Math.ceil(+item.TRADE_PRICE * 1.35 * VAT + cartasShipping(item)) - 0.01;
 		},
 		getRRP: item => {
 			const VAT = cartasProductVAT(item);
-			return Math.ceil((+item.TRADE_PRICE * 1.3 * VAT + RM_SMALL_SHIPPING) * 1.2) - 0.01;
+			return Math.ceil((+item.TRADE_PRICE * 1.35 * VAT + cartasShipping(item)) * 1.2) - 0.01;
 		},
 		getTaxable: item => cartasProductVAT(item) > 1,
 		getVendor: item => item.BRAND.trim(),
@@ -238,7 +263,7 @@ const vendors = [
 			}
 			return `Arena Swimming ${item.Title} (${item.Col})`;
 		},
-		getPrice: item => Math.ceil(+item['Your Price £'] * 1.4 * 1.2 + RM_SMALL_SHIPPING) - 0.01,
+		getPrice: item => Math.ceil(+item['Your Price £'] * 1.45 * 1.2 + RM_SMALL_SHIPPING) - 0.01,
 		getRRP: item => +item.RRP,
 		getFeatures: item => {
 			const features = [];
@@ -301,7 +326,7 @@ const vendors = [
 		getPrice: item => {
 			const VAT = item.Taxable === 'True' ? 0.2 : 0;
 			const shipping = blitzShipping[item.Sku] || RM_SMALL_SHIPPING;
-			return Math.ceil(+item.TradePrice * 1.3 * (1+VAT) + shipping) - 0.01;
+			return Math.ceil(+item.TradePrice * 1.35 * (1+VAT) + shipping) - 0.01;
 		},
 		getRRP: item => item.RetailPrice,
 		getMainImageURL: item => item.ImageUrl,
