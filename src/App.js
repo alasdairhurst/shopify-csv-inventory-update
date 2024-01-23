@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
 import he from 'he';
 import { diceCoefficient } from 'string-comparison';
 import './App.css';
@@ -73,8 +74,30 @@ async function parseFilesAsCSV(files, vendor, multipleOptions) {
   return csv;
 }
 
+async function readZip(file){
+  const entries = await (
+    new ZipReader(new BlobReader(file))
+  ).getEntries();
+  
+  // Only read the first csv entry
+  const csvFile = entries.find(entry => entry.filename.endsWith('.csv'));
+  if (!csvFile) {
+    throw new Error('Cannot find .csv in zip file', file.name)
+  }
+  const blob = await csvFile.getData(new BlobWriter());
+  return new File(new Array(blob), csvFile.filename);
+}
+
 async function parseFileAsCSV(file, vendor) {
   if (!file) return;
+
+  if (file.name.endsWith('.zip')) {
+    file = await readZip(file);
+  }
+
+  if (!file.name.endsWith('.csv')) {
+    throw new Error('Unknown file type', file.name);
+  }
 
   const reader = new FileReader();
   // Read the file content synchronously
@@ -625,17 +648,17 @@ function App() {
         <form id="myform" className="form" onSubmit={e => {e.preventDefault()}}>
           <h2>Shopify Inventory</h2>
           <label htmlFor="shopify-inventory">Shopify inventory CSV:</label>
-          <input type="file" multiple accept="text/csv" id="shopify-inventory" name="shopify-inventory" />
+          <input type="file" multiple accept=".csv,.zip" id="shopify-inventory" name="shopify-inventory" />
           <p/>
           <h2>Shopify Products</h2>
           <label htmlFor="shopify-products">Shopify products CSV:</label>
-          <input type="file" multiple accept="text/csv" id="shopify-products" name="shopify-products" />
+          <input type="file" multiple accept=".csv,.zip" id="shopify-products" name="shopify-products" />
           <p/>
           <h2>Vendor Inventory</h2>
           {vendors.map(vendor => (
             <div key={vendor.name}>
               <label htmlFor={vendor.name}>{vendor.importLabel}</label>
-              <input type="file" accept="text/csv" id={vendor.name} name={vendor.name} />
+              <input type="file" accept=".csv,.zip" id={vendor.name} name={vendor.name} />
               <p/>
             </div>
           ))}
