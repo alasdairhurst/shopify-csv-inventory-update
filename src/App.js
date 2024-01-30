@@ -511,6 +511,7 @@ const addProducts = async () => {
         logger.warn(`[ADDING] ${vendor.name} SKU ${vendorProductLabel} to existing product in shopify`, vendorProduct);
       }
 
+      const price = vendor.getPrice(vendorProduct);
       product = {
         ...DEFAULT_SHOPIFY_PRODUCT,
         ...product,
@@ -520,8 +521,8 @@ const addProducts = async () => {
         'Variant Inventory Qty': vendor.getQuantity(vendorProduct),
         'Variant Inventory Policy': 'deny',
         'Variant Fulfillment Service': 'manual',
-        'Variant Price': vendor.getPrice(vendorProduct),
-        'Variant Compare At Price': vendor.getRRP(vendorProduct),
+        'Variant Price': price,
+        'Variant Compare At Price': vendor.getRRP?.(vendorProduct) || price,
         'Variant Requires Shipping': 'TRUE',
         'Variant Taxable': vendor.getTaxable?.(vendorProduct)  ? 'TRUE' : 'FALSE',
         'Variant Barcode': vendorProductBarcode,

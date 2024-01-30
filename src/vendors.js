@@ -28,10 +28,6 @@ const cartasShipping = item => {
 	return RM_SMALL_SHIPPING;
 }
 
-const raydonShipping = item => {
-	
-}
-
 const cartasProductVAT = item => {
 	const VATpc = +item.VAT.replace('%', '');
 	const VAT = (VATpc / 100) + 1
@@ -246,6 +242,70 @@ const vendors = [
 			}
 			return csv;
 		}
+	},
+	{
+		name: "tuf",
+		importLabel: "TUF CSV",
+		updateInventory: true,
+		updateProducts: true,
+		addProducts: true,
+		useBarcodeForExclusiveMatching: true,
+		getSKU: item => item.SKU,
+		getBarcode: item => item.SKU,
+		getQuantity: item => item.STOCK === 'Y' ? 10 : item.STOCK === 'N' ? 0 : +item.STOCK,
+		getTitle: item => {
+			const lcName = item.Name.toLowerCase();
+			let [code, ...details] = item['PARENT CODE'].split('-');
+			details = details.map(str => {
+				const lcDetail = str.toLowerCase();
+				if (!str || lcName.includes(lcDetail)) {
+					return null;
+				}
+				return lcDetail[0].toUpperCase() + lcDetail.substring(1);
+			}).filter(x => !!x);
+
+			let name = item.Name.replace('Tuf Wear', 'Tuf Wear Boxing');
+			if (!name.startsWith('Tuf Wear Boxing')) {
+				name = `Tuf Wear Boxing ${name}`;
+			}
+
+			if (!details.length) {
+				return name;
+			}
+			return `${name} ${details.join(' ')}`;
+		},
+		getPrice: item => {
+			const price = +item.Sell;
+			return Math.ceil(price < 15 ? price + 4 : price) - 0.01;
+		},
+		getRRP: item => Math.ceil(+item.RRP) - 0.01,
+		getDescription: item => item.DESCRIPTION,
+		getVendor: item => 'Tuf Wear',
+		getMainImageURL: item => item['Image1'],
+		getAdditionalImages: item => {
+			const images = [];
+			for (let i = 2; i<= 4; i++) {
+				const image = item[`Image${i}`];
+				if (image) {
+					images.push(image);
+				}
+			}
+			return images;
+		},
+		getTags: item => 'tuf, new in',
+		getVariants: item => [{
+			name: 'Size',
+			value: item.SIZE,
+		}],
+		getVariantCorrelationId: item => item['PARENT CODE']
+	},
+	{
+		name: "sting",
+		importLabel: "Sting Inventory CSV",
+		updateInventory: true,
+		useBarcodeForExclusiveMatching: false,
+		getSKU: item => item.SKU,
+		getQuantity: item => +item.OnHand
 	},
 	{
 		name: "arena-products",
