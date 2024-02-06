@@ -308,6 +308,14 @@ const vendors = [
 		getQuantity: item => +item.OnHand
 	},
 	{
+		name: "lp",
+		importLabel: "LP Inventory CSV",
+		updateInventory: true,
+		useBarcodeForExclusiveMatching: false,
+		getSKU: item => item['Alternative Reference'].trim(),
+		getQuantity: item => +item['Available Stock']
+	},
+	{
 		name: "arena-products",
 		importLabel: "Arena Products CSV",
 		updateInventory: true,
