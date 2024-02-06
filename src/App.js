@@ -658,7 +658,7 @@ function App() {
           <h2>Vendor Inventory</h2>
           {vendors.map(vendor => (
             <div key={vendor.name}>
-              <label htmlFor={vendor.name}>{vendor.importLabel}</label>
+              <label class="vendor-label" htmlFor={vendor.name}>{vendor.importLabel}</label>
               <input type="file" accept=".csv,.zip" id={vendor.name} name={vendor.name} />
               <p/>
             </div>
@@ -676,21 +676,21 @@ function App() {
             <>
               <button
                 onClick={withLoading(updateInventory)}
-                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}
+                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px', width: '100%'}}
               >
                 Download Inventory CSV (Update Quantity)
               </button>
               <p/>
               <button
                 onClick={withLoading(addProducts)}
-                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}
+                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px', width: '100%'}}
               >
                 Download Products CSV (Add missing products)
               </button>
               <p/>
               <button
                 onClick={withLoading(updateProducts)}
-                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px'}}
+                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px', width: '100%'}}
               >
                 Download Products CSV (Edit products)
               </button>
