@@ -466,9 +466,9 @@ const addProducts = async () => {
         continue;
       }
 
-      const vendorProductTitle = vendor.getTitle(vendorProduct);
+      const Title = vendor.getTitle(vendorProduct).trim();
       const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) || 'does not apply';
-      const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
+      const vendorProductLabel = `${vendorProductSKU} (${Title}/${vendorProductBarcode})`;
       const { shopifyProduct } = getShopifyProductAndParent(
         shopifyProducts, vendor, vendorProduct
       );
@@ -484,7 +484,6 @@ const addProducts = async () => {
       ) : { shopifyParent: undefined };
       const isNewProduct = !shopifyParent;
 
-      const Title = vendor.getTitle(vendorProduct).trim();
       // Generate a handle
       const Handle = isNewProduct
         ? Title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
@@ -658,7 +657,7 @@ function App() {
           <h2>Vendor Inventory</h2>
           {vendors.map(vendor => (
             <div key={vendor.name}>
-              <label class="vendor-label" htmlFor={vendor.name}>{vendor.importLabel}</label>
+              <label className="vendor-label" htmlFor={vendor.name}>{vendor.importLabel}</label>
               <input type="file" accept=".csv,.zip" id={vendor.name} name={vendor.name} />
               <p/>
             </div>

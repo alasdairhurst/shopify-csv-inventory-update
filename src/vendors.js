@@ -222,7 +222,7 @@ const vendors = [
 			let parentItem;
 			for (const item of items) {
 				// variant parent
-				if (!item.EAN && !item['Option EAN']) {
+				if (item.Name) {
 					parentItem = item;
 					continue;
 				}
@@ -234,7 +234,7 @@ const vendors = [
 				// variant
 				csv.push({
 					...parentItem,
-					SKU: item['Option EAN'], // change to SKU when they're done changing
+					SKU: item['Option SKU'],
 					EAN: item['Option EAN'],
 					Quantity: item['Option quantity'],
 					'Option value': item['Option value']
