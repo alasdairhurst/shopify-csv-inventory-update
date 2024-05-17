@@ -195,8 +195,10 @@ const vendors = [
 		getQuantity: item => +item.Quantity,
 		getTitle: item => item.Name,
 		getWeight: item => +item.Weight,
-		getPrice: item => Math.ceil(+item.Price * 1.2) - 0.01,
-		getRRP: item => Math.ceil(+item.Price * 1.2) - 0.01,
+		getPrice: item => {
+			const shipping = +item.Price >= 20 ? 0 : RM_SMALL_SHIPPING;
+			return Math.ceil(+item.Price * 1.2 + shipping) - 0.01;
+		},
 		getDescription: item => item.Description,
 		getVendor: item => item.Manufacturer,
 		getMainImageURL: item => item['Main image'],
