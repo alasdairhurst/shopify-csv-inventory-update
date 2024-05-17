@@ -42,7 +42,8 @@ const vendors = [
 		getSKU: item => item.Code.replace('\n', ''),
 		getQuantity: item => +item.Quantity,
 		useTitleForMatching: true,
-		getTitle: item => item['Product Name'].replace(/\([^()]*\)/g, '')
+		// different CSVs have different columns
+		getTitle: item => (item['Product Name']||item['Product_Name']).replace(/\([^()]*\)/g, '')
 	},
 	{
 		name: 'reydon-products',

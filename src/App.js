@@ -1,4 +1,6 @@
 import Papa from 'papaparse';
+import readXlsxFile from 'read-excel-file'
+import convertToJson from "./convertToJSON"
 import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
 import he from 'he';
 import { diceCoefficient } from 'string-comparison';
@@ -59,6 +61,20 @@ function parseCSVString(csvString) {
   });
 }
 
+async function readExcel(file, vendor) {
+  const data = await readXlsxFile(file);
+  if (vendor?.headers) {
+    data.unshift(vendor.headers);
+  }
+  const schema = {};
+  for (const prop of data[0]) {
+    schema[prop] = { prop };
+  }
+
+  const { rows } = convertToJson(data, schema);
+  return rows;
+}
+
 const SHOPIFY_MULTIPLE_OPTIONS = {
   orderBy: item => item.Handle
 }
@@ -89,32 +105,38 @@ async function readZip(file){
 }
 
 async function parseFileAsCSV(file, vendor) {
+  // TODO: get expected file format from vendor (xslx/csv/zip+csv/zip+xlsx)
   if (!file) return;
 
   if (file.name.endsWith('.zip')) {
     file = await readZip(file);
   }
 
-  if (!file.name.endsWith('.csv')) {
+  let csv;
+  if (file.name.endsWith('.xlsx')) {
+   csv = await readExcel(file, vendor);
+  } else if (file.name.endsWith('.csv')) { 
+    const reader = new FileReader();
+    // Read the file content synchronously
+    reader.readAsText(file);
+    await new Promise(resolve => {
+      reader.onload = resolve;
+    });
+  
+    let fileContent = reader.result; // Get the file content  
+    
+    let headerRow = '';
+    if (vendor?.headers) {
+      headerRow = vendor.headers.join(',') + '\n';
+    }
+    // ONLY CSV so far
+    if (vendor?.htmlDecode) {
+      fileContent = he.decode(fileContent);
+    }
+    csv = await parseCSVString(headerRow + fileContent);
+  } else {
     throw new Error('Unknown file type', file.name);
   }
-
-  const reader = new FileReader();
-  // Read the file content synchronously
-  reader.readAsText(file);
-  await new Promise(resolve => {
-    reader.onload = resolve;
-  });
-
-  let fileContent = reader.result; // Get the file content
-  let headerRow = '';
-  if (vendor?.headers) {
-    headerRow = vendor.headers.join(',') + '\n';
-  }
-  if (vendor?.htmlDecode) {
-    fileContent = he.decode(fileContent);
-  }
-  let csv = await parseCSVString(headerRow + fileContent);
 
   if (vendor?.parseImport) {
     csv = vendor.parseImport(csv);
@@ -639,7 +661,11 @@ function App() {
       e.preventDefault();
       e.stopPropagation();
       setLoading(true);
-      await fn(e).catch(console.error);
+      try {
+        await fn(e);
+      } catch (e) {
+        console.log(e);
+      }
       setLoading(false);
     }
   }
@@ -658,7 +684,7 @@ function App() {
           <h2>Vendor Inventory</h2>
           {vendors.map(vendor => (
             <div key={vendor.name}>
-              <label class="vendor-label" htmlFor={vendor.name}>{vendor.importLabel}</label>
+              <label className="vendor-label" htmlFor={vendor.name}>{vendor.importLabel}</label>
               <input type="file" accept=".csv,.zip" id={vendor.name} name={vendor.name} />
               <p/>
             </div>
