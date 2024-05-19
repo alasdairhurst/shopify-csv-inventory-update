@@ -1,11 +1,10 @@
 const PARENT_SYMBOL = Symbol.for('parent');
 
-const RM_LARGE_LETTER = 2;
-const RM_SMALL_SHIPPING = 3.5;
-const RM_LARGE_SHIPPING = 15;
+// const RM_LARGE_LETTER = 2;
+const RM_SMALL_SHIPPING = 4;
+const RM_LARGE_SHIPPING = 20;
 
-// in milimeters
-const RM_LARGE_LETTER_SIZE = { LENGTH: 38, WIDTH: 28, HEIGHT: 3 };
+// const RM_LARGE_LETTER_SIZE = { LENGTH: 38, WIDTH: 28, HEIGHT: 3 };
 
 const blitzShipping = {
 	16098: 42,
@@ -19,12 +18,12 @@ const blitzShipping = {
 };
 
 const cartasShipping = item => {
-	const isLL = +item.LENGTH <= RM_LARGE_LETTER_SIZE.LENGTH
-		&& +item.WIDTH <= RM_LARGE_LETTER_SIZE.WIDTH
-		&& +item.HEIGHT <= RM_LARGE_LETTER_SIZE.HEIGHT;
-	if (isLL) {
-		return RM_LARGE_LETTER;
-	}
+	// const isLL = +item.LENGTH <= RM_LARGE_LETTER_SIZE.LENGTH
+	// 	&& +item.WIDTH <= RM_LARGE_LETTER_SIZE.WIDTH
+	// 	&& +item.HEIGHT <= RM_LARGE_LETTER_SIZE.HEIGHT;
+	// if (isLL) {
+	// 	return RM_LARGE_LETTER;
+	// }
 	return RM_SMALL_SHIPPING;
 }
 
@@ -64,14 +63,15 @@ const vendors = [
 			let shipping = RM_SMALL_SHIPPING;
 			if (Math.max(item.Width_CM, item.Length_CM, item.Height_CM) >= 110) {
 				shipping = RM_LARGE_SHIPPING;
-			} else {
-				const isLL = +item.Length_CM <= RM_LARGE_LETTER_SIZE.LENGTH
-					&& +item.Width_CM <= RM_LARGE_LETTER_SIZE.WIDTH
-					&& +item.Height_CM <= RM_LARGE_LETTER_SIZE.HEIGHT;
-				if (isLL) {
-					shipping = RM_LARGE_LETTER;
-				}
 			}
+			// else {
+			// 	const isLL = +item.Length_CM <= RM_LARGE_LETTER_SIZE.LENGTH
+			// 		&& +item.Width_CM <= RM_LARGE_LETTER_SIZE.WIDTH
+			// 		&& +item.Height_CM <= RM_LARGE_LETTER_SIZE.HEIGHT;
+			// 	if (isLL) {
+			// 		shipping = RM_LARGE_LETTER;
+			// 	}
+			// }
 			return Math.ceil(+item.Your_Price * 1.45 * (1 + (+item.VAT / 100)) + shipping) - 0.01
 		},
 		getWeight: item => +item.Weight_KG,
@@ -519,60 +519,7 @@ const vendors = [
 		getQuantity: item => +item['STOCK'],
 		useTitleForMatching: false,
 		getTitle: item => item['Product Description']
-	},
-	// {
-	// 	"name": "transglobal",
-	// 	"importLabel": "Transglobal CSV",
-	// 	updateInventory: true,
-	// 	updateProducts: true,
-	// 	addProducts: true,
-	// 	useBarcodeForExclusiveMatching: true,
-	// 	getSKU: item => {
-	// 		return item['Variant SKU'] ? 'TRANSGLOBAL-' + item['Variant SKU'] : undefined
-	// 	},
-	// 	getQuantity: item => item['Variant Inventory Qty'],
-	// 	getPrice: item => item['Variant Price'],
-	// 	getRRP: item => item['Variant Price'],
-	// 	getMainImageURL: item => item['Image Src'],
-	// 	getAdditionalImages: item => {
-	// 		if (item['Variant Image']) {
-	// 			return [item['Variant Image']];
-	// 		}
-	// 		return [];
-	// 	},
-	// 	getTitle: item => item.Vendor + ' ' + item.Title,
-	// 	useTitleForMatching: true,
-	// 	getBarcode: item => item['Variant Barcode'],
-	// 	getTaxable: item => item['Variant Taxable'],
-	// 	getVariantCorrelationId: item => item.Handle,
-	// 	getWeight: item => item['Variant Grams'],
-	// 	getType: item => item.Type,
-	// 	getTags: item => 'new in,transglobal',
-	// 	getVendor: item => item.Vendor,
-	// 	getDescription: item => item['Body (HTML)'],
-	// 	getVariants: item => {
-	// 		const variants = [];
-	// 		if (item['Option1 Name']) {
-	// 			variants.push({
-	// 				name: item['Option1 Name'],
-	// 				value: item['Option1 Value']
-	// 			});
-	// 		}
-	// 		if (item['Option2 Name']) {
-	// 			variants.push({
-	// 				name: item['Option2 Name'],
-	// 				value: item['Option2 Value']
-	// 			});
-	// 		}
-	// 		if (item['Option3 Name']) {
-	// 			variants.push({
-	// 				name: item['Option3 Name'],
-	// 				value: item['Option3 Value']
-	// 			});
-	// 		}
-	// 		return variants;
-	// 	}
-	// }
+	}
 ];
 
 export default vendors;
