@@ -224,19 +224,20 @@ const vendors = [
 			let parentItem;
 			for (const item of items) {
 				// variant parent
-				if (item.Name) {
+				if (item.Name && !item.SKU) {
 					parentItem = item;
 					continue;
 				}
 				// singular
-				if (item.EAN) {
+				if (item.SKU) {
 					csv.push(item);
+					parentItem = undefined;
 					continue;
 				}
 				// variant
 				csv.push({
 					...parentItem,
-					SKU: item['Option SKU'],
+					SKU: item['Option EAN'], // change to SKU when they're done changing
 					EAN: item['Option EAN'],
 					Quantity: item['Option quantity'],
 					'Option value': item['Option value']
