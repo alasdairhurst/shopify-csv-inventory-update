@@ -64,15 +64,7 @@ const vendors = [
 			if (Math.max(item.Width_CM, item.Length_CM, item.Height_CM) >= 110) {
 				shipping = RM_LARGE_SHIPPING;
 			}
-			// else {
-			// 	const isLL = +item.Length_CM <= RM_LARGE_LETTER_SIZE.LENGTH
-			// 		&& +item.Width_CM <= RM_LARGE_LETTER_SIZE.WIDTH
-			// 		&& +item.Height_CM <= RM_LARGE_LETTER_SIZE.HEIGHT;
-			// 	if (isLL) {
-			// 		shipping = RM_LARGE_LETTER;
-			// 	}
-			// }
-			return Math.ceil(+item.Your_Price * 1.45 * (1 + (+item.VAT / 100)) + shipping) - 0.01
+			return +item.Your_Price * 1.45 * (1 + (+item.VAT / 100)) + shipping
 		},
 		getWeight: item => +item.Weight_KG,
 		getVariants: item => {
@@ -127,11 +119,11 @@ const vendors = [
 		},
 		getPrice: item => {
 			const VAT = cartasProductVAT(item);
-			return Math.ceil(+item.TRADE_PRICE * 1.35 * VAT + cartasShipping(item)) - 0.01;
+			return +item.TRADE_PRICE * 1.35 * VAT + RM_SMALL_SHIPPING;
 		},
 		getRRP: item => {
 			const VAT = cartasProductVAT(item);
-			return Math.ceil((+item.TRADE_PRICE * 1.35 * VAT + cartasShipping(item)) * 1.2) - 0.01;
+			return (+item.TRADE_PRICE * 1.35 * VAT + RM_SMALL_SHIPPING) * 1.2;
 		},
 		getTaxable: item => cartasProductVAT(item) > 1,
 		getVendor: item => item.BRAND.trim(),
@@ -197,7 +189,7 @@ const vendors = [
 		getWeight: item => +item.Weight,
 		getPrice: item => {
 			const shipping = +item.Price >= 20 ? 0 : RM_SMALL_SHIPPING;
-			return Math.ceil(+item.Price * 1.2 + shipping) - 0.01;
+			return +item.Price * 1.2 + shipping;
 		},
 		getDescription: item => item.Description,
 		getVendor: item => item.Manufacturer,
@@ -254,144 +246,6 @@ const vendors = [
 		}
 	},
 	{
-		name: "tuf",
-		importLabel: "TUF CSV",
-		updateInventory: true,
-		updateProducts: true,
-		addProducts: true,
-		useBarcodeForExclusiveMatching: true,
-		getSKU: item => item.SKU,
-		getBarcode: item => item.SKU,
-		getQuantity: item => item.STOCK === 'Y' ? 10 : item.STOCK === 'N' ? 0 : +item.STOCK,
-		getTitle: item => {
-			const lcName = item.Name.toLowerCase();
-			let [code, ...details] = item['PARENT CODE'].split('-');
-			details = details.map(str => {
-				const lcDetail = str.toLowerCase();
-				if (!str || lcName.includes(lcDetail)) {
-					return null;
-				}
-				return lcDetail[0].toUpperCase() + lcDetail.substring(1);
-			}).filter(x => !!x);
-
-			let name = item.Name.replace('Tuf Wear', 'Tuf Wear Boxing');
-			if (!name.startsWith('Tuf Wear Boxing')) {
-				name = `Tuf Wear Boxing ${name}`;
-			}
-
-			if (!details.length) {
-				return name;
-			}
-			return `${name} ${details.join(' ')}`;
-		},
-		getPrice: item => {
-			const price = +item.Sell;
-			return Math.ceil(price < 15 ? price + 4 : price) - 0.01;
-		},
-		getRRP: item => Math.ceil(+item.RRP) - 0.01,
-		getDescription: item => item.DESCRIPTION,
-		getVendor: item => 'Tuf Wear',
-		getMainImageURL: item => item['Image1'],
-		getAdditionalImages: item => {
-			const images = [];
-			for (let i = 2; i<= 4; i++) {
-				const image = item[`Image${i}`];
-				if (image) {
-					images.push(image);
-				}
-			}
-			return images;
-		},
-		getTags: item => 'tuf, new in',
-		getVariants: item => [{
-			name: 'Size',
-			value: item.SIZE,
-		}],
-		getVariantCorrelationId: item => item['PARENT CODE']
-	},
-	{
-		name: "sting",
-		importLabel: "Sting Inventory CSV",
-		updateInventory: true,
-		useBarcodeForExclusiveMatching: false,
-		getSKU: item => item.SKU,
-		getQuantity: item => +item.OnHand
-	},
-	{
-		name: "lp",
-		importLabel: "LP Inventory CSV",
-		updateInventory: true,
-		useBarcodeForExclusiveMatching: false,
-		getSKU: item => item['Alternative Reference'].trim(),
-		getQuantity: item => +item['Available Stock']
-	},
-	{
-		name: "arena-products",
-		importLabel: "Arena Products CSV",
-		updateInventory: true,
-		updateProducts: true,
-		addProducts: true,
-		useBarcodeForExclusiveMatching: true,
-		getSKU: item => item['Item code'],
-		getBarcode: item => item.EAN,
-		getQuantity: item => 25,
-		getTitle: item => {
-			if (item.COO === 'Turkey') {
-				return `Comfyballs Underwear ${item.Title} (${item.Col})`;
-			}
-			return `Arena Swimming ${item.Title} (${item.Col})`;
-		},
-		getPrice: item => Math.ceil(+item['Your Price £'] * 1.45 * 1.2 + RM_SMALL_SHIPPING) - 0.01,
-		getRRP: item => +item.RRP,
-		getFeatures: item => {
-			const features = [];
-			for (let i = 1; i <=3; i++) {
-				if (item[`Product feature ${i}`]) {
-					features.push(item[`Product feature ${i}`]);
-				}
-			}
-			return features;
-		},
-		getDescription: item => item['extended descriptiom'],
-		getVendor: item => {
-			if (item.COO === 'Turkey') {
-				return 'Comfyballs';
-			}
-			return 'Arena';
-		},
-		getMainImageURL: item => item['Image link 1'].replace('dropbox.com', 'dl.dropboxusercontent.com'),
-		getAdditionalImages: item => {
-			const image = item['Image link 2'];
-			if (image) {
-				return [image.replace('dropbox.com', 'dl.dropboxusercontent.com')]
-			}
-			return [];
-		},
-		getTags: item => 'arena, new in',
-		getVariants: item => {
-			if (item.Size) {
-				return [{
-					name: 'Size',
-					value: item.Size,
-				}]
-			}
-			return;
-		},
-		getVariantCorrelationId: item => item.Title+item.Col
-	},
-	{
-		name: "arena-stock",
-		importLabel: "Arena Stock CSV",
-		updateInventory: true,
-		useBarcodeForExclusiveMatching: false,
-		getSKU: item => item.sku,
-		getQuantity: item => Math.min(+item.qty, 25),
-		deny: [
-			'21127',
-			'21594'
-		]
-	},
-	{
 		name: "blitz",
 		importLabel: "Blitz CSV",
 		updateInventory: true,
@@ -404,7 +258,7 @@ const vendors = [
 		getPrice: item => {
 			const VAT = item.Taxable === 'True' ? 0.2 : 0;
 			const shipping = blitzShipping[item.Sku] || RM_SMALL_SHIPPING;
-			return Math.ceil(+item.TradePrice * 1.35 * (1+VAT) + shipping) - 0.01;
+			return +item.TradePrice * 1.35 * (1+VAT) + shipping;
 		},
 		getRRP: item => item.RetailPrice,
 		getMainImageURL: item => item.ImageUrl,
@@ -502,31 +356,6 @@ const vendors = [
 			}
 			return csv;
 		}
-	},
-	{
-		"name": "fitnessmad",
-		"importLabel": "Fitness Mad CSV",
-		updateInventory: true,
-		getSKU: item => {
-			const variant = item.Variant.trim();
-			const SKU = item['No.'].trim();
-			if (variant) {
-				return `${SKU}-${variant}`;
-			}
-			return SKU;
-		},
-		getQuantity: item => Math.min(+item['Free Stock Today'], 50),
-		useTitleForMatching: false,
-		getTitle: item => item.Description
-	},
-	{
-		"name": "victor",
-		"importLabel": "Victor CSV",
-		updateInventory: true,
-		getSKU: item => item['RSG Code'].trim(),
-		getQuantity: item => +item['STOCK'],
-		useTitleForMatching: false,
-		getTitle: item => item['Product Description']
 	}
 ];
 
