@@ -214,10 +214,17 @@ const vendors = [
 			return images;
 		},
 		getTags: item => 'mtb, new in',
-		getVariants: item => [{
-			name: 'Variant',
-			value: item['Option value'],
-		}],
+		getVariants: item => {
+			if (!item['Option value']) {
+				return;
+			}
+			return [
+				{
+					name: 'Variant',
+					value: item['Option value'],
+				}
+			];
+		},
 		getVariantCorrelationId: item => item.Model,
 		parseImport: items => {
 			const csv = [];
