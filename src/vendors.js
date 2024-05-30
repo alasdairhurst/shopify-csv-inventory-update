@@ -187,6 +187,7 @@ const vendors = [
 		getQuantity: item => +item.Quantity,
 		getTitle: item => item.Name,
 		getWeight: item => +item.Weight,
+		getTaxable: item => true,
 		getPrice: item => {
 			const shipping = +item.Price >= 20 ? 0 : RM_SMALL_SHIPPING;
 			return +item.Price * 1.2 + shipping;
