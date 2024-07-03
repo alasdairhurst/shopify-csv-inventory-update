@@ -6,7 +6,7 @@ import './App.css';
 import vendors from './vendors';
 import { useState } from 'react';
 
-const STOCK_CAP = 50;
+const STOCK_CAP = 10;
 const DOWNLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
 const DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME = 'completed_products_update_for_shopify.csv';
 const DONWLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
