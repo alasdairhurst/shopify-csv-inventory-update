@@ -6,7 +6,6 @@ import './App.css';
 import vendors from './vendors';
 import { useState } from 'react';
 
-const STOCK_CAP = 10;
 const DOWNLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
 const DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME = 'completed_products_update_for_shopify.csv';
 const DONWLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
@@ -147,7 +146,7 @@ const getFiles = (inputID) => {
 
 // Updates existing items in inventory
 // The full inventory is not downloaded, only updated rows
-const updateInventory = async () => {
+const updateInventory = async (e, { maxQuantity }) => {
   const shopifyInventoryFiles = getFiles('shopify-inventory');
   if (!shopifyInventoryFiles.length) {
     logger.error('[ERROR] no shopify inventory CSV selected');
@@ -193,7 +192,7 @@ const updateInventory = async () => {
       // Update quantity
 
       // Cap the new quantity
-      const vendorItemQuantity = Math.min(vendor.getQuantity(vendorItem), STOCK_CAP);
+      const vendorItemQuantity = Math.min(vendor.getQuantity(vendorItem), maxQuantity);
       const shopifyItemQuantity = +shopifyItem['On hand'];
       if (shopifyItemQuantity === vendorItemQuantity) {
         logger.log(`[QUANTITY MATCH] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} matches shopify inventory: ${shopifyItemQuantity}`);
@@ -628,6 +627,8 @@ const convertShopifyProductsToExternal = (products, options = {}) => {
 
 function App() {
   const [ loading, setLoading ] = useState(false);
+  const INITIAL_STOCK_CAP = 5;
+  const [ maxQuantity, setMaxQuantity ] = useState(INITIAL_STOCK_CAP);
   const cancel = () => {
     cancelled = true;
     setLoading(false);
@@ -638,7 +639,7 @@ function App() {
       e.preventDefault();
       e.stopPropagation();
       setLoading(true);
-      await fn(e).catch(console.error);
+      await fn(e, { maxQuantity }).catch(console.error);
       setLoading(false);
     }
   }
@@ -673,6 +674,17 @@ function App() {
             </>
           ) : (
             <>
+              <h2>Settings</h2>
+              <label htmlFor="maxquantity" style={{paddingRight: '5px' }}>
+                Maximum stock level
+              </label>
+              <input
+                id="maxquantity"
+                type="number"
+                value={maxQuantity}
+                onChange={e => console.log(e) || setMaxQuantity(e.target.value)}
+              />
+              <p/>
               <button
                 onClick={withLoading(updateInventory)}
                 style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px', width: '100%'}}
