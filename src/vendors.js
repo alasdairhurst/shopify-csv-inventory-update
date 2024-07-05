@@ -259,7 +259,7 @@ const vendors = [
 		getPrice: item => {
 			const VAT = item.Taxable === 'True' ? 0.2 : 0;
 			const shipping = blitzShipping[item.Sku] || RM_SMALL_SHIPPING;
-			return +item.TradePrice * 1.45 * (1+VAT) + shipping;
+			return +item.TradePrice * 1.40 * (1+VAT) + shipping;
 		},
 		getRRP: item => item.RetailPrice,
 		getMainImageURL: item => item.ImageUrl,
