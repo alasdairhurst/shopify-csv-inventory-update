@@ -28,6 +28,10 @@ if (DEBUG) {
 
 let cancelled = false;
 
+function roundPrice(price) {
+  return Math.ceil(price) - 0.01
+}
+
 function downloadCSV(csvContent, filename) {
   const blob = new Blob([csvContent], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -351,7 +355,7 @@ const updateProducts = async () => {
       if (!vendor.getPrice) {
         logger.error(`[ERROR] cannot update price for vendor ${vendor.name} getPrice not implemented`);
       } else {
-        const vendorProductPrice = vendor.getPrice(vendorProduct).toString();
+        const vendorProductPrice = roundPrice(vendor.getPrice(vendorProduct)).toString();
         const shopifyProductPrice = shopifyProduct['Variant Price'].toString();
 
         if (shopifyProductPrice === vendorProductPrice) {
@@ -509,7 +513,7 @@ const addProducts = async () => {
         logger.warn(`[ADDING] ${vendor.name} SKU ${vendorProductLabel} to existing product in shopify`, vendorProduct);
       }
 
-      const price = Math.ceil(vendor.getPrice(vendorProduct)) - 0.01;
+      const price = roundPrice(vendor.getPrice(vendorProduct));
       product = {
         ...DEFAULT_SHOPIFY_PRODUCT,
         ...product,
@@ -520,7 +524,7 @@ const addProducts = async () => {
         'Variant Inventory Policy': 'deny',
         'Variant Fulfillment Service': 'manual',
         'Variant Price': price,
-        'Variant Compare At Price': vendor.getRRP ? Math.ceil(vendor.getRRP(vendorProduct)) - 0.01 : price,
+        'Variant Compare At Price': vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct)) : price,
         'Variant Requires Shipping': 'TRUE',
         'Variant Taxable': vendor.getTaxable?.(vendorProduct)  ? 'TRUE' : 'FALSE',
         'Variant Barcode': vendorProductBarcode,
