@@ -34,19 +34,20 @@ const cartasProductVAT = item => {
 }
 
 const vendors = [
-	{
-		name: "reydon",
-		importLabel: "Reydon Stock CSV",
-		updateInventory: true,
-		getSKU: item => item.Code.replace('\n', ''),
-		getQuantity: item => +item.Quantity,
-		useTitleForMatching: true,
-		getTitle: item => item['Product Name'].replace(/\([^()]*\)/g, '')
-	},
+	// {
+	// 	name: "reydon",
+	// 	importLabel: "Reydon Stock CSV",
+	// 	updateInventory: true,
+	// 	getSKU: item => item.Code.replace('\n', ''),
+	// 	getQuantity: item => +item.Quantity,
+	// 	useTitleForMatching: true,
+	// 	getTitle: item => item['Product Name'].replace(/\([^()]*\)/g, '')
+	// },
 	{
 		name: 'reydon-products',
-		importLabel: 'Reydon Products CSV',
+		importLabel: 'Reydon/Sketchers CSV',
 		updateProducts: true,
+		updateInventory: true,
 		addProducts: true,
 		useBarcodeForExclusiveMatching: true,
 		useTitleForMatching: true,
