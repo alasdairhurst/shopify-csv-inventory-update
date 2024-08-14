@@ -5,6 +5,7 @@ import { diceCoefficient } from 'string-comparison';
 import './App.css';
 import vendors from './vendors';
 import { useState } from 'react';
+import Alert from './Alert';
 
 const DOWNLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
 const DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME = 'completed_products_update_for_shopify.csv';
@@ -19,6 +20,8 @@ let logger = {
   warn: () => {},
   error: () => {}
 };
+
+class ExpectedError extends Error {};
 
 const DEBUG = true;
 if (DEBUG) {
@@ -55,7 +58,7 @@ function parseCSVString(csvString) {
       header: true,
       skipEmptyLines: true,
       complete (results) {
-        resolve(results.data);
+        resolve([results.data, results.meta.fields]);
       },
       error: reject
     });
@@ -111,13 +114,43 @@ async function parseFileAsCSV(file, vendor) {
 
   let fileContent = reader.result; // Get the file content
   let headerRow = '';
-  if (vendor?.headers) {
-    headerRow = vendor.headers.join(',') + '\n';
+  // Add headers when csv is missing them
+  if (vendor?.forceHeaders) {
+    headerRow = vendor.forceHeaders.join(',') + '\n';
   }
   if (vendor?.htmlDecode) {
     fileContent = he.decode(fileContent);
   }
-  let csv = await parseCSVString(headerRow + fileContent);
+
+  let [ csv, headers ] = await parseCSVString(headerRow + fileContent);
+
+  if (vendor?.expectedHeaders) {
+    function matchHeaders(expected, headers) {
+      if (expected.length !== headers.length) {
+        return false;
+      }
+      return expected.every((header, i) => {
+        header[i] === expected[i]
+      });
+    }
+    let match = false;
+    if (Array.isArray(vendor.expectedHeaders[0])) {
+      match = vendor.expectedHeaders.every(expected => matchHeaders(expected, headers));
+    } else {
+      match = matchHeaders(vendor.expectedHeaders, headers);
+    }
+
+    if (!match) {
+      let expected;
+      if (Array.isArray(vendor.expectedHeaders[0])) {
+        expected = vendor.expectedHeaders.map(JSON.stringify).join('\nor\n');
+      } else {
+        expected = JSON.stringify(vendor.expectedHeaders);
+      }
+      throw new ExpectedError(`${vendor.importLabel} headers don't look right.\n\n  Expected:\n ${expected}\n\n  Got:\n ${JSON.stringify(headers)}`);
+    }
+
+  }
 
   if (vendor?.parseImport) {
     csv = vendor.parseImport(csv);
@@ -153,7 +186,8 @@ const getFiles = (inputID) => {
 const updateInventory = async (e, { maxQuantity }) => {
   const shopifyInventoryFiles = getFiles('shopify-inventory');
   if (!shopifyInventoryFiles.length) {
-    logger.error('[ERROR] no shopify inventory CSV selected');
+
+   throw new ExpectedError('no shopify inventory CSV selected');
     return;
   }
   const shopifyInventoryCSV = await parseFilesAsCSV(shopifyInventoryFiles, undefined, SHOPIFY_MULTIPLE_OPTIONS);
@@ -254,7 +288,7 @@ const matchShopifyItems = (shopifyItemSKU, shopifyItemTitle, shopifyItemBarcode,
     // compare titles to have some safety net
     const similarity = diceCoefficient.similarity(vendorProductTitle, shopifyItemTitle);
     if (similarity <= 0.4) {
-      logger.error(`[ERROR] ${vendor.name} SKU ${vendorProductLabel} matches SKU but does not match shopify product title ${shopifyItemLabel}. (${similarity} similar)`);
+      logger.warn(`[WARN] ${vendor.name} SKU ${vendorProductLabel} matches SKU but does not match shopify product title ${shopifyItemLabel}. (${similarity} similar)`);
       return;
     }
   }
@@ -308,8 +342,7 @@ const updateProducts = async () => {
   logger.info('Update products');
   const shopifyProductsFiles = getFiles('shopify-products');
   if (!shopifyProductsFiles.length) {
-    logger.error('[ERROR] no shopify products CSV selected');
-    return;
+    throw new ExpectedError('no shopify products CSV selected');
   }
   const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, undefined, SHOPIFY_MULTIPLE_OPTIONS);
   const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
@@ -353,7 +386,7 @@ const updateProducts = async () => {
       
       // Update price
       if (!vendor.getPrice) {
-        logger.error(`[ERROR] cannot update price for vendor ${vendor.name} getPrice not implemented`);
+        throw new ExpectedError(`cannot update price for vendor ${vendor.name} getPrice not implemented`);
       } else {
         const vendorProductPrice = roundPrice(vendor.getPrice(vendorProduct)).toString();
         const shopifyProductPrice = shopifyProduct['Variant Price'].toString();
@@ -370,7 +403,7 @@ const updateProducts = async () => {
 
       // Update barcode
       if (!vendor.getBarcode) {
-        logger.error(`[ERROR] cannot update barcode for vendor ${vendor.name} getBarcode not implemented`);
+        throw new ExpectedError(`cannot update barcode for vendor ${vendor.name} getBarcode not implemented`);
       } else {
         const shopifyProductBarcode = shopifyProduct['Variant Barcode'];
         if (shopifyProductBarcode === vendorProductBarcode) {
@@ -384,7 +417,7 @@ const updateProducts = async () => {
 
       // update main image
       if (!vendor.getVariantImageURL) {
-        logger.error(`[ERROR] cannot update variant images for vendor ${vendor.name} getVariantImageURL not implemented`);
+        throw new ExpectedError(`cannot update variant images for vendor ${vendor.name} getVariantImageURL not implemented`);
       } else {
         const vendorVariantImage = vendor.getVariantImageURL(vendorProduct);
         if (!shopifyProduct['Image Src'] && vendorVariantImage) {
@@ -396,7 +429,7 @@ const updateProducts = async () => {
 
       // Update images. Do this for every sub item??
       if (!vendor.getAdditionalImages) {
-        logger.error(`[ERROR] cannot update additional images for vendor ${vendor.name} getAdditionalImages not implemented`);
+        throw new ExpectedError(`cannot update additional images for vendor ${vendor.name} getAdditionalImages not implemented`);
       } else {
         const shopifyProductAdditionalImages = shopifyParent.secondaryRows.filter(row => {
           return row['Image Src'] && !row['Title'] && !row['Variant SKU'];
@@ -438,8 +471,7 @@ const updateProducts = async () => {
 const addProducts = async () => {
   const shopifyProductsFiles = getFiles('shopify-products');
   if (!shopifyProductsFiles.length) {
-    logger.error('[ERROR] no shopify products CSV selected');
-    return;
+    throw new ExpectedError('no shopify products CSV selected');
   }
   const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, undefined, SHOPIFY_MULTIPLE_OPTIONS);
   const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
@@ -631,11 +663,17 @@ const convertShopifyProductsToExternal = (products, options = {}) => {
 
 function App() {
   const [ loading, setLoading ] = useState(false);
+  const [ alert, setAlert ] = useState(null);
   const INITIAL_STOCK_CAP = 5;
   const [ maxQuantity, setMaxQuantity ] = useState(INITIAL_STOCK_CAP);
   const cancel = () => {
     cancelled = true;
     setLoading(false);
+  }
+  const onError = err => {
+    logger.error(err);
+    const message = err instanceof ExpectedError ? err.message : err.stack;
+    setAlert({ header: 'Error', message });
   }
   const withLoading = (fn) => {
     return async (e) => {
@@ -643,14 +681,15 @@ function App() {
       e.preventDefault();
       e.stopPropagation();
       setLoading(true);
-      await fn(e, { maxQuantity }).catch(console.error);
+      await fn(e, { maxQuantity }).catch(onError);
       setLoading(false);
     }
   }
   return (
     <div className="App">
       <header className="App-header">
-        <form id="myform" className="form" onSubmit={e => {e.preventDefault()}}>
+        {alert ? <Alert header={alert.header} message={alert.message} onClose={() => setAlert(null)}/>: null }
+        <form style={{pointerEvents: alert ? 'none': undefined}} id="myform" className="form" onSubmit={e => {e.preventDefault()}}>
           <h2>Shopify Inventory</h2>
           <label htmlFor="shopify-inventory">Shopify inventory CSV:</label>
           <input type="file" multiple accept=".csv,.zip" id="shopify-inventory" name="shopify-inventory" />
@@ -686,26 +725,26 @@ function App() {
                 id="maxquantity"
                 type="number"
                 value={maxQuantity}
-                onChange={e => console.log(e) || setMaxQuantity(e.target.value)}
+                onChange={e => setMaxQuantity(e.target.value)}
               />
               <p/>
               <button
                 onClick={withLoading(updateInventory)}
-                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px', width: '100%'}}
+                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
               >
                 Download Inventory CSV (Update Quantity)
               </button>
               <p/>
               <button
                 onClick={withLoading(addProducts)}
-                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px', width: '100%'}}
+                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
               >
                 Download Products CSV (Add missing products)
               </button>
               <p/>
               <button
                 onClick={withLoading(updateProducts)}
-                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '25px', width: '100%'}}
+                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
               >
                 Download Products CSV (Edit products)
               </button>

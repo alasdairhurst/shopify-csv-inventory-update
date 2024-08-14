@@ -35,8 +35,8 @@ const cartasProductVAT = item => {
 
 const vendors = [
 	// {
-	// 	name: "reydon",
-	// 	importLabel: "Reydon Stock CSV",
+	// 	name: 'reydon',
+	// 	importLabel: 'Reydon Inventory CSV',
 	// 	updateInventory: true,
 	// 	getSKU: item => item.Code.replace('\n', ''),
 	// 	getQuantity: item => +item.Quantity,
@@ -45,12 +45,13 @@ const vendors = [
 	// },
 	{
 		name: 'reydon-products',
-		importLabel: 'Reydon/Sketchers CSV',
+		importLabel: 'Reydon CSV',
 		updateProducts: true,
 		updateInventory: true,
 		addProducts: true,
 		useBarcodeForExclusiveMatching: true,
 		useTitleForMatching: true,
+		expectedHeaders: ['Sku_Code','Product_Name','Description','Image_File','Image_FTP','Size','Colour','Brand','VAT','Barcode','Trade','SRP','Weight_KG','Length_CM','Width_CM','Height_CM','Commodity_Code','Easy_Store_Quantity','COFO','COFO_Code','Product_Parent','Date_First_Available','Free_Stock','Approx_Restock_Date_MMyy','Can_Sell_In','Cannot_Sell_In','Product_Material','Your_Price','Currency','Price_Updated'],
 		getTitle: item => item.Product_Name,
 		getDescription: item => item.Description,
 		getVendor: item => item.Brand,
@@ -91,9 +92,9 @@ const vendors = [
 		orderBy: item => item.Product_Name,
 	},
 	{
-		"name": "cartas",
-		"importLabel": "Cartas Inventory CSV",
-		"headers": ["a", "b", "c", "d", "SKU", "Title", "f", "g", "Quantity", "h"],
+		name: 'cartas',
+		importLabel: 'Cartas Inventory CSV',
+		headers: ['a', 'b', 'c', 'd', 'SKU', 'Title', 'f', 'g', 'Quantity', 'h'],
 		updateInventory: true,
 		updateProducts: false,
 		getSKU: item => item.SKU,
@@ -113,7 +114,7 @@ const vendors = [
 		getQuantity: item => Math.min(+item.STOCK, 50),
 		getType: item => item.CATEGORY.replace(item.BRAND.toUpperCase(), '').replace(/-/g, ' ').trim(),
 		getBarcode: item => {
-			const barcode = item.EAN.replace(/"/g, '').trim();
+			const barcode = item.EAN.replace(/'/g, '').trim();
 			if (barcode) {
 				return `'${barcode}`;
 			}
@@ -128,7 +129,7 @@ const vendors = [
 		},
 		getTaxable: item => cartasProductVAT(item) > 1,
 		getVendor: item => item.BRAND.trim(),
-		getDescription: item => item.DESCRIPTION.replace(/^"/, '').replace(/"$/, '').trim(),
+		getDescription: item => item.DESCRIPTION.replace(/^'/, '').replace(/'$/, '').trim(),
 		getMainImageURL: item => item.MAIN_IMAGE.trim(),
 		getTags: item => 'new in,cartas,cartas-new-csv',
 		useTitleForMatching: false,
@@ -165,8 +166,8 @@ const vendors = [
 		getVariantCorrelationId: item => item.PERANT_ID || item.PARENT_ID,
 	},
 	{
-		name: "unicorn",
-		importLabel: "Unicorn CSV",
+		name: 'unicorn',
+		importLabel: 'Unicorn CSV',
 		updateInventory: true,
 		updateProducts: true,
 		useBarcodeForExclusiveMatching: true,
@@ -177,8 +178,8 @@ const vendors = [
 		getTitle: item => item.Description
 	},
 	{
-		name: "muaythai",
-		importLabel: "Muay Thai Boxing CSV",
+		name: 'muaythai',
+		importLabel: 'Muay Thai Boxing CSV',
 		updateInventory: true,
 		updateProducts: true,
 		addProducts: true,
@@ -248,8 +249,8 @@ const vendors = [
 		}
 	},
 	{
-		name: "blitz",
-		importLabel: "Blitz CSV",
+		name: 'blitz',
+		importLabel: 'Blitz CSV',
 		updateInventory: true,
 		updateProducts: true,
 		addProducts: true,
