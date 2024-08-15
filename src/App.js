@@ -385,7 +385,7 @@ const updateProducts = async () => {
       
       // Update price
       if (!vendor.getPrice) {
-        throw new ExpectedError(`cannot update price for vendor ${vendor.name} getPrice not implemented`);
+        logger.warn(`[WARN] cannot update price for vendor ${vendor.name} getPrice not implemented`);
       } else {
         const vendorProductPrice = roundPrice(vendor.getPrice(vendorProduct)).toString();
         const shopifyProductPrice = shopifyProduct['Variant Price'].toString();
@@ -402,7 +402,7 @@ const updateProducts = async () => {
 
       // Update barcode
       if (!vendor.getBarcode) {
-        throw new ExpectedError(`cannot update barcode for vendor ${vendor.name} getBarcode not implemented`);
+        logger.warn(`[WARN] cannot update barcode for vendor ${vendor.name} getBarcode not implemented`);
       } else {
         const shopifyProductBarcode = shopifyProduct['Variant Barcode'];
         if (shopifyProductBarcode === vendorProductBarcode) {
@@ -416,7 +416,7 @@ const updateProducts = async () => {
 
       // update main image
       if (!vendor.getVariantImageURL) {
-        throw new ExpectedError(`cannot update variant images for vendor ${vendor.name} getVariantImageURL not implemented`);
+        logger.warn(`[WARN] cannot update variant images for vendor ${vendor.name} getVariantImageURL not implemented`);
       } else {
         const vendorVariantImage = vendor.getVariantImageURL(vendorProduct);
         if (!shopifyProduct['Image Src'] && vendorVariantImage) {
@@ -428,7 +428,7 @@ const updateProducts = async () => {
 
       // Update images. Do this for every sub item??
       if (!vendor.getAdditionalImages) {
-        throw new ExpectedError(`cannot update additional images for vendor ${vendor.name} getAdditionalImages not implemented`);
+        logger.warn(`[WARN] cannot update additional images for vendor ${vendor.name} getAdditionalImages not implemented`);
       } else {
         const shopifyProductAdditionalImages = shopifyParent.secondaryRows.filter(row => {
           return row['Image Src'] && !row['Title'] && !row['Variant SKU'];
