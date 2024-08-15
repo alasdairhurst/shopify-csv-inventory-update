@@ -125,20 +125,19 @@ async function parseFileAsCSV(file, vendor) {
   let [ csv, headers ] = await parseCSVString(headerRow + fileContent);
 
   if (vendor?.expectedHeaders) {
-    function matchHeaders(expected, headers) {
+    let match = false;
+    if (!Array.isArray(vendor.expectedHeaders[0])) {
+      vendor.expectedHeaders = [vendor.expectedHeaders ];
+    }
+    // check if at least one of the sets of expected headers matches the ones we got
+    match = vendor.expectedHeaders.some(expected => {
       if (expected.length !== headers.length) {
         return false;
       }
       return expected.every((header, i) => {
-        header[i] === expected[i]
+        return header === expected[i];
       });
-    }
-    let match = false;
-    if (Array.isArray(vendor.expectedHeaders[0])) {
-      match = vendor.expectedHeaders.every(expected => matchHeaders(expected, headers));
-    } else {
-      match = matchHeaders(vendor.expectedHeaders, headers);
-    }
+    });
 
     if (!match) {
       let expected;

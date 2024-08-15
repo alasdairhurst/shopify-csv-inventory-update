@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 function Alert({header, message, onClose}) {
   return (
     <div style={{position: 'absolute', width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.4)'}}>
@@ -9,7 +10,7 @@ function Alert({header, message, onClose}) {
           {header}
         </div>
         <div style={{ overflowY: 'auto', textAlign: 'left', margin: '25px', lineBreak: 'anywhere'}}>
-          {message?.split('\n')?.map((item, i, arr) => i < arr.length ? <>{item}<br/></>: item)}
+          {message?.split('\n')?.map((item, i, arr) => i < arr.length ? <Fragment key={`${item}_${i}`}>{item}<br/></Fragment>: item)}
         </div>
       </div>
     </div>
