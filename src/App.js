@@ -11,7 +11,7 @@ const DOWNLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv
 const DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME = 'completed_products_update_for_shopify.csv';
 const DONWLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
 const DEFAULT_SHOPIFY_PRODUCT = {
-  'Handle': '', 'Title': '', 'Body (HTML)': '', 'Vendor': '', 'Product Category': '', 'Type': '', 'Tags': '', 'Published': '', 'Option1 Name': '', 'Option1 Value': '', 'Option2 Name': '', 'Option2 Value': '', 'Option3 Name': '', 'Option3 Value': '', 'Variant SKU': '', 'Variant Grams': '', 'Variant Inventory Tracker': '', 'Variant Inventory Qty': '', 'Variant Inventory Policy': '', 'Variant Fulfillment Service': '', 'Variant Price': '', 'Variant Compare At Price': '', 'Variant Requires Shipping': '', 'Variant Taxable': '', 'Variant Barcode': '', 'Image Src': '', 'Image Position': '', 'Image Alt Text': '', 'Gift Card': '', 'SEO Title': '', 'SEO Description': '', 'Google Shopping / Google Product Category': '', 'Google Shopping / Gender': '', 'Google Shopping / Age Group': '', 'Google Shopping / MPN': '', 'Google Shopping / AdWords Grouping': '', 'Google Shopping / AdWords Labels': '', 'Google Shopping / Condition': '', 'Google Shopping / Custom Product': '', 'Google Shopping / Custom Label 0': '', 'Google Shopping / Custom Label 1': '', 'Google Shopping / Custom Label 2': '', 'Google Shopping / Custom Label 3': '', 'Google Shopping / Custom Label 4': '', 'Variant Image': '', 'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Included / United Kingdom': '', 'Status': ''
+  'Handle': '', 'Title': '', 'Body (HTML)': '', 'Vendor': '', 'Product Category': '', 'Type': '', 'Tags': '', 'Published': '', 'Option1 Name': '', 'Option1 Value': '', 'Option2 Name': '', 'Option2 Value': '', 'Option3 Name': '', 'Option3 Value': '', 'Variant SKU': '', 'Variant Grams': '', 'Variant Inventory Tracker': '', 'Variant Inventory Qty': '', 'Variant Inventory Policy': '', 'Variant Fulfillment Service': '', 'Variant Price': '', 'Variant Compare At Price': '', 'Variant Requires Shipping': '', 'Variant Taxable': '', 'Variant Barcode': '', 'Image Src': '', 'Image Position': '', 'Image Alt Text': '', 'Gift Card': '', 'SEO Title': '', 'SEO Description': '', 'Variant Image': '', 'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Included / United Kingdom': '', 'Status': ''
 }
 const PARENT_SYMBOL = Symbol.for('parent');
 
@@ -65,16 +65,26 @@ function parseCSVString(csvString) {
   });
 }
 
-const SHOPIFY_MULTIPLE_OPTIONS = {
-  orderBy: item => item.Handle
-}
+const SHOPIFY_PRODUCTS_OPTIONS = {
+  orderBy: item => item.Handle,
+  importLabel: 'Shopify products CSV',
+  name: 'shopify-products',
+  expectedHeaders: Object.keys(DEFAULT_SHOPIFY_PRODUCT)
+};
 
-async function parseFilesAsCSV(files, vendor, multipleOptions) {
+const SHOPIFY_INVENTORY_OPTIONS = {
+  orderBy: item => item.Handle,
+  importLabel: 'Shopify inventory CSV',
+  name: 'shopify-inventory',
+  expectedHeaders: ['Handle', 'Title','Option1 Name','Option1 Value','Option2 Name','Option2 Value','Option3 Name','Option3 Value','SKU','HS Code','COO','Location','Incoming','Unavailable','Committed','Available','On hand']
+};
+
+async function parseFilesAsCSV(files, vendor) {
   const allFiles = await Promise.all(Array.from(files).map(f => parseFileAsCSV(f, vendor)));
   let csv = [].concat(...allFiles);
-  if (multipleOptions?.orderBy) {
+  if (vendor?.orderBy) {
     csv = csv.sort((a, b) => {
-      return multipleOptions.orderBy(a).localeCompare(multipleOptions.orderBy(b));
+      return vendor.orderBy(a).localeCompare(vendor.orderBy(b));
     });
   }
   return csv;
@@ -124,6 +134,7 @@ async function parseFileAsCSV(file, vendor) {
 
   let [ csv, headers ] = await parseCSVString(headerRow + fileContent);
 
+  // Check the headers as soon as we parse the csv before we use any properties.
   if (vendor?.expectedHeaders) {
     let match = false;
     if (!Array.isArray(vendor.expectedHeaders[0])) {
@@ -131,22 +142,21 @@ async function parseFileAsCSV(file, vendor) {
     }
     // check if at least one of the sets of expected headers matches the ones we got
     match = vendor.expectedHeaders.some(expected => {
-      if (expected.length !== headers.length) {
-        return false;
-      }
-      return expected.every((header, i) => {
-        return header === expected[i];
+      return expected.every(expectedHeader => {
+        // ideally we'd do a full match of all headers since the order sometimes matters,
+        // but since shopify just decides to add random headers we'll just check for the 
+        // fields we know/care about.
+        const there = headers.includes(expectedHeader);
+        if (!there) {
+          logger.warn(`[WARN] ${vendor.name} csv missing possible header: ${expectedHeader}`);
+        }
+        return there;
       });
     });
 
     if (!match) {
-      let expected;
-      if (Array.isArray(vendor.expectedHeaders[0])) {
-        expected = vendor.expectedHeaders.map(JSON.stringify).join('\nor\n');
-      } else {
-        expected = JSON.stringify(vendor.expectedHeaders);
-      }
-      throw new ExpectedError(`${vendor.importLabel} headers don't look right.\n\n  Expected:\n ${expected}\n\n  Got:\n ${JSON.stringify(headers)}`);
+      const expected = vendor.expectedHeaders.map(JSON.stringify).join('\nor\n');
+      throw new ExpectedError(`Did you pick the right file for ${vendor.importLabel}?\n CSV headers don't look right.\n\n  Expected:\n ${expected}\n\n  Got:\n ${JSON.stringify(headers)}`);
     }
 
   }
@@ -189,7 +199,7 @@ const updateInventory = async (e, { maxQuantity }) => {
    throw new ExpectedError('no shopify inventory CSV selected');
     return;
   }
-  const shopifyInventoryCSV = await parseFilesAsCSV(shopifyInventoryFiles, undefined, SHOPIFY_MULTIPLE_OPTIONS);
+  const shopifyInventoryCSV = await parseFilesAsCSV(shopifyInventoryFiles, SHOPIFY_INVENTORY_OPTIONS);
   const shopifyInventoryUpdates = [];
   for (const vendor of vendors) {
     if (cancelled) {
@@ -247,9 +257,9 @@ const updateInventory = async (e, { maxQuantity }) => {
   }
   if (!shopifyInventoryUpdates.length) {
     logger.warn('[DONE] Nothing to download');
-    return;
+    return 'Nothing to download';
   }
-  logger.warn('[DONE] Downloading CSV');
+  logger.warn('[DONE] Downloading inventory CSV');
   const csv = Papa.unparse(shopifyInventoryUpdates, {
     header: true,
     newline: '\n',
@@ -343,7 +353,7 @@ const updateProducts = async () => {
   if (!shopifyProductsFiles.length) {
     throw new ExpectedError('no shopify products CSV selected');
   }
-  const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, undefined, SHOPIFY_MULTIPLE_OPTIONS);
+  const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, SHOPIFY_PRODUCTS_OPTIONS);
   const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
 
   for (const vendor of vendors) {
@@ -457,9 +467,9 @@ const updateProducts = async () => {
   const shopifyProductsCSVExport = convertShopifyProductsToExternal(shopifyProducts, { onlyEdited: true });
   if (!shopifyProductsCSVExport.length) {
     logger.warn('[DONE] Nothing to download');
-    return;
+    return 'Nothing to download';
   }
-  logger.warn('[DONE] Downloading CSV');
+  logger.warn('[DONE] Downloading products CSV');
   const csv = Papa.unparse(shopifyProductsCSVExport, {
     header: true,
     newline: '\n',
@@ -472,7 +482,7 @@ const addProducts = async () => {
   if (!shopifyProductsFiles.length) {
     throw new ExpectedError('no shopify products CSV selected');
   }
-  const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, undefined, SHOPIFY_MULTIPLE_OPTIONS);
+  const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, SHOPIFY_PRODUCTS_OPTIONS);
   const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
 
   for (const vendor of vendors) {
@@ -612,9 +622,9 @@ const addProducts = async () => {
   const shopifyProductsCSVExport = convertShopifyProductsToExternal(shopifyProducts, { onlyEdited: true });
   if (!shopifyProductsCSVExport.length) {
     logger.warn('[DONE] Nothing to download');
-    return;
+    return 'Nothing to download';
   }
-  logger.warn('[DONE] Downloading CSV');
+  logger.warn('[DONE] Downloading products CSV');
   const csv = Papa.unparse(shopifyProductsCSVExport, {
     header: true,
     newline: '\n',
@@ -680,7 +690,16 @@ function App() {
       e.preventDefault();
       e.stopPropagation();
       setLoading(true);
-      await fn(e, { maxQuantity }).catch(onError);
+
+      setAlert({header: 'Loading...', message: (
+        <div className="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+      )})
+
+      const info = await fn(e, { maxQuantity }).catch(onError);
+      setAlert(null);
+      if (info) {
+        setAlert({ header: 'Info', message: info });
+      }
       setLoading(false);
     }
   }
@@ -690,11 +709,11 @@ function App() {
         {alert ? <Alert header={alert.header} message={alert.message} onClose={() => setAlert(null)}/>: null }
         <form style={{pointerEvents: alert ? 'none': undefined}} id="myform" className="form" onSubmit={e => {e.preventDefault()}}>
           <h2>Shopify Inventory</h2>
-          <label htmlFor="shopify-inventory">Shopify inventory CSV:</label>
+          <label htmlFor="shopify-inventory">{SHOPIFY_INVENTORY_OPTIONS.importLabel} </label>
           <input type="file" multiple accept=".csv,.zip" id="shopify-inventory" name="shopify-inventory" />
           <p/>
           <h2>Shopify Products</h2>
-          <label htmlFor="shopify-products">Shopify products CSV:</label>
+          <label htmlFor="shopify-products">{SHOPIFY_PRODUCTS_OPTIONS.importLabel} </label>
           <input type="file" multiple accept=".csv,.zip" id="shopify-products" name="shopify-products" />
           <p/>
           <h2>Vendor Inventory</h2>
@@ -705,16 +724,7 @@ function App() {
               <p/>
             </div>
           ))}
-          {loading ? (
-            <>
-              <div className="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
-              <button
-                onClick={cancel}
-                >
-                Cancel
-              </button>
-            </>
-          ) : (
+          {loading ? null : (
             <>
               <h2>Settings</h2>
               <label htmlFor="maxquantity" style={{paddingRight: '5px' }}>
