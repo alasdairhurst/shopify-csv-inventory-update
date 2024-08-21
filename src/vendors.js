@@ -35,6 +35,16 @@ const cartasProductVAT = item => {
 
 const vendors = [
 	{
+		name: 'reydon',
+		importLabel: 'Reydon Inventory CSV',
+		updateInventory: true,
+		getSKU: item => item.Code.replace('\n', ''),
+		getQuantity: item => +item.Quantity,
+		useTitleForMatching: true,
+		getTitle: item => item['Product Name'].replace(/\([^()]*\)/g, ''),
+		expectedHeaders: ['Product Name', 'Code', 'Quantity']
+	},
+	{
 		name: 'reydon-products',
 		importLabel: 'Reydon CSV',
 		updateProducts: true,

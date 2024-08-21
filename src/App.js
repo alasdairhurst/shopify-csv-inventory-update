@@ -81,6 +81,9 @@ const SHOPIFY_INVENTORY_OPTIONS = {
 
 async function parseFilesAsCSV(files, vendor) {
   const allFiles = await Promise.all(Array.from(files).map(f => parseFileAsCSV(f, vendor)));
+  if (cancelled) {
+    return;
+  }
   let csv = [].concat(...allFiles);
   if (vendor?.orderBy) {
     csv = csv.sort((a, b) => {
@@ -94,13 +97,20 @@ async function readZip(file){
   const entries = await (
     new ZipReader(new BlobReader(file))
   ).getEntries();
-  
+
+  if (cancelled) {
+    return;
+  }
+
   // Only read the first csv entry
   const csvFile = entries.find(entry => entry.filename.endsWith('.csv'));
   if (!csvFile) {
     throw new Error('Cannot find .csv in zip file', file.name)
   }
   const blob = await csvFile.getData(new BlobWriter());
+  if (cancelled) {
+    return;
+  }
   return new File(new Array(blob), csvFile.filename);
 }
 
@@ -109,6 +119,9 @@ async function parseFileAsCSV(file, vendor) {
 
   if (file.name.endsWith('.zip')) {
     file = await readZip(file);
+  }
+  if (cancelled) {
+    return;
   }
 
   if (!file.name.endsWith('.csv')) {
@@ -121,6 +134,9 @@ async function parseFileAsCSV(file, vendor) {
   await new Promise(resolve => {
     reader.onload = resolve;
   });
+  if (cancelled) {
+    resolve();
+  }
 
   let fileContent = reader.result; // Get the file content
   let headerRow = '';
@@ -133,7 +149,9 @@ async function parseFileAsCSV(file, vendor) {
   }
 
   let [ csv, headers ] = await parseCSVString(headerRow + fileContent);
-
+  if (cancelled) {
+    return;
+  }
   // Check the headers as soon as we parse the csv before we use any properties.
   if (vendor?.expectedHeaders) {
     let match = false;
@@ -172,6 +190,9 @@ async function parseFileAsCSV(file, vendor) {
   if (vendor?.getVariantCorrelationId) {
     const parents = {};
     for (const item of csv) {
+      if (cancelled) {
+        return;
+      }
       const id = vendor.getVariantCorrelationId(item);
       if (parents[id]) {
         item[PARENT_SYMBOL] = parents[id];
@@ -195,11 +216,12 @@ const getFiles = (inputID) => {
 const updateInventory = async (e, { maxQuantity }) => {
   const shopifyInventoryFiles = getFiles('shopify-inventory');
   if (!shopifyInventoryFiles.length) {
-
    throw new ExpectedError('no shopify inventory CSV selected');
-    return;
   }
   const shopifyInventoryCSV = await parseFilesAsCSV(shopifyInventoryFiles, SHOPIFY_INVENTORY_OPTIONS);
+  if (cancelled) {
+    return;
+  }
   const shopifyInventoryUpdates = [];
   for (const vendor of vendors) {
     if (cancelled) {
@@ -211,6 +233,9 @@ const updateInventory = async (e, { maxQuantity }) => {
     }
     const vendorInventory = getFiles(vendor.name);
     let vendorInventoryCSV = await parseFileAsCSV(vendorInventory[0], vendor);
+    if (cancelled) {
+      return;
+    }
     if (!vendorInventoryCSV) {
       logger.log(`[SKIP] no inventory file selected for ${vendor.name}`);
       continue;
@@ -354,6 +379,9 @@ const updateProducts = async () => {
     throw new ExpectedError('no shopify products CSV selected');
   }
   const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, SHOPIFY_PRODUCTS_OPTIONS);
+  if (cancelled) {
+    return;
+  }
   const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
 
   for (const vendor of vendors) {
@@ -366,6 +394,9 @@ const updateProducts = async () => {
     }
     const vendorProductFiles = getFiles(vendor.name);
     let vendorProductCSV = await parseFileAsCSV(vendorProductFiles[0], vendor);
+    if (cancelled) {
+      return;
+    }
     if (!vendorProductCSV) {
       logger.log(`[SKIP] no product file selected for ${vendor.name}`);
       continue;
@@ -452,6 +483,9 @@ const updateProducts = async () => {
           logger.warn(`[ADDITIONAL IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} adding ${vendorProductImages.length} more images to product ${shopifyProductLabel}`);
           // Add new images
           for (const image of vendorProductImages) {
+            if (cancelled) {
+              return;
+            }
             shopifyParent.secondaryRows.push({
               ...DEFAULT_SHOPIFY_PRODUCT,
               Handle: shopifyParent.primaryRow.Handle,
@@ -483,6 +517,9 @@ const addProducts = async () => {
     throw new ExpectedError('no shopify products CSV selected');
   }
   const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, SHOPIFY_PRODUCTS_OPTIONS);
+  if (cancelled) {
+    return;
+  }
   const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
 
   for (const vendor of vendors) {
@@ -495,6 +532,9 @@ const addProducts = async () => {
     }
     const vendorProductFiles = getFiles(vendor.name);
     let vendorProductCSV = await parseFileAsCSV(vendorProductFiles[0], vendor);
+    if (cancelled) {
+      return;
+    }
     if (!vendorProductCSV) {
       logger.log(`[SKIP] no product file selected for ${vendor.name}`);
       continue;
@@ -587,6 +627,9 @@ const addProducts = async () => {
       const variants = vendor.getVariants?.(vendorProduct);
       if (variants?.length) {
         for (let i = 0; i <= variants.length && i <= 3; i++) {
+          if (cancelled) {
+            return;
+          }
           if (variants[i]) {
             product[`Option${i+1} Name`] = variants[i].name;
             product[`Option${i+1} Value`] = variants[i].value;
@@ -642,6 +685,9 @@ const convertShopifyProductsToInternal = (shopifyProductsCSV) => {
   const shopifyProductsNewFormat = [];
   let currentProduct;
   for (const shopifyProduct of shopifyProductsCSV) {
+    if (cancelled) {
+      return;
+    }
     shopifyProduct['Variant Barcode'] = shopifyProduct['Variant Barcode'].replace(/^'/, '');
     shopifyProduct['Variant SKU'] = shopifyProduct['Variant SKU'].replace(/^'/, '');
     if (currentProduct?.primaryRow.Handle !== shopifyProduct.Handle) {
@@ -661,6 +707,9 @@ const convertShopifyProductsToInternal = (shopifyProductsCSV) => {
 const convertShopifyProductsToExternal = (products, options = {}) => {
   const shopifyProductsCSV = [];
   for (const product of products) {
+    if (cancelled) {
+      return;
+    }
     if (options.onlyEdited && !product.edited) {
       continue;
     }
@@ -678,25 +727,34 @@ function App() {
   const cancel = () => {
     cancelled = true;
     setLoading(false);
+    setAlert(null);
   }
   const onError = err => {
     logger.error(err);
     const message = err instanceof ExpectedError ? err.message : err.stack;
+    setLoading(false);
     setAlert({ header: 'Error', message });
   }
-  const withLoading = (fn) => {
+  const withLoading = (fn, loadingMessage) => {
     return async (e) => {
       cancelled = false;
       e.preventDefault();
       e.stopPropagation();
       setLoading(true);
 
-      setAlert({header: 'Loading...', message: (
-        <div className="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+      setAlert({hasClose: false, header: loadingMessage || 'Loading...', message: (
+        <>
+          <div className="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+          <button
+            onClick={cancel}
+            style={{backgroundColor: 'red', color: 'white', height: '50px', fontSize: '20px', width: '100%', marginTop: 'auto'}}
+          >
+            Cancel
+          </button>
+        </>
       )})
 
       const info = await fn(e, { maxQuantity }).catch(onError);
-      setAlert(null);
       if (info) {
         setAlert({ header: 'Info', message: info });
       }
@@ -706,7 +764,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        {alert ? <Alert header={alert.header} message={alert.message} onClose={() => setAlert(null)}/>: null }
+        {alert ? <Alert header={alert.header} message={alert.message} hasClose={alert.hasClose} onClose={() => setAlert(null)}/>: null }
         <form style={{pointerEvents: alert ? 'none': undefined}} id="myform" className="form" onSubmit={e => {e.preventDefault()}}>
           <h2>Shopify Inventory</h2>
           <label htmlFor="shopify-inventory">{SHOPIFY_INVENTORY_OPTIONS.importLabel} </label>
@@ -724,43 +782,39 @@ function App() {
               <p/>
             </div>
           ))}
-          {loading ? null : (
-            <>
-              <h2>Settings</h2>
-              <label htmlFor="maxquantity" style={{paddingRight: '5px' }}>
-                Maximum stock level
-              </label>
-              <input
-                id="maxquantity"
-                type="number"
-                value={maxQuantity}
-                onChange={e => setMaxQuantity(e.target.value)}
-              />
-              <p/>
-              <button
-                onClick={withLoading(updateInventory)}
-                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
-              >
-                Download Inventory CSV (Update Quantity)
-              </button>
-              <p/>
-              <button
-                onClick={withLoading(addProducts)}
-                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
-              >
-                Download Products CSV (Add missing products)
-              </button>
-              <p/>
-              <button
-                onClick={withLoading(updateProducts)}
-                style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
-              >
-                Download Products CSV (Edit products)
-              </button>
-              <p/>
-              <p/>
-            </>
-          )}
+          <h2>Settings</h2>
+          <label htmlFor="maxquantity" style={{paddingRight: '5px' }}>
+            Maximum stock level
+          </label>
+          <input
+            id="maxquantity"
+            type="number"
+            value={maxQuantity}
+            onChange={e => setMaxQuantity(e.target.value)}
+          />
+          <p/>
+          <button
+            onClick={withLoading(updateInventory, 'Generating updated inventory...')}
+            style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
+          >
+            Download Inventory CSV (Update Quantity)
+          </button>
+          <p/>
+          <button
+            onClick={withLoading(addProducts, 'Generating new products...')}
+            style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
+          >
+            Download Products CSV (Add missing products)
+          </button>
+          <p/>
+          <button
+            onClick={withLoading(updateProducts, 'Generating updated products...')}
+            style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
+          >
+            Download Products CSV (Edit products)
+          </button>
+          <p/>
+          <p/>
         </form>
       </header>
       <div style={{ position: 'absolute', bottom: '10px', left: '10px', color: 'white' }}>
