@@ -595,7 +595,6 @@ const addProducts = async () => {
       }
 
       const price = roundPrice(vendor.getPrice(vendorProduct));
-      console.log(price, vendor.getPrice(vendorProduct))
       product = {
         ...DEFAULT_SHOPIFY_PRODUCT,
         ...product,
