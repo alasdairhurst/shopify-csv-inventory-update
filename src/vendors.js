@@ -28,7 +28,7 @@ const cartasShipping = item => {
 }
 
 const cartasProductVAT = item => {
-	const VATpc = +item.VAT.replace('%', ', ');
+	const VATpc = +item.VAT.replace('%', '');
 	const VAT = (VATpc / 100) + 1
 	return VAT;
 }
@@ -110,6 +110,7 @@ const vendors = [
 		updateProducts: true,
 		addProducts: true,
 		useBarcodeForExclusiveMatching: false,
+		expectedHeaders: ['STATUS','CODE','WEIGHT','STOCK','CATEGORY','BRAND','EAN','VAT','TRADE_PRICE','DESCRIPTION','MAIN_IMAGE','PRODUCT_NAME','IMAGE_1','IMAGE_2','IMAGE_3','IMAGE_4','SIZE','COLOUR','PERANT_ID'],
 		getSKU: item => item.STATUS === 'LIVE' ? item.CODE.trim() : undefined, 
 		getWeight: item => +item.WEIGHT.trim(),
 		getQuantity: item => Math.min(+item.STOCK, 50),

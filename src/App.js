@@ -595,6 +595,7 @@ const addProducts = async () => {
       }
 
       const price = roundPrice(vendor.getPrice(vendorProduct));
+      console.log(price, vendor.getPrice(vendorProduct))
       product = {
         ...DEFAULT_SHOPIFY_PRODUCT,
         ...product,
@@ -754,11 +755,18 @@ function App() {
         </>
       )})
 
-      const info = await fn(e, { maxQuantity }).catch(onError);
-      if (info) {
-        setAlert({ header: 'Info', message: info });
+      try {
+        const info = await fn(e, { maxQuantity });
+        if (info) {
+          setAlert({ header: 'Info', message: info });
+        } else {
+          setAlert(null);
+        }
+      } catch (err) {
+        onError(err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
   }
   return (
