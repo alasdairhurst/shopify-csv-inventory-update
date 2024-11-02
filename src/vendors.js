@@ -56,7 +56,7 @@ const vendors = [
 		getTitle: item => item.Product_Name,
 		getDescription: item => item.Description,
 		getVendor: item => item.Brand,
-		getSKU: item => item.Sku_Code.replace('\n', ', '),
+		getSKU: item => item.Sku_Code.replace('\n', ''),
 		getMainImageURL: item => item['Image_FTP'],
 		getVariantImageURL: item => item['Image_FTP'],
 		getQuantity: item => +item.Free_Stock,
@@ -115,9 +115,9 @@ const vendors = [
 		getSKU: item => item.STATUS === 'LIVE' ? item.CODE.trim() : undefined, 
 		getWeight: item => +item.WEIGHT.trim(),
 		getQuantity: item => Math.min(+item.STOCK, 50),
-		getType: item => item.CATEGORY.replace(item.BRAND.toUpperCase(), ', ').replace(/-/g, ', ').trim(),
+		getType: item => item.CATEGORY.replace(item.BRAND.toUpperCase(), '').replace(/-/g, '').trim(),
 		getBarcode: item => {
-			const barcode = item.EAN.replace(/'/g, ', ').trim();
+			const barcode = item.EAN.replace(/'/g, '').trim();
 			if (barcode) {
 				return `'${barcode}`;
 			}
@@ -132,7 +132,7 @@ const vendors = [
 		},
 		getTaxable: item => cartasProductVAT(item) > 1,
 		getVendor: item => item.BRAND.trim(),
-		getDescription: item => item.DESCRIPTION.replace(/^'/, ', ').replace(/'$/, ', ').trim(),
+		getDescription: item => item.DESCRIPTION.replace(/^'/, '').replace(/'$/, '').trim(),
 		getMainImageURL: item => item.MAIN_IMAGE.trim(),
 		getTags: item => 'new in,cartas,cartas-new-csv',
 		useTitleForMatching: false,
@@ -260,7 +260,8 @@ const vendors = [
 		addProducts: true,
 		htmlDecode: true,
 		useBarcodeForExclusiveMatching: true,
-		expectedHeaders: ['Title', 'Link', 'LinkComponent', 'Description', 'Sku', 'ParentSku', 'Ean', 'CatCode', 'Type', 'Taxable', 'Brand', 'Category', 'ImageUrl', 'InStock', 'Weight', 'RetailPrice', 'TradePrice', 'Feature1', 'Feature2', 'Feature3', 'Feature4', 'Feature5', 'DueDate', 'Size', 'Colour', 'Design', 'AltImage1', 'AltImage2', 'AltImage3', 'AltImage4', 'AltImage5', 'AltImage6', 'AltImage7', 'AltImage8', 'AltImage9', 'AltImage10', 'AltImage11', 'AltImage12'],		getSKU: item => item.Sku,
+		expectedHeaders: ['Title', 'Link', 'LinkComponent', 'Description', 'Sku', 'ParentSku', 'Ean', 'CatCode', 'Type', 'Taxable', 'Brand', 'Category', 'ImageUrl', 'InStock', 'Weight', 'RetailPrice', 'TradePrice', 'Feature1', 'Feature2', 'Feature3', 'Feature4', 'Feature5', 'DueDate', 'Size', 'Colour', 'Design', 'AltImage1', 'AltImage2', 'AltImage3', 'AltImage4', 'AltImage5', 'AltImage6', 'AltImage7', 'AltImage8', 'AltImage9', 'AltImage10', 'AltImage11', 'AltImage12'],
+		getSKU: item => item.Sku,
 		getQuantity: item => item.InStock === 'True' ? 25 : 0,
 		getPrice: item => {
 			const VAT = item.Taxable === 'True' ? 0.2 : 0;
@@ -355,7 +356,7 @@ const vendors = [
 				// use parent as a base and override with non-empty values for each key, ignoring title
 				const newItem = {...parentItem};
 				for (const key in item) {
-					if (key !== 'Title' && item[key] !== ', ') {
+					if (key !== 'Title' && item[key] !== '') {
 						newItem[key] = item[key];
 					}
 				}
