@@ -1,7 +1,7 @@
 const PARENT_SYMBOL = Symbol.for('parent');
 
 // const RM_LARGE_LETTER = 2;
-const RM_SMALL_SHIPPING = 4;
+const RM_SMALL_SHIPPING = 4.50;
 const RM_LARGE_SHIPPING = 20;
 
 // const RM_LARGE_LETTER_SIZE = { LENGTH: 38, WIDTH: 28, HEIGHT: 3 };
@@ -123,11 +123,11 @@ const vendors = [
 		},
 		getPrice: item => {
 			const VAT = cartasProductVAT(item);
-			return +item.TRADE_PRICE * 1.35 * VAT + RM_SMALL_SHIPPING;
+			return +item.TRADE_PRICE * 1.45 * VAT + RM_SMALL_SHIPPING;
 		},
 		getRRP: item => {
 			const VAT = cartasProductVAT(item);
-			return (+item.TRADE_PRICE * 1.35 * VAT + RM_SMALL_SHIPPING) * 1.2;
+			return (+item.TRADE_PRICE * 1.45 * VAT + RM_SMALL_SHIPPING) * 1.2;
 		},
 		getTaxable: item => cartasProductVAT(item) > 1,
 		getVendor: item => item.BRAND.trim(),
@@ -264,7 +264,7 @@ const vendors = [
 		getPrice: item => {
 			const VAT = item.Taxable === 'True' ? 0.2 : 0;
 			const shipping = blitzShipping[item.Sku] || RM_SMALL_SHIPPING;
-			return +item.TradePrice * 1.40 * (1+VAT) + shipping;
+			return +item.TradePrice * 1.45 * (1+VAT) + shipping;
 		},
 		getRRP: item => item.RetailPrice,
 		getMainImageURL: item => item.ImageUrl,
