@@ -67,8 +67,8 @@ const vendors = [
 			if (Math.max(item.Width_CM, item.Length_CM, item.Height_CM) >= 110) {
 				shipping = RM_LARGE_SHIPPING;
 			}
-			// your price + 10% + profit + vat + shipping
-			return +item.Your_Price * 1.1 * 1.45 * (1 + (+item.VAT / 100)) + shipping
+			// your price + profit + vat + shipping
+			return +item.Your_Price * 1.45 * (1 + (+item.VAT / 100)) + shipping
 		},
 		getWeight: item => +item.Weight_KG,
 		getVariants: item => {
@@ -124,7 +124,7 @@ const vendors = [
 		},
 		getPrice: item => {
 			const VAT = cartasProductVAT(item);
-			return +item.TRADE_PRICE * 1.45 * VAT + RM_SMALL_SHIPPING;
+			return +item.TRADE_PRICE * 0.9 * 1.45 * VAT + RM_SMALL_SHIPPING;
 		},
 		getRRP: item => {
 			const VAT = cartasProductVAT(item);
