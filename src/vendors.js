@@ -188,66 +188,65 @@ const vendors = [
 		updateProducts: true,
 		addProducts: true,
 		useBarcodeForExclusiveMatching: true,
-		getSKU: item => item.SKU,
-		getBarcode: item => item.EAN,
-		getQuantity: item => +item.Quantity,
-		getTitle: item => item.Name,
-		getWeight: item => +item.Weight,
-		getTaxable: item => true,
-		getPrice: item => {
-			const shipping = +item.Price >= 20 ? 0 : RM_SMALL_SHIPPING;
-			return +item.Price * 1.2 + shipping;
-		},
-		getDescription: item => item.Description,
-		getVendor: item => item.Manufacturer,
-		getMainImageURL: item => item['Main image'],
-		getAdditionalImages: item => {
-			const images = [];
-			for (let i = 2; i<= 5; i++) {
-				const image = item[`Image ${i}`];
-				if (image) {
-					images.push(image);
+		getSKU: item => item['Variant SKU'],
+		getBarcode: item => item['Variant Barcode'],
+		getQuantity: item => +item['Variant Inventory Qty'],
+		getTitle: item => {
+			const title = item.Title;
+			if (['Fairtex', 'Twins Special', 'MTG Pro'].includes(item.Vendor)) {
+				const skuStart = item['Variant SKU'].split('-')[0];
+				let newTitle = title.replace(new RegExp(`^${skuStart}\\s`), '');
+				if (newTitle === title) {
+					const skuMiddle = item['Variant SKU'].split('-')[1];
+					newTitle = title.replace(new RegExp(`^${skuStart}-${skuMiddle}\\s`), '');
 				}
+				return newTitle;
 
+			} else if (item.Vendor === 'TUFF Sport') {
+				const skuStart = item['Variant SKU'].split('-')[1];
+				return title.replace(new RegExp(`^${skuStart}\\s`), '');
 			}
-			return images;
+			return title;
+		},
+		getWeight: item => +item['Variant Weight'],
+		getTaxable: item => item['Variant Taxable'] === 'true',
+		getPrice: item => +item['Variant Price'],
+		getDescription: item => item['Body HTML'],
+		getVendor: item => item.Vendor,
+		getMainImageURL: item => item['Image Src'],
+		getAdditionalImages: item => {
+			return item.additionalImages || [];
 		},
 		getTags: item => 'mtb, new in',
 		getVariants: item => {
-			if (!item['Option value']) {
-				return;
-			}
 			return [
 				{
-					name: 'Variant',
-					value: item['Option value'],
+					name: item['Option1 Name'],
+					value: item['Option1 Value'],
 				}
 			];
 		},
-		getVariantCorrelationId: item => item.Model,
+		getVariantCorrelationId: item => item.Handle,
 		parseImport: items => {
 			const csv = [];
-			let parentItem;
+			let variant;
 			for (const item of items) {
 				// variant parent
-				if (item.Name && !item.SKU) {
-					parentItem = item;
-					continue;
-				}
-				// singular
-				if (item.SKU) {
+				if (item['Variant SKU']) {
+					variant = item;
 					csv.push(item);
-					parentItem = undefined;
 					continue;
 				}
-				// variant
-				csv.push({
-					...parentItem,
-					SKU: item['Option EAN'], // change to SKU when they're done changing
-					EAN: item['Option EAN'],
-					Quantity: item['Option quantity'],
-					'Option value': item['Option value']
-				});
+
+				// who knows what happened here
+				if (item.Handle !== variant.Handle) {
+					variant = undefined;
+					continue;
+				}
+
+				// assume subsequent lines without sku are images
+				variant.additionalImages = variant.additionalImages || [];
+				variant.additionalImages.push(item['Image Src']);
 			}
 			return csv;
 		}

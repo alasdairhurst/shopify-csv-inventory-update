@@ -388,6 +388,7 @@ const updateProducts = async () => {
     if (cancelled) {
       return;
     }
+
     if (!vendor.updateProducts) {
       logger.log(`[SKIP] product update not applicable to ${vendor.name}`);
       continue;
@@ -402,6 +403,7 @@ const updateProducts = async () => {
       continue;
     }
 
+    logger.log(`Reading ${vendorProductCSV.length} items from product file for ${vendor.name}`);
     for (const vendorProduct of vendorProductCSV) {
       if (cancelled) {
         return;
@@ -540,6 +542,7 @@ const addProducts = async () => {
       continue;
     }
 
+    logger.log(`[INFO] loading ${vendorProductCSV.length} items from ${vendor.name}`);
     for (const vendorProduct of vendorProductCSV) {
       if (cancelled) {
         return;
