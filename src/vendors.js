@@ -117,9 +117,10 @@ const vendors = [
 		getQuantity: item => Math.min(+item.STOCK, 50),
 		getType: item => item.CATEGORY.replace(item.BRAND.toUpperCase(), '').replace(/-/g, '').trim(),
 		getBarcode: item => {
-			const barcode = item.EAN.replace(/'/g, '').trim();
-			if (barcode) {
-				return `'${barcode}`;
+			const ean = item.EAN.replace(/'/g, '').trim();
+			const upc = item.UPC.replace(/'/g, '').trim();
+			if (ean || upc) {
+				return `'${ean || upc}`;
 			}
 		},
 		getPrice: item => {
