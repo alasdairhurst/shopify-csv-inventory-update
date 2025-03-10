@@ -61,7 +61,9 @@ const vendors = [
 		getVariantImageURL: item => item['Image_FTP'],
 		getQuantity: item => +item.Free_Stock,
 		getTaxable: item => +item.VAT > 0,
-		getRRP: item => +item.SRP,
+		getRRP: (item, vendor) => {
+			vendor.getPrice(item) * 1.2;
+		},
 		getPrice: item => {
 			let shipping = RM_SMALL_SHIPPING;
 			if (Math.max(item.Width_CM, item.Length_CM, item.Height_CM) >= 110) {

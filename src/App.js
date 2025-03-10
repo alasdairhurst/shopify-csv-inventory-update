@@ -608,7 +608,7 @@ const addProducts = async () => {
         'Variant Inventory Policy': 'deny',
         'Variant Fulfillment Service': 'manual',
         'Variant Price': price,
-        'Variant Compare At Price': vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct)) : price,
+        'Variant Compare At Price': vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct, vendor)) : price,
         'Variant Requires Shipping': 'TRUE',
         'Variant Taxable': vendor.getTaxable?.(vendorProduct)  ? 'TRUE' : 'FALSE',
         'Variant Barcode': vendorProductBarcode,
