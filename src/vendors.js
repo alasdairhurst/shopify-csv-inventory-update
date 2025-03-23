@@ -35,7 +35,7 @@ const cartasProductVAT = item => {
 
 const vendors = [
 	{
-		name: 'reydon',
+		name: 'reydon-inventory',
 		importLabel: 'Reydon Inventory CSV',
 		updateInventory: true,
 		getSKU: item => item.Code.replace('\n', ''),
@@ -45,7 +45,7 @@ const vendors = [
 		expectedHeaders: ['Product Name', 'Code', 'Quantity']
 	},
 	{
-		name: 'reydon-products',
+		name: 'reydon',
 		importLabel: 'Reydon CSV',
 		updateProducts: true,
 		updateInventory: true,
@@ -61,9 +61,7 @@ const vendors = [
 		getVariantImageURL: item => item['Image_FTP'],
 		getQuantity: item => +item.Free_Stock,
 		getTaxable: item => +item.VAT > 0,
-		getRRP: (item, vendor) => {
-			vendor.getPrice(item) * 1.2;
-		},
+		getRRP: (item, vendor) => vendor.getPrice(item) * 1.2,
 		getPrice: item => {
 			let shipping = RM_SMALL_SHIPPING;
 			if (Math.max(item.Width_CM, item.Length_CM, item.Height_CM) >= 110) {
@@ -89,14 +87,14 @@ const vendors = [
 			}
 			return variants;
 		},
-		getTags: item => 'new in,reydon',
-		getBarcode: item => item.Barcode.trim(),
+		// getTags: item => [],
+		getBarcode: item => item.Barcode,
 		getParent: item => item.parent,
 		getVariantCorrelationId: item => item.Product_Name,
 		orderBy: item => item.Product_Name,
 	},
 	{
-		name: 'cartas',
+		name: 'cartas-inventory',
 		importLabel: 'Cartas Inventory CSV',
 		forceHeaders: ['a', 'b', 'c', 'd', 'SKU', 'Title', 'f', 'g', 'Quantity', 'h'],
 		updateInventory: true,
@@ -107,7 +105,7 @@ const vendors = [
 		getTitle: item => item.Title
 	},
 	{
-		name: 'cartas-products',
+		name: 'cartas',
 		importLabel: 'Cartas Products CSV',
 		updateInventory: false,
 		updateProducts: true,
@@ -118,13 +116,7 @@ const vendors = [
 		getWeight: item => +item.WEIGHT.trim(),
 		getQuantity: item => Math.min(+item.STOCK, 50),
 		getType: item => item.CATEGORY.replace(item.BRAND.toUpperCase(), '').replace(/-/g, '').trim(),
-		getBarcode: item => {
-			const ean = item.EAN.replace(/'/g, '').trim();
-			const upc = item.UPC.replace(/'/g, '').trim();
-			if (ean || upc) {
-				return `'${ean || upc}`;
-			}
-		},
+		getBarcode: item => item.EAN || item.UPC,
 		getPrice: item => {
 			const VAT = cartasProductVAT(item);
 			return +item.TRADE_PRICE * 0.9 * 1.45 * VAT + RM_SMALL_SHIPPING;
@@ -137,7 +129,7 @@ const vendors = [
 		getVendor: item => item.BRAND.trim(),
 		getDescription: item => item.DESCRIPTION.replace(/^'/, '').replace(/'$/, '').trim(),
 		getMainImageURL: item => item.MAIN_IMAGE.trim(),
-		getTags: item => 'new in,cartas,cartas-new-csv',
+		// getTags: item => [],
 		useTitleForMatching: false,
 		getTitle: item => item.PRODUCT_NAME.trim(),
 		getAdditionalImages: item => {
@@ -185,7 +177,7 @@ const vendors = [
 		getTitle: item => item.Description
 	},
 	{
-		name: 'muaythai',
+		name: 'mtb',
 		importLabel: 'Muay Thai Boxing CSV',
 		updateInventory: true,
 		updateProducts: true,
@@ -220,7 +212,7 @@ const vendors = [
 		getAdditionalImages: item => {
 			return item.additionalImages || [];
 		},
-		getTags: item => 'mtb, new in',
+		// getTags: item => [],
 		getVariants: item => {
 			return [
 				{
@@ -302,7 +294,7 @@ const vendors = [
 		},
 		getWeight: item => item.Weight,
 		getType: item => item.Category,
-		getTags: item => 'new in,blitz',
+		// getTags: item => [],
 		getVendor: item => item.Brand,
 		getDescription: item => item.Description,
 		getVariants: item => {

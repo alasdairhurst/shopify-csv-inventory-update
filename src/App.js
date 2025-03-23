@@ -16,22 +16,49 @@ const DEFAULT_SHOPIFY_PRODUCT = {
 const PARENT_SYMBOL = Symbol.for('parent');
 
 let logger = {
-  log: () => {},
-  warn: () => {},
-  error: () => {}
+  debug: () => {},
+  log: console.log,
+  warn: console.warn,
+  error: console.error
 };
 
 class ExpectedError extends Error {};
 
-const DEBUG = true;
+const DEBUG = false;
 if (DEBUG) {
-  logger = console;
+  logger.debug = console.debug;
 }
-
 
 let cancelled = false;
 
+const BARCODE_DOES_NOT_APPLY = 'does not apply';
+const parseBarcode = (barcode) => {
+  let newBarcode;
+  if (barcode) {
+    newBarcode = barcode.trim().replace(/["']/g, '');
+  }
+  // 12 is UPC, 13 is EAN
+  if (newBarcode?.match(/^[0-9]{11,13}$/)) {
+    if (newBarcode.length === 11) {
+      // really hope it's a UPC missing a leading 0
+      newBarcode = '0' + newBarcode;
+    }
+    return newBarcode;
+  }
+  return BARCODE_DOES_NOT_APPLY;
+}
+
+const escapeBarcode = (barcode) => {
+  if (barcode === BARCODE_DOES_NOT_APPLY) {
+    return barcode;
+  }
+  return `'${barcode}`;
+}
+
 function roundPrice(price) {
+  if (isNaN(price)) {
+    throw new Error('Price is not a number');
+  }
   return Math.ceil(price) - 0.01
 }
 
@@ -135,7 +162,7 @@ async function parseFileAsCSV(file, vendor) {
     reader.onload = resolve;
   });
   if (cancelled) {
-    resolve();
+    return;
   }
 
   let fileContent = reader.result; // Get the file content
@@ -211,6 +238,13 @@ const getFiles = (inputID) => {
   return input?.files || [];
 }
 
+const parseSKU = (sku) => {
+  if (!sku) {
+    return;
+  }
+  return sku.replace(/^'/, '');
+}
+
 // Updates existing items in inventory
 // The full inventory is not downloaded, only updated rows
 const updateInventory = async (e, { maxQuantity }) => {
@@ -245,7 +279,7 @@ const updateInventory = async (e, { maxQuantity }) => {
       if (cancelled) {
         return;
       }
-      const vendorItemSKU = vendor.getSKU(vendorItem);
+      const vendorItemSKU = parseSKU(vendor.getSKU(vendorItem));
       if (!vendorItemSKU) {
         continue;
       }
@@ -255,10 +289,10 @@ const updateInventory = async (e, { maxQuantity }) => {
       });
 
       if (!shopifyItem) {
-        logger.log(`[NOT FOUND] ${vendor.name} SKU ${vendorItemSKU} in shopify inventory`);
+        logger.debug(`[NOT FOUND] ${vendor.name} SKU ${vendorItemSKU} in shopify inventory`);
         continue;
       }
-      logger.log(`[FOUND] ${vendor.name} SKU ${vendorItemSKU} in shopify inventory`);
+      logger.debug(`[FOUND] ${vendor.name} SKU ${vendorItemSKU} in shopify inventory`);
       let updated = false
 
       // Update quantity
@@ -267,9 +301,9 @@ const updateInventory = async (e, { maxQuantity }) => {
       const vendorItemQuantity = Math.min(vendor.getQuantity(vendorItem), maxQuantity);
       const shopifyItemQuantity = +shopifyItem['On hand'];
       if (shopifyItemQuantity === vendorItemQuantity) {
-        logger.log(`[QUANTITY MATCH] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} matches shopify inventory: ${shopifyItemQuantity}`);
+        logger.debug(`[QUANTITY MATCH] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} matches shopify inventory: ${shopifyItemQuantity}`);
       } else {
-        logger.warn(`[QUANTITY UPDATE] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} differs in shopify inventory: ${shopifyItemQuantity}`);
+        logger.log(`[QUANTITY UPDATE] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} differs in shopify inventory: ${shopifyItemQuantity}`);
         shopifyItem['On hand'] = vendorItemQuantity;
         updated = true;
       }
@@ -281,10 +315,10 @@ const updateInventory = async (e, { maxQuantity }) => {
     }
   }
   if (!shopifyInventoryUpdates.length) {
-    logger.warn('[DONE] Nothing to download');
+    logger.log('[DONE] Nothing to download');
     return 'Nothing to download';
   }
-  logger.warn('[DONE] Downloading inventory CSV');
+  logger.log('[DONE] Downloading inventory CSV');
   const csv = Papa.unparse(shopifyInventoryUpdates, {
     header: true,
     newline: '\n',
@@ -292,64 +326,67 @@ const updateInventory = async (e, { maxQuantity }) => {
   downloadCSV(csv, DOWNLOAD_INVENTORY_FILE_NAME);
 }
 
-const matchShopifyItems = (shopifyItemSKU, shopifyItemTitle, shopifyItemBarcode, vendor, vendorProduct, matchBarcode) => {
-  const vendorProductSKU = vendor.getSKU(vendorProduct);
-  if (shopifyItemSKU !== vendorProductSKU) {
+const matchShopifyItems = (shopifyItem, vendor, vendorProduct, options = {}) => {
+  const vendorProductSKU = parseSKU(vendor.getSKU(vendorProduct));
+  if (shopifyItem.sku !== vendorProductSKU) {
     return;
   }
   if (vendor.deny?.includes(vendorProductSKU)) {
     return;
   }
 
-  const shopifyItemLabel = `${shopifyItemSKU} (${shopifyItemTitle}/${shopifyItemBarcode})`;
+  const shopifyItemLabel = `${shopifyItem.sku} (${shopifyItem.title}/${shopifyItem.barcode})`;
   const vendorProductTitle = vendor.getTitle?.(vendorProduct) || '';
-  const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) || 'does not apply';
+  const vendorProductBarcode = parseBarcode(vendor.getBarcode?.(vendorProduct));
   const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
-  if (matchBarcode) {
-    if (shopifyItemBarcode === vendorProductBarcode) {
-      return shopifyItemLabel;
-    } else {
-      // barcode is different for same SKU - log an ERROR but this can be wrong so try title too
-      logger.warn(`[WARN] ${vendor.name} ${vendorProductLabel} matches SKU but does not match shopify product barcode ${shopifyItemLabel}. ${vendor.useTitleForMatching ? 'Checking title instead...' : ''}`);
-      if (vendor.useBarcodeForExclusiveMatching) {
-        return;
-      }
+  // Check the product for the vendor tag. Use this to differentiate matching skus across different vendors
+  if (options.matchVendor) {
+    if (!shopifyItem.tags.includes(vendor.name)) {
+      logger.warn(`[WARN] ${vendor.name} SKU ${vendorProductLabel} matches SKU but the matched shopify product is missing ${vendor.name} tag ${shopifyItemLabel} (${shopifyItem.tags}). Not matching.`)
+      return;
     }
   }
-  
-  // Some vendors have shitty titles
-  if (vendor.useTitleForMatching) {
+
+  // if the sku matches but could have a duplicate then we'll have to use the title to see how close it is.
+  if (options.matchTitle && vendor.useTitleForMatching) {
     // compare titles to have some safety net
-    const similarity = diceCoefficient.similarity(vendorProductTitle, shopifyItemTitle);
+    const similarity = diceCoefficient.similarity(vendorProductTitle, shopifyItem.title);
     if (similarity <= 0.4) {
       logger.warn(`[WARN] ${vendor.name} SKU ${vendorProductLabel} matches SKU but does not match shopify product title ${shopifyItemLabel}. (${similarity} similar)`);
       return;
     }
   }
 
-  // If the barcode is wrong but the title is close enough then let it match
   return shopifyItemLabel;
 };
 
 const matchInventory = (shopifyInventory, vendor, vendorProduct) => {
   return matchShopifyItems(
-    shopifyInventory.SKU.replace(/^'/, ''),
-    shopifyInventory.Title,
-    '',
+    {
+      sku: shopifyInventory.SKU.replace(/^'/, ''),
+      title: shopifyInventory.Title
+    },
     vendor,
     vendorProduct,
-    false
+    {
+      matchTitle: true
+    }
   );
 };
 
 const matchProduct = (shopifyParent, shopifyProduct, vendor, vendorProduct) => {
   return matchShopifyItems(
-    shopifyProduct['Variant SKU'],
-    shopifyParent.primaryRow.Title,
-    shopifyProduct['Variant Barcode'],
+    {
+      sku: shopifyProduct['Variant SKU'],
+      title: shopifyParent.primaryRow.Title,
+      barcode: parseBarcode(shopifyProduct['Variant Barcode']),
+      tags: shopifyParent.primaryRow.Tags.split(', ')
+    },
     vendor,
     vendorProduct,
-    true
+    {
+      matchVendor: true
+    }
   );
 };
 
@@ -373,7 +410,6 @@ const getShopifyProductAndParent = (shopifyProducts, vendor, vendorProduct) => {
 }
 
 const updateProducts = async () => {
-  logger.info('Update products');
   const shopifyProductsFiles = getFiles('shopify-products');
   if (!shopifyProductsFiles.length) {
     throw new ExpectedError('no shopify products CSV selected');
@@ -408,36 +444,35 @@ const updateProducts = async () => {
       if (cancelled) {
         return;
       }
-      const vendorProductSKU = vendor.getSKU(vendorProduct);
+      const vendorProductSKU = parseSKU(vendor.getSKU(vendorProduct));
       if (!vendorProductSKU) {
-        logger.log(`[NOT FOUND] ${vendor.name} no SKU found for product`, vendorProduct);
+        logger.debug(`[NOT FOUND] ${vendor.name} no SKU found for product`, vendorProduct);
         continue;
       }
 
       const vendorProductTitle = vendor.getTitle?.(vendorProduct) || '';
-      const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) || 'does not apply';
+      const vendorProductBarcode = parseBarcode(vendor.getBarcode?.(vendorProduct));
       const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
       const { shopifyProduct, shopifyParent, shopifyProductLabel } = getShopifyProductAndParent(
         shopifyProducts, vendor, vendorProduct
       );
         
       if (!shopifyProduct) {
-        logger.log(`[NOT FOUND] ${vendor.name} SKU ${vendorProductLabel} in shopify products`);
+        logger.debug(`[NOT FOUND] ${vendor.name} SKU ${vendorProductLabel} in shopify products`);
         continue;
       }
       
       // Update price
       if (!vendor.getPrice) {
-        logger.warn(`[WARN] cannot update price for vendor ${vendor.name} getPrice not implemented`);
+        // logger.debug(`[WARN] cannot update price for vendor ${vendor.name} getPrice not implemented`);
       } else {
         const vendorProductPrice = roundPrice(vendor.getPrice(vendorProduct)).toString();
         const shopifyProductPrice = shopifyProduct['Variant Price'].toString();
 
         if (shopifyProductPrice === vendorProductPrice) {
-          logger.log(`[PRICE MATCH] ${vendor.name} SKU ${vendorProductLabel} price ${vendorProductPrice} matches shopify product ${shopifyProductLabel}: ${shopifyProductPrice}`);
+          logger.debug(`[PRICE MATCH] ${vendor.name} SKU ${vendorProductLabel} price ${vendorProductPrice} matches shopify product ${shopifyProductLabel}: ${shopifyProductPrice}`);
         } else {
-          logger.warn(shopifyProduct, shopifyParent)
-          logger.warn(`[PRICE UPDATE] ${vendor.name} SKU ${vendorProductLabel} price ${vendorProductPrice} differs in shopify product ${shopifyProductLabel}: ${shopifyProductPrice}`);
+          logger.log(`[PRICE UPDATE] ${vendor.name} SKU ${vendorProductLabel} price ${vendorProductPrice} differs in shopify product ${shopifyProductLabel}: ${shopifyProductPrice}`);
           shopifyProduct['Variant Price'] = vendorProductPrice;
           shopifyParent.edited = true;
         }
@@ -445,25 +480,42 @@ const updateProducts = async () => {
 
       // Update barcode
       if (!vendor.getBarcode) {
-        logger.warn(`[WARN] cannot update barcode for vendor ${vendor.name} getBarcode not implemented`);
+        // logger.debug(`[WARN] cannot update barcode for vendor ${vendor.name} getBarcode not implemented`);
       } else {
-        const shopifyProductBarcode = shopifyProduct['Variant Barcode'];
+        const shopifyProductBarcode = parseBarcode(shopifyProduct['Variant Barcode']);
         if (shopifyProductBarcode === vendorProductBarcode) {
-          logger.log(`[BARCODE MATCH] ${vendor.name} SKU ${vendorProductLabel} barcode matches shopify product ${shopifyProductLabel}`);
+          logger.debug(`[BARCODE MATCH] ${vendor.name} SKU ${vendorProductLabel} barcode matches shopify product ${shopifyProductLabel}`);
+          // even if the barcode matches it may not be nicely formatted. enable this once for existing products, then it's already handled
+          // check the raw value to avoid updating absolutely everything
+          // if ((shopifyProduct['Variant Barcode'] !== escapeBarcode(vendorProductBarcode))) {
+          //   logger.log(`[BARCODE UPDATE] ${vendor.name} SKU ${vendorProductLabel} raw barcode differs in shopify product (${shopifyProduct['Variant Barcode']}) ${shopifyProductLabel}`);
+          //   shopifyProduct['Variant Barcode'] = escapeBarcode(vendorProductBarcode);
+          //   shopifyParent.edited = true;
+          // }
+        } else if (vendorProductBarcode === BARCODE_DOES_NOT_APPLY) {
+          logger.debug(`[BARCODE UPDATE IGNORED] ${vendor.name} SKU ${vendorProductLabel} barcode missing but exists in shopify product ${shopifyProductLabel}`);
         } else {
-          logger.warn(`[BARCODE UPDATE] ${vendor.name} SKU ${vendorProductLabel} barcode differs in shopify product ${shopifyProductLabel}`);
-          shopifyProduct['Variant Barcode'] = vendorProductBarcode;
+          logger.log(`[BARCODE UPDATE] ${vendor.name} SKU ${vendorProductLabel} barcode differs in shopify product ${shopifyProductLabel}`);
+          shopifyProduct['Variant Barcode'] = escapeBarcode(vendorProductBarcode);
           shopifyParent.edited = true;
         }
       }
 
+      // Ensure the product has a vendor tag
+      const shopifyParentTags = shopifyParent.primaryRow.Tags;
+      if (!shopifyParentTags.split(', ').includes(vendor.name)) {
+        logger.log(`[TAGS UPDATE] shopify product ${shopifyProductLabel} tags are missing ${vendor.name} vendor: [${shopifyParentTags}]`);
+        shopifyParent.primaryRow.Tags += `, ${vendor.name}`;
+        shopifyParent.edited = true;
+      }
+
       // update main image
       if (!vendor.getVariantImageURL) {
-        logger.warn(`[WARN] cannot update variant images for vendor ${vendor.name} getVariantImageURL not implemented`);
+        // logger.debug(`[WARN] cannot update variant images for vendor ${vendor.name} getVariantImageURL not implemented`);
       } else {
         const vendorVariantImage = vendor.getVariantImageURL(vendorProduct);
         if (!shopifyProduct['Image Src'] && vendorVariantImage) {
-          logger.warn(`[VARIANT IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} adding variant image to product ${shopifyProductLabel}`);
+          logger.log(`[VARIANT IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} adding variant image to product ${shopifyProductLabel}`);
           shopifyProduct['Image Src'] = vendorVariantImage;
           shopifyParent.edited = true;
         }
@@ -471,7 +523,7 @@ const updateProducts = async () => {
 
       // Update images. Do this for every sub item??
       if (!vendor.getAdditionalImages) {
-        logger.warn(`[WARN] cannot update additional images for vendor ${vendor.name} getAdditionalImages not implemented`);
+        // logger.debug(`[WARN] cannot update additional images for vendor ${vendor.name} getAdditionalImages not implemented`);
       } else {
         const shopifyProductAdditionalImages = shopifyParent.secondaryRows.filter(row => {
           return row['Image Src'] && !row['Title'] && !row['Variant SKU'];
@@ -482,7 +534,7 @@ const updateProducts = async () => {
         // the URL changes on import and we don't want to modify every listing every time.
         const vendorProductImages = vendor.getAdditionalImages(vendorProduct);
         if (!shopifyProductAdditionalImages.length && vendorProductImages.length) {
-          logger.warn(`[ADDITIONAL IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} adding ${vendorProductImages.length} more images to product ${shopifyProductLabel}`);
+          logger.log(`[ADDITIONAL IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} adding ${vendorProductImages.length} more images to product ${shopifyProductLabel}`);
           // Add new images
           for (const image of vendorProductImages) {
             if (cancelled) {
@@ -502,10 +554,10 @@ const updateProducts = async () => {
 
   const shopifyProductsCSVExport = convertShopifyProductsToExternal(shopifyProducts, { onlyEdited: true });
   if (!shopifyProductsCSVExport.length) {
-    logger.warn('[DONE] Nothing to download');
+    logger.log('[DONE] Nothing to download');
     return 'Nothing to download';
   }
-  logger.warn('[DONE] Downloading products CSV');
+  logger.log('[DONE] Downloading products CSV');
   const csv = Papa.unparse(shopifyProductsCSVExport, {
     header: true,
     newline: '\n',
@@ -547,21 +599,21 @@ const addProducts = async () => {
       if (cancelled) {
         return;
       }
-      const vendorProductSKU = vendor.getSKU(vendorProduct);
+      const vendorProductSKU = parseSKU(vendor.getSKU(vendorProduct));
       if (!vendorProductSKU) {
-        logger.log(`[NOT FOUND] ${vendor.name} no SKU found for product`, vendorProduct);
+        logger.debug(`[NOT FOUND] ${vendor.name} no SKU found for product`);
         continue;
       }
 
       const Title = vendor.getTitle(vendorProduct).trim();
-      const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) || 'does not apply';
+      const vendorProductBarcode = parseBarcode(vendor.getBarcode?.(vendorProduct));
       const vendorProductLabel = `${vendorProductSKU} (${Title}/${vendorProductBarcode})`;
       const { shopifyProduct } = getShopifyProductAndParent(
         shopifyProducts, vendor, vendorProduct
       );
         
       if (shopifyProduct) {
-        logger.log(`[FOUND] ${vendor.name} SKU ${vendorProductLabel} in shopify products`, shopifyProduct);
+        logger.debug(`[FOUND] ${vendor.name} SKU ${vendorProductLabel} in shopify products`);
         continue;
       }
     
@@ -573,7 +625,7 @@ const addProducts = async () => {
 
       // Generate a handle
       const Handle = isNewProduct
-        ? Title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+        ? vendor.name + '-' + Title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-)|(-$)/g, '').replace(/-+/g, '-')
         : shopifyParent.primaryRow.Handle;
 
       let product;
@@ -592,9 +644,9 @@ const addProducts = async () => {
           Published: 'TRUE',
           'Image Src': vendor.getMainImageURL(vendorProduct)
         };
-        logger.warn(`[ADDING] ${vendor.name} new product SKU ${vendorProductLabel} to shopify`, vendorProduct);
+        logger.log(`[ADDING] ${vendor.name} new product SKU ${vendorProductLabel} to shopify`);
       } else {
-        logger.warn(`[ADDING] ${vendor.name} SKU ${vendorProductLabel} to existing product in shopify`, vendorProduct);
+        logger.log(`[ADDING] ${vendor.name} SKU ${vendorProductLabel} to existing product in shopify`);
       }
 
       const price = roundPrice(vendor.getPrice(vendorProduct));
@@ -602,7 +654,7 @@ const addProducts = async () => {
         ...DEFAULT_SHOPIFY_PRODUCT,
         ...product,
         Handle,
-        'Variant SKU': vendorProductSKU,
+        'Variant SKU': /^0+[0-9]*$/.match(vendorProductSKU) ? `'${vendorProductSKU}`: vendorProductSKU,
         'Variant Inventory Tracker': 'shopify',
         'Variant Inventory Qty': vendor.getQuantity(vendorProduct),
         'Variant Inventory Policy': 'deny',
@@ -611,7 +663,7 @@ const addProducts = async () => {
         'Variant Compare At Price': vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct, vendor)) : price,
         'Variant Requires Shipping': 'TRUE',
         'Variant Taxable': vendor.getTaxable?.(vendorProduct)  ? 'TRUE' : 'FALSE',
-        'Variant Barcode': vendorProductBarcode,
+        'Variant Barcode': escapeBarcode(vendorProductBarcode),
         'Image Src': vendor.getMainImageURL?.(vendorProduct),
         'Gift Card': 'FALSE',
         'Variant Weight Unit': 'kg',
@@ -624,9 +676,14 @@ const addProducts = async () => {
       if (vendor.getTaxCode) {
         product['Variant Tax Code'] = vendor.getTaxCode(vendorProduct);
       }
+
+      // Always add new in and vendor id tags
+      const tags = ['new in', vendor.name];
       if (vendor.getTags) {
-        product['Tags'] = vendor.getTags(vendorProduct);
+        tags.push(...vendor.getTags(vendorProduct));
       }
+      product['Tags'] = tags.join(',');
+
       const variants = vendor.getVariants?.(vendorProduct);
       if (variants?.length) {
         for (let i = 0; i <= variants.length && i <= 3; i++) {
@@ -667,10 +724,10 @@ const addProducts = async () => {
 
   const shopifyProductsCSVExport = convertShopifyProductsToExternal(shopifyProducts, { onlyEdited: true });
   if (!shopifyProductsCSVExport.length) {
-    logger.warn('[DONE] Nothing to download');
+    logger.log('[DONE] Nothing to download');
     return 'Nothing to download';
   }
-  logger.warn('[DONE] Downloading products CSV');
+  logger.log('[DONE] Downloading products CSV');
   const csv = Papa.unparse(shopifyProductsCSVExport, {
     header: true,
     newline: '\n',
@@ -691,7 +748,6 @@ const convertShopifyProductsToInternal = (shopifyProductsCSV) => {
     if (cancelled) {
       return;
     }
-    shopifyProduct['Variant Barcode'] = shopifyProduct['Variant Barcode'].replace(/^'/, '');
     shopifyProduct['Variant SKU'] = shopifyProduct['Variant SKU'].replace(/^'/, '');
     if (currentProduct?.primaryRow.Handle !== shopifyProduct.Handle) {
       currentProduct = {
@@ -723,19 +779,16 @@ const convertShopifyProductsToExternal = (products, options = {}) => {
 }
 
 function App() {
-  const [ loading, setLoading ] = useState(false);
   const [ alert, setAlert ] = useState(null);
   const INITIAL_STOCK_CAP = 5;
   const [ maxQuantity, setMaxQuantity ] = useState(INITIAL_STOCK_CAP);
   const cancel = () => {
     cancelled = true;
-    setLoading(false);
     setAlert(null);
   }
   const onError = err => {
     logger.error(err);
     const message = err instanceof ExpectedError ? err.message : err.stack;
-    setLoading(false);
     setAlert({ header: 'Error', message });
   }
   const withLoading = (fn, loadingMessage) => {
@@ -743,7 +796,6 @@ function App() {
       cancelled = false;
       e.preventDefault();
       e.stopPropagation();
-      setLoading(true);
 
       setAlert({hasClose: false, header: loadingMessage || 'Loading...', message: (
         <>
@@ -766,8 +818,6 @@ function App() {
         }
       } catch (err) {
         onError(err);
-      } finally {
-        setLoading(false);
       }
     }
   }
