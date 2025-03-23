@@ -443,7 +443,7 @@ const getShopifyProductAndParent = (shopifyProducts, vendor, vendorProduct) => {
   return { shopifyProduct, shopifyParent, shopifyProductLabel };
 }
 
-const updateProducts = async () => {
+const updateProducts = async (e, { maxQuantity }) => {
   const shopifyProductsFiles = getFiles('shopify-products');
   if (!shopifyProductsFiles.length) {
     throw new ExpectedError('no shopify products CSV selected');
@@ -601,7 +601,7 @@ const updateProducts = async () => {
   downloadCSV(csv, DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME);
 }
 
-const addProducts = async () => {
+const addProducts = async (e, { maxQuantity }) => {
   const shopifyProductsFiles = getFiles('shopify-products');
   if (!shopifyProductsFiles.length) {
     throw new ExpectedError('no shopify products CSV selected');
@@ -692,7 +692,7 @@ const addProducts = async () => {
         Handle,
         'Variant SKU': escapeSKU(vendorProductSKU),
         'Variant Inventory Tracker': 'shopify',
-        'Variant Inventory Qty': vendor.getQuantity(vendorProduct),
+        'Variant Inventory Qty': Math.min(vendor.getQuantity(vendorProduct), maxQuantity),
         'Variant Inventory Policy': 'deny',
         'Variant Fulfillment Service': 'manual',
         'Variant Price': price,
