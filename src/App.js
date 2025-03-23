@@ -200,21 +200,16 @@ async function parseFileAsCSV(file, vendor) {
   // Check the headers as soon as we parse the csv before we use any properties.
   if (vendor?.expectedHeaders) {
     let match = false;
-    if (!Array.isArray(vendor.expectedHeaders[0])) {
-      vendor.expectedHeaders = [vendor.expectedHeaders ];
-    }
-    // check if at least one of the sets of expected headers matches the ones we got
-    match = vendor.expectedHeaders.some(expected => {
-      return expected.every(expectedHeader => {
-        // ideally we'd do a full match of all headers since the order sometimes matters,
-        // but since shopify just decides to add random headers we'll just check for the 
-        // fields we know/care about.
-        const there = headers.includes(expectedHeader);
-        if (!there) {
-          logger.warn(`[WARN] ${vendor.name} csv missing possible header: ${expectedHeader}`);
-        }
-        return there;
-      });
+    // check if expected headers matches the ones we got
+    match = vendor.expectedHeaders.every(expectedHeader => {
+      // ideally we'd do a full match of all headers since the order sometimes matters,
+      // but since shopify just decides to add random headers we'll just check for the 
+      // fields we know/care about.
+      const there = headers.includes(expectedHeader);
+      if (!there) {
+        logger.warn(`[WARN] ${vendor.name} csv missing possible header: ${expectedHeader}`);
+      }
+      return there;
     });
 
     if (!match) {
@@ -377,8 +372,9 @@ const matchShopifyItems = (shopifyItem, vendor, vendorProduct, options = {}) => 
   const vendorProductTitle = vendor.getTitle?.(vendorProduct) || '';
   const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct);
   const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
+
   // Check the product for the vendor tag. Use this to differentiate matching skus across different vendors
-  if (options.matchVendor) {
+  if (options.matchVendorTag) {
     if (!shopifyItem.tags.includes(vendor.name)) {
       logger.warn(`[WARN] ${vendor.name} SKU ${vendorProductLabel} matches SKU but the matched shopify product is missing ${vendor.name} tag ${shopifyItemLabel} (${shopifyItem.tags}). Not matching.`)
       return;
@@ -423,7 +419,7 @@ const matchProduct = (shopifyParent, shopifyProduct, vendor, vendorProduct) => {
     vendor,
     vendorProduct,
     {
-      matchVendor: true
+      matchVendorTag: true
     }
   );
 };
@@ -599,6 +595,8 @@ const updateProducts = async () => {
   const csv = Papa.unparse(shopifyProductsCSVExport, {
     header: true,
     newline: '\n',
+    // trim additional temp metadata like parsed barcode
+    columns: SHOPIFY_PRODUCTS_OPTIONS.expectedHeaders
   });
   downloadCSV(csv, DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME);
 }
@@ -639,7 +637,7 @@ const addProducts = async () => {
       }
       const vendorProductSKU = parseSKU(vendor.getSKU(vendorProduct));
       if (!vendorProductSKU) {
-        logger.debug(`[NOT FOUND] ${vendor.name} no SKU found for product`);
+        logger.debug(`[NOT FOUND] ${vendor.name} no SKU found for product`, vendorProduct);
         continue;
       }
 
@@ -654,7 +652,7 @@ const addProducts = async () => {
         logger.debug(`[FOUND] ${vendor.name} SKU ${vendorProductLabel} in shopify products`);
         continue;
       }
-    
+
       const vendorParent = vendorProduct[PARENT_SYMBOL];
       const { shopifyParent } = vendorParent ? getShopifyProductAndParent(
         shopifyProducts, vendor, vendorParent
@@ -682,7 +680,7 @@ const addProducts = async () => {
           Published: 'TRUE',
           'Image Src': vendor.getMainImageURL(vendorProduct)
         };
-        logger.log(`[ADDING] ${vendor.name} new product SKU ${vendorProductLabel} to shopify`);
+        logger.log(`[ADDING] ${vendor.name} SKU ${vendorProductLabel} to shopify`);
       } else {
         logger.log(`[ADDING] ${vendor.name} SKU ${vendorProductLabel} to existing product in shopify`);
       }
@@ -715,13 +713,6 @@ const addProducts = async () => {
         product['Variant Tax Code'] = vendor.getTaxCode(vendorProduct);
       }
 
-      // Always add new in and vendor id tags
-      const tags = ['new in', vendor.name];
-      if (vendor.getTags) {
-        tags.push(...vendor.getTags(vendorProduct));
-      }
-      product['Tags'] = tags.join(',');
-
       const variants = vendor.getVariants?.(vendorProduct);
       if (variants?.length) {
         for (let i = 0; i <= variants.length && i <= 3; i++) {
@@ -751,6 +742,12 @@ const addProducts = async () => {
         shopifyParent.secondaryRows.push(...additionalImages);
         shopifyParent.edited = true;
       } else {
+        // Always add new in and vendor id tags
+        const tags = ['new in', vendor.name];
+        if (vendor.getTags) {
+          tags.push(...vendor.getTags(vendorProduct));
+        }
+        product.Tags = tags.join(', ');
         shopifyProducts.push({
           primaryRow: product,
           secondaryRows: additionalImages,
@@ -769,6 +766,8 @@ const addProducts = async () => {
   const csv = Papa.unparse(shopifyProductsCSVExport, {
     header: true,
     newline: '\n',
+    // trim additional temp metadata like parsed barcode
+    columns: SHOPIFY_PRODUCTS_OPTIONS.expectedHeaders
   });
   downloadCSV(csv, DONWLOAD_PRODUCTS_FILE_NAME);
 }

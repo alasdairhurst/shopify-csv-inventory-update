@@ -99,9 +99,10 @@ const vendors = [
 		forceHeaders: ['a', 'b', 'c', 'd', 'SKU', 'Title', 'f', 'g', 'Quantity', 'h'],
 		updateInventory: true,
 		updateProducts: false,
+		
+		useTitleForMatching: true,
 		getSKU: item => item.SKU,
 		getQuantity: item => Math.min(+item.Quantity, 50),
-		useTitleForMatching: false,
 		getTitle: item => item.Title
 	},
 	{
@@ -110,6 +111,7 @@ const vendors = [
 		updateInventory: false,
 		updateProducts: true,
 		addProducts: true,
+		useTitleForMatching: true,
 		useBarcodeForExclusiveMatching: false,
 		expectedHeaders: ['STATUS','CODE','WEIGHT','STOCK','CATEGORY','BRAND','EAN','VAT','TRADE_PRICE','DESCRIPTION','MAIN_IMAGE','PRODUCT_NAME','IMAGE_1','IMAGE_2','IMAGE_3','IMAGE_4','SIZE','COLOUR','PERANT_ID'],
 		getSKU: item => item.STATUS === 'LIVE' ? item.CODE.trim() : undefined, 
@@ -130,7 +132,6 @@ const vendors = [
 		getDescription: item => item.DESCRIPTION.replace(/^'/, '').replace(/'$/, '').trim(),
 		getMainImageURL: item => item.MAIN_IMAGE.trim(),
 		// getTags: item => [],
-		useTitleForMatching: false,
 		getTitle: item => item.PRODUCT_NAME.trim(),
 		getAdditionalImages: item => {
 			const images = [];
@@ -168,12 +169,13 @@ const vendors = [
 		importLabel: 'Unicorn CSV',
 		updateInventory: true,
 		updateProducts: true,
+		
+		useTitleForMatching: true,
 		useBarcodeForExclusiveMatching: true,
 		expectedHeaders: ['SKU', 'Description', 'QTY', 'Unit Of Measure', 'Barcode EAN/UPC', 'Material Group', 'Brand', 'URL'],
 		getSKU: item => item.SKU,
 		getQuantity: item => +item.QTY,
 		getBarcode: item => item['Barcode EAN/UPC'],
-		useTitleForMatching: false,
 		getTitle: item => item.Description
 	},
 	{
@@ -182,6 +184,8 @@ const vendors = [
 		updateInventory: true,
 		updateProducts: true,
 		addProducts: true,
+		
+		useTitleForMatching: true,
 		useBarcodeForExclusiveMatching: true,
 		getSKU: item => item['Variant SKU'],
 		getBarcode: item => item['Variant Barcode'],
@@ -253,6 +257,8 @@ const vendors = [
 		updateProducts: true,
 		addProducts: true,
 		htmlDecode: true,
+		
+		useTitleForMatching: true,
 		useBarcodeForExclusiveMatching: true,
 		expectedHeaders: ['Title', 'Link', 'LinkComponent', 'Description', 'Sku', 'ParentSku', 'Ean', 'CatCode', 'Type', 'Taxable', 'Brand', 'Category', 'ImageUrl', 'InStock', 'Weight', 'RetailPrice', 'TradePrice', 'Feature1', 'Feature2', 'Feature3', 'Feature4', 'Feature5', 'DueDate', 'Size', 'Colour', 'Design', 'AltImage1', 'AltImage2', 'AltImage3', 'AltImage4', 'AltImage5', 'AltImage6', 'AltImage7', 'AltImage8', 'AltImage9', 'AltImage10', 'AltImage11', 'AltImage12'],
 		getSKU: item => item.Sku,
