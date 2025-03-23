@@ -31,19 +31,26 @@ if (DEBUG) {
 
 let cancelled = false;
 
+const GLOBAL_QUOTE_RX = /[["']/g;
+const UPEC_EAN_RX_SMALLER = /^[0-9]+$/;
 const BARCODE_DOES_NOT_APPLY = 'does not apply';
+
+window.barcodes = {};
 const parseBarcode = (barcode) => {
-  let newBarcode;
+  window.barcodes[barcode] = window.barcodes[barcode] || 0;
+  window.barcodes[barcode]++;
   if (barcode) {
-    newBarcode = barcode.trim().replace(/["']/g, '');
-  }
-  // 12 is UPC, 13 is EAN
-  if (newBarcode?.match(/^[0-9]{11,13}$/)) {
+    let newBarcode = barcode.trim().replace(GLOBAL_QUOTE_RX, '');
     if (newBarcode.length === 11) {
       // really hope it's a UPC missing a leading 0
       newBarcode = '0' + newBarcode;
     }
-    return newBarcode;
+    // 12 is UPC, 13 is EAN
+    if (newBarcode.length === 12 || newBarcode.length === 13) {
+      if (UPEC_EAN_RX_SMALLER.test(newBarcode)) {
+        return newBarcode;
+      }
+    }
   }
   return BARCODE_DOES_NOT_APPLY;
 }
@@ -53,6 +60,17 @@ const escapeBarcode = (barcode) => {
     return barcode;
   }
   return `'${barcode}`;
+}
+
+const NUMBER_SKU_RX = /^0+[0-9]*$/;
+const escapeSKU = (sku) => {
+  if (sku[0] !== '0') {
+    return sku;
+  }
+  if (NUMBER_SKU_RX.test(sku)) {
+    return `'${sku}`;
+  }
+  return sku;
 }
 
 function roundPrice(price) {
@@ -229,7 +247,24 @@ async function parseFileAsCSV(file, vendor) {
     }
   }
 
+  vendor.getParsedBarcode = (product) => {
+    if (!vendor.getBarcode) {
+      return BARCODE_DOES_NOT_APPLY;
+    }
+    if (!('_parsedBarcode' in product)) {
+      product._parsedBarcode = parseBarcode(vendor.getBarcode(product));
+    }
+    return product._parsedBarcode;
+  }
+
   return csv;
+}
+
+const getShopifyProductParsedBarcode = product => {
+  if (!('_parsedBarcode' in product)) {
+    product._parsedBarcode = parseBarcode(product['Variant Barcode']);
+  }
+  return product._parsedBarcode;
 }
 
 const getFiles = (inputID) => {
@@ -242,7 +277,10 @@ const parseSKU = (sku) => {
   if (!sku) {
     return;
   }
-  return sku.replace(/^'/, '');
+  if (sku[0] === '\'') {
+    return sku.substring(1);
+  }
+  return sku;
 }
 
 // Updates existing items in inventory
@@ -337,7 +375,7 @@ const matchShopifyItems = (shopifyItem, vendor, vendorProduct, options = {}) => 
 
   const shopifyItemLabel = `${shopifyItem.sku} (${shopifyItem.title}/${shopifyItem.barcode})`;
   const vendorProductTitle = vendor.getTitle?.(vendorProduct) || '';
-  const vendorProductBarcode = parseBarcode(vendor.getBarcode?.(vendorProduct));
+  const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct);
   const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
   // Check the product for the vendor tag. Use this to differentiate matching skus across different vendors
   if (options.matchVendor) {
@@ -379,7 +417,7 @@ const matchProduct = (shopifyParent, shopifyProduct, vendor, vendorProduct) => {
     {
       sku: shopifyProduct['Variant SKU'],
       title: shopifyParent.primaryRow.Title,
-      barcode: parseBarcode(shopifyProduct['Variant Barcode']),
+      barcode: getShopifyProductParsedBarcode(shopifyProduct),
       tags: shopifyParent.primaryRow.Tags.split(', ')
     },
     vendor,
@@ -451,7 +489,7 @@ const updateProducts = async () => {
       }
 
       const vendorProductTitle = vendor.getTitle?.(vendorProduct) || '';
-      const vendorProductBarcode = parseBarcode(vendor.getBarcode?.(vendorProduct));
+      const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct);
       const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
       const { shopifyProduct, shopifyParent, shopifyProductLabel } = getShopifyProductAndParent(
         shopifyProducts, vendor, vendorProduct
@@ -482,7 +520,7 @@ const updateProducts = async () => {
       if (!vendor.getBarcode) {
         // logger.debug(`[WARN] cannot update barcode for vendor ${vendor.name} getBarcode not implemented`);
       } else {
-        const shopifyProductBarcode = parseBarcode(shopifyProduct['Variant Barcode']);
+        const shopifyProductBarcode = getShopifyProductParsedBarcode(shopifyProduct);
         if (shopifyProductBarcode === vendorProductBarcode) {
           logger.debug(`[BARCODE MATCH] ${vendor.name} SKU ${vendorProductLabel} barcode matches shopify product ${shopifyProductLabel}`);
           // even if the barcode matches it may not be nicely formatted. enable this once for existing products, then it's already handled
@@ -606,7 +644,7 @@ const addProducts = async () => {
       }
 
       const Title = vendor.getTitle(vendorProduct).trim();
-      const vendorProductBarcode = parseBarcode(vendor.getBarcode?.(vendorProduct));
+      const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct);
       const vendorProductLabel = `${vendorProductSKU} (${Title}/${vendorProductBarcode})`;
       const { shopifyProduct } = getShopifyProductAndParent(
         shopifyProducts, vendor, vendorProduct
@@ -654,7 +692,7 @@ const addProducts = async () => {
         ...DEFAULT_SHOPIFY_PRODUCT,
         ...product,
         Handle,
-        'Variant SKU': /^0+[0-9]*$/.match(vendorProductSKU) ? `'${vendorProductSKU}`: vendorProductSKU,
+        'Variant SKU': escapeSKU(vendorProductSKU),
         'Variant Inventory Tracker': 'shopify',
         'Variant Inventory Qty': vendor.getQuantity(vendorProduct),
         'Variant Inventory Policy': 'deny',
