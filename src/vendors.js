@@ -1,10 +1,7 @@
 const PARENT_SYMBOL = Symbol.for('parent');
 
-// const RM_LARGE_LETTER = 2;
-const RM_SMALL_SHIPPING = 4.50;
+const RM_SMALL_SHIPPING = 5;
 const RM_LARGE_SHIPPING = 20;
-
-// const RM_LARGE_LETTER_SIZE = { LENGTH: 38, WIDTH: 28, HEIGHT: 3 };
 
 const blitzShipping = {
 	16098: 42,
@@ -16,16 +13,6 @@ const blitzShipping = {
 	12836: 15.84,
 	6371: 42
 };
-
-const cartasShipping = item => {
-	// const isLL = +item.LENGTH <= RM_LARGE_LETTER_SIZE.LENGTH
-	// 	&& +item.WIDTH <= RM_LARGE_LETTER_SIZE.WIDTH
-	// 	&& +item.HEIGHT <= RM_LARGE_LETTER_SIZE.HEIGHT;
-	// if (isLL) {
-	// 	return RM_LARGE_LETTER;
-	// }
-	return RM_SMALL_SHIPPING;
-}
 
 const cartasProductVAT = item => {
 	const VATpc = +item.VAT.replace('%', '');
