@@ -11,7 +11,44 @@ const DOWNLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv
 const DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME = 'completed_products_update_for_shopify.csv';
 const DONWLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
 const DEFAULT_SHOPIFY_PRODUCT = {
-  'Handle': '', 'Title': '', 'Body (HTML)': '', 'Vendor': '', 'Product Category': '', 'Type': '', 'Tags': '', 'Published': '', 'Option1 Name': '', 'Option1 Value': '', 'Option2 Name': '', 'Option2 Value': '', 'Option3 Name': '', 'Option3 Value': '', 'Variant SKU': '', 'Variant Grams': '', 'Variant Inventory Tracker': '', 'Variant Inventory Qty': '', 'Variant Inventory Policy': '', 'Variant Fulfillment Service': '', 'Variant Price': '', 'Variant Compare At Price': '', 'Variant Requires Shipping': '', 'Variant Taxable': '', 'Variant Barcode': '', 'Image Src': '', 'Image Position': '', 'Image Alt Text': '', 'Gift Card': '', 'SEO Title': '', 'SEO Description': '', 'Variant Image': '', 'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Included / United Kingdom': '', 'Status': ''
+  'Handle': '',
+  'Title': '',
+  'Body (HTML)': '',
+  'Vendor': '',
+  'Product Category': '',
+  'Type': '',
+  'Tags': '',
+  'Published': '',
+  'Option1 Name': '',
+  'Option1 Value': '',
+  'Option2 Name': '',
+  'Option2 Value': '',
+  'Option3 Name': '',
+  'Option3 Value': '',
+  'Variant SKU': '',
+  'Variant Grams': '',
+  'Variant Inventory Tracker': '',
+  // Doesn't exist on exports so ¯\_(ツ)_/¯
+  // 'Variant Inventory Qty': '',
+  'Variant Inventory Policy': '',
+  'Variant Fulfillment Service': '',
+  'Variant Price': '',
+  'Variant Compare At Price': '',
+  'Variant Requires Shipping': '',
+  'Variant Taxable': '',
+  'Variant Barcode': '',
+  'Image Src': '',
+  'Image Position': '',
+  'Image Alt Text': '',
+  'Gift Card': '',
+  'SEO Title': '',
+  'SEO Description': '',
+  'Variant Image': '',
+  'Variant Weight Unit': '',
+  'Variant Tax Code': '',
+  'Cost per item': '',
+  'Included / United Kingdom': '',
+  'Status': ''
 }
 const PARENT_SYMBOL = Symbol.for('parent');
 
@@ -692,6 +729,7 @@ const addProducts = async (e, { maxQuantity }) => {
         Handle,
         'Variant SKU': escapeSKU(vendorProductSKU),
         'Variant Inventory Tracker': 'shopify',
+        // maybe it works, maybe it doesnt?
         'Variant Inventory Qty': Math.min(vendor.getQuantity(vendorProduct), maxQuantity),
         'Variant Inventory Policy': 'deny',
         'Variant Fulfillment Service': 'manual',

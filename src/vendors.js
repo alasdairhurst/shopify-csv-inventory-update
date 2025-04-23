@@ -156,7 +156,6 @@ const vendors = [
 		importLabel: 'Unicorn CSV',
 		updateInventory: true,
 		updateProducts: true,
-		
 		useTitleForMatching: true,
 		useBarcodeForExclusiveMatching: true,
 		expectedHeaders: ['SKU', 'Description', 'QTY', 'Unit Of Measure', 'Barcode EAN/UPC', 'Material Group', 'Brand', 'URL'],
