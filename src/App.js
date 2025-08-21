@@ -154,11 +154,13 @@ const SHOPIFY_PRODUCTS_OPTIONS = {
   expectedHeaders: Object.keys(DEFAULT_SHOPIFY_PRODUCT)
 };
 
+const SHOPIFY_INVENTORY_ON_HAND_CURRENT = 'On hand (current)';
+const SHOPIFY_INVENTORY_ON_HAND_NEW = 'On hand (new)';
 const SHOPIFY_INVENTORY_OPTIONS = {
   orderBy: item => item.Handle,
   importLabel: 'Shopify inventory CSV',
   name: 'shopify-inventory',
-  expectedHeaders: ['Handle', 'Title','Option1 Name','Option1 Value','Option2 Name','Option2 Value','Option3 Name','Option3 Value','SKU','HS Code','COO','Location','Incoming','Unavailable','Committed','Available','On hand']
+  expectedHeaders: ['Handle', 'Title', 'Option1 Name', 'Option1 Value', 'Option2 Name', 'Option2 Value', 'Option3 Name', 'Option3 Value', 'SKU', 'HS Code', 'COO', 'Location', 'Bin name', 'Incoming (not editable)', 'Unavailable (not editable)', 'Committed (not editable)', 'Available (not editable)', SHOPIFY_INVENTORY_ON_HAND_CURRENT, SHOPIFY_INVENTORY_ON_HAND_NEW]
 };
 
 async function parseFilesAsCSV(files, vendor) {
@@ -369,12 +371,12 @@ const updateInventory = async (e, { maxQuantity }) => {
 
       // Cap the new quantity
       const vendorItemQuantity = Math.min(vendor.getQuantity(vendorItem), maxQuantity);
-      const shopifyItemQuantity = +shopifyItem['On hand'];
+      const shopifyItemQuantity = +shopifyItem[SHOPIFY_INVENTORY_ON_HAND_CURRENT];
       if (shopifyItemQuantity === vendorItemQuantity) {
         logger.debug(`[QUANTITY MATCH] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} matches shopify inventory: ${shopifyItemQuantity}`);
       } else {
         logger.log(`[QUANTITY UPDATE] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} differs in shopify inventory: ${shopifyItemQuantity}`);
-        shopifyItem['On hand'] = vendorItemQuantity;
+        shopifyItem[SHOPIFY_INVENTORY_ON_HAND_NEW] = vendorItemQuantity;
         updated = true;
       }
 
