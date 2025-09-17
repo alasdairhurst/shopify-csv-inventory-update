@@ -28,8 +28,6 @@ const DEFAULT_SHOPIFY_PRODUCT = {
   'Variant SKU': '',
   'Variant Grams': '',
   'Variant Inventory Tracker': '',
-  // Doesn't exist on exports so ¯\_(ツ)_/¯
-  // 'Variant Inventory Qty': '',
   'Variant Inventory Policy': '',
   'Variant Fulfillment Service': '',
   'Variant Price': '',
@@ -43,13 +41,36 @@ const DEFAULT_SHOPIFY_PRODUCT = {
   'Gift Card': '',
   'SEO Title': '',
   'SEO Description': '',
+  'Google Shopping / Google Product Category': '',
+  'Google Shopping / Gender': '',
+  'Google Shopping / Age Group': '',
+  'Google Shopping / MPN': '',
+  'Google Shopping / Condition': '',
+  'Google Shopping / Custom Product': '',
+  'Google Shopping / Custom Label 0': '',
+  'Google Shopping / Custom Label 1': '',
+  'Google Shopping / Custom Label 2': '',
+  'Google Shopping / Custom Label 3': '',
+  'Google Shopping / Custom Label 4': '',
+  'Google: Custom Product (product.metafields.mm-google-shopping.custom_product)': '',
+  'Product rating count (product.metafields.reviews.rating_count)': '',
+  'Color (product.metafields.shopify.color-pattern)': '',
+  'Fabric (product.metafields.shopify.fabric)': '',
+  'Neckline (product.metafields.shopify.neckline)': '',
+  'Sleeve length type (product.metafields.shopify.sleeve-length-type)': '',
+  'Target gender (product.metafields.shopify.target-gender)': '',
+  'Top length type (product.metafields.shopify.top-length-type)': '',
+  'Complementary products (product.metafields.shopify--discovery--product_recommendation.complementary_products)': '',
+  'Related products (product.metafields.shopify--discovery--product_recommendation.related_products)': '',
+  'Related products settings (product.metafields.shopify--discovery--product_recommendation.related_products_display)': '',
+  'Search product boosts (product.metafields.shopify--discovery--product_search_boost.queries)': '',
   'Variant Image': '',
   'Variant Weight Unit': '',
   'Variant Tax Code': '',
   'Cost per item': '',
-  'Included / United Kingdom': '',
   'Status': ''
-}
+};
+
 const PARENT_SYMBOL = Symbol.for('parent');
 
 let logger = {
