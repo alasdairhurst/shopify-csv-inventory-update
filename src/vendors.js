@@ -256,6 +256,7 @@ const vendors = [
 		},
 		getRRP: item => item.RetailPrice,
 		getMainImageURL: item => item.ImageUrl,
+		getVariantImageURL: item => item.ImageUrl,
 		getAdditionalImages: item => {
 			if (item[PARENT_SYMBOL]) {
 				return [];

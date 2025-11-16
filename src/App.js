@@ -555,6 +555,8 @@ const updateProducts = async (e, { maxQuantity }) => {
         logger.debug(`[NOT FOUND] ${vendor.name} SKU ${vendorProductLabel} in shopify products`);
         continue;
       }
+
+      // TODO: Is it possible to run an update on the parent row to change the shopify parent?
       
       // Update price
       if (!vendor.getPrice) {
@@ -603,7 +605,7 @@ const updateProducts = async (e, { maxQuantity }) => {
         shopifyParent.edited = true;
       }
 
-      // update main image
+      // update variant image
       if (!vendor.getVariantImageURL) {
         // logger.debug(`[WARN] cannot update variant images for vendor ${vendor.name} getVariantImageURL not implemented`);
       } else {
@@ -761,12 +763,15 @@ const addProducts = async (e, { maxQuantity }) => {
         'Variant Requires Shipping': 'TRUE',
         'Variant Taxable': vendor.getTaxable?.(vendorProduct)  ? 'TRUE' : 'FALSE',
         'Variant Barcode': escapeBarcode(vendorProductBarcode),
-        'Image Src': vendor.getMainImageURL?.(vendorProduct),
         'Gift Card': 'FALSE',
         'Variant Weight Unit': 'kg',
         'Included / United Kingdom': 'TRUE',
         'Status': 'active'
       };
+
+      if (vendor.getVariantImageURL) {
+          product['Image Src'] = vendor.getVariantImageURL(vendorProduct);
+      }
       if (vendor.getWeight) {
         product['Variant Grams'] = Math.min(vendor.getWeight(vendorProduct), 999);
       }
