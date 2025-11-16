@@ -503,7 +503,8 @@ const getShopifyProductAndParent = (shopifyProducts, vendor, vendorProduct) => {
   return { shopifyProduct, shopifyParent, shopifyProductLabel };
 }
 
-const updateProducts = async (e, { maxQuantity }) => {
+const updateProducts = async (e, { updateImages }) => {
+  console.log({ updateImages})
   const shopifyProductsFiles = getFiles('shopify-products');
   if (!shopifyProductsFiles.length) {
     throw new ExpectedError('no shopify products CSV selected');
@@ -610,7 +611,7 @@ const updateProducts = async (e, { maxQuantity }) => {
         // logger.debug(`[WARN] cannot update variant images for vendor ${vendor.name} getVariantImageURL not implemented`);
       } else {
         const vendorVariantImage = vendor.getVariantImageURL(vendorProduct);
-        if (!shopifyProduct['Image Src'] && vendorVariantImage) {
+        if ((!shopifyProduct['Image Src'] && vendorVariantImage) || updateImages) {
           logger.log(`[VARIANT IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} adding variant image to product ${shopifyProductLabel}`);
           shopifyProduct['Image Src'] = vendorVariantImage;
           shopifyParent.edited = true;
@@ -885,6 +886,7 @@ function App() {
   const [ alert, setAlert ] = useState(null);
   const INITIAL_STOCK_CAP = 5;
   const [ maxQuantity, setMaxQuantity ] = useState(INITIAL_STOCK_CAP);
+  const [ updateImages, setUpdateImages ] = useState(false);
   const cancel = () => {
     cancelled = true;
     setAlert(null);
@@ -894,7 +896,8 @@ function App() {
     const message = err instanceof ExpectedError ? err.message : err.stack;
     setAlert({ header: 'Error', message });
   }
-  const withLoading = (fn, loadingMessage) => {
+  const withLoading = (fn, options) => {
+    const { loadingMessage, ...otherOptions } = options;
     return async (e) => {
       cancelled = false;
       e.preventDefault();
@@ -913,7 +916,7 @@ function App() {
       )})
 
       try {
-        const info = await fn(e, { maxQuantity });
+        const info = await fn(e, otherOptions);
         if (info) {
           setAlert({ header: 'Info', message: info });
         } else {
@@ -956,22 +959,32 @@ function App() {
             onChange={e => setMaxQuantity(e.target.value)}
           />
           <p/>
+          <label htmlFor="updateImages" style={{paddingRight: '5px' }}>
+            Update variant images
+          </label>
+          <input
+            id="updateImages"
+            type="checkbox"
+            value={updateImages}
+            onChange={e => setUpdateImages(e.target.value === 'false' ? true : false)}
+          />
+          <p/>
           <button
-            onClick={withLoading(updateInventory, 'Generating updated inventory...')}
+            onClick={withLoading(updateInventory, { maxQuantity, loadingMessage: 'Generating updated inventory...' })}
             style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
           >
             Download Inventory CSV (Update Quantity)
           </button>
           <p/>
           <button
-            onClick={withLoading(addProducts, 'Generating new products...')}
+            onClick={withLoading(addProducts, { maxQuantity, loadingMessage: 'Generating new products...' })}
             style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
           >
             Download Products CSV (Add missing products)
           </button>
           <p/>
           <button
-            onClick={withLoading(updateProducts, 'Generating updated products...')}
+            onClick={withLoading(updateProducts, { updateImages, loadingMessage: 'Generating updated products...' })}
             style={{backgroundColor: 'green', color: 'white', height: '50px', fontSize: '20px', width: '100%'}}
           >
             Download Products CSV (Edit products)
