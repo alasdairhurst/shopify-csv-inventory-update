@@ -118,6 +118,7 @@ const vendors = [
 		getVendor: item => item.BRAND.trim(),
 		getDescription: item => item.DESCRIPTION.replace(/^'/, '').replace(/'$/, '').trim(),
 		getMainImageURL: item => item.MAIN_IMAGE.trim(),
+		getVariantImageURL: item => item.MAIN_IMAGE.trim(),
 		// getTags: item => [],
 		getTitle: item => item.PRODUCT_NAME.trim(),
 		getAdditionalImages: item => {
