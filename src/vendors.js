@@ -244,7 +244,6 @@ const vendors = [
 		updateProducts: true,
 		addProducts: true,
 		htmlDecode: true,
-		
 		useTitleForMatching: true,
 		useBarcodeForExclusiveMatching: true,
 		expectedHeaders: ['Title', 'Link', 'LinkComponent', 'Description', 'Sku', 'ParentSku', 'Ean', 'CatCode', 'Type', 'Taxable', 'Brand', 'Category', 'ImageUrl', 'InStock', 'Weight', 'RetailPrice', 'TradePrice', 'Feature1', 'Feature2', 'Feature3', 'Feature4', 'Feature5', 'DueDate', 'Size', 'Colour', 'Design', 'AltImage1', 'AltImage2', 'AltImage3', 'AltImage4', 'AltImage5', 'AltImage6', 'AltImage7', 'AltImage8', 'AltImage9', 'AltImage10', 'AltImage11', 'AltImage12'],
@@ -303,6 +302,12 @@ const vendors = [
 				variants.push({
 					name: 'Colour',
 					value: item.Colour
+				});
+			}
+			if (item.Design) {
+				variants.push({
+					name: 'Design',
+					value: item.Design
 				});
 			}
 			return variants;

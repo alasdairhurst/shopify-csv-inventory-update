@@ -558,6 +558,7 @@ const updateProducts = async (e, { updateImages }) => {
       }
 
       // TODO: Is it possible to run an update on the parent row to change the shopify parent?
+      const isParent = shopifyParent['Variant SKU'] === vendorProductSKU;
       
       // Update price
       if (!vendor.getPrice) {
@@ -606,14 +607,26 @@ const updateProducts = async (e, { updateImages }) => {
         shopifyParent.edited = true;
       }
 
-      // update variant image
+      // Add main image on parent
+      if (!vendor.getMainImageURL || !isParent) {
+        // logger.debug(`[WARN] cannot update variant images for vendor ${vendor.name} getMainImageURL not implemented`);
+      } else {
+        // Edit the image if there is none set or we want to manually update them
+        if (!shopifyProduct['Image Src'] || updateImages) {
+          logger.log(`[IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} editing main image on product ${shopifyProductLabel}`);
+          shopifyProduct['Image Src'] = vendor.getMainImageURL(vendorProduct);
+          shopifyParent.edited = true;
+        }
+      }
+
+      // Add variant image that is shown when you select a variant
       if (!vendor.getVariantImageURL) {
         // logger.debug(`[WARN] cannot update variant images for vendor ${vendor.name} getVariantImageURL not implemented`);
       } else {
-        const vendorVariantImage = vendor.getVariantImageURL(vendorProduct);
-        if ((!shopifyProduct['Image Src'] && vendorVariantImage) || updateImages) {
-          logger.log(`[VARIANT IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} adding variant image to product ${shopifyProductLabel}`);
-          shopifyProduct['Image Src'] = vendorVariantImage;
+        // Edit the image if there is none set or we want to manually update them
+        if (!shopifyProduct['Variant Image'] || updateImages) {
+          logger.log(`[IMAGE UPDATE] ${vendor.name} SKU ${vendorProductLabel} editing variant image on product ${shopifyProductLabel}`);
+          shopifyProduct['Variant Image'] = vendor.getVariantImageURL(vendorProduct);
           shopifyParent.edited = true;
         }
       }
@@ -763,6 +776,7 @@ const addProducts = async (e, { maxQuantity }) => {
         'Variant Compare At Price': vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct, vendor)) : price,
         'Variant Requires Shipping': 'TRUE',
         'Variant Taxable': vendor.getTaxable?.(vendorProduct)  ? 'TRUE' : 'FALSE',
+        'Variant Tax Code': vendor.getTaxCode?.(vendorProduct),
         'Variant Barcode': escapeBarcode(vendorProductBarcode),
         'Gift Card': 'FALSE',
         'Variant Weight Unit': 'kg',
@@ -770,18 +784,17 @@ const addProducts = async (e, { maxQuantity }) => {
         'Status': 'active'
       };
 
-      if (vendor.getVariantImageURL) {
-          product['Image Src'] = vendor.getVariantImageURL(vendorProduct);
-      }
       if (vendor.getWeight) {
         product['Variant Grams'] = Math.min(vendor.getWeight(vendorProduct), 999);
-      }
-      if (vendor.getTaxCode) {
-        product['Variant Tax Code'] = vendor.getTaxCode(vendorProduct);
       }
 
       const variants = vendor.getVariants?.(vendorProduct);
       if (variants?.length) {
+        // Add an image spepecifically for the variant if the vendor offers one to allow image changes when changing selection
+        if (vendor.getVariantImageURL) {
+          product['Variant Image'] = vendor.getVariantImageURL(vendorProduct);
+        }
+
         for (let i = 0; i <= variants.length && i <= 3; i++) {
           if (cancelled) {
             return;
