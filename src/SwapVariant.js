@@ -312,13 +312,13 @@ const swapVariants = async () => {
         if (!data.name || data.name === 'Title') {
             continue;
         }
-        if (data.name === 'Quantity') {
-          console.log(item.Handle)
-        }
         combo.push(data.name);
         const variant = variants[i];
         if (!variant[data.name]) {
             variant[data.name] = 0;
+        }
+        if (data.name === 'Colour*' || data.name === 'Size.') {
+          console.log(item.Handle, ':', data.name)
         }
         variant[data.name]++;
     }
@@ -334,9 +334,8 @@ const swapVariants = async () => {
     }
   }
   
-  console.log(variants);
+  // console.log(variants);
   console.log(combos);
-  console.log(parentVariants);
 
   const filtered = shopifyProductsCSV.filter(item => {
     const parentVariant = parentVariants[item.Handle];
