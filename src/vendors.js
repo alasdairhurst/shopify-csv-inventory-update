@@ -60,16 +60,16 @@ const vendors = [
 		getWeight: item => +item.Weight_KG,
 		getVariants: item => {
 			const variants = [];
-			if (item.Size) {
-				variants.push({
-					name: 'Size',
-					value: item.Size
-				});
-			}
 			if (item.Colour) {
 				variants.push({
 					name: 'Colour',
 					value: item.Colour
+				});
+			}
+			if (item.Size) {
+				variants.push({
+					name: 'Size',
+					value: item.Size
 				});
 			}
 			return variants;
@@ -136,16 +136,16 @@ const vendors = [
 			const variants = [];
 			const size = item.SIZE.trim();
 			const colour = item.COLOUR.trim();
-			if (size) {
-				variants.push({
-					name: 'Size',
-					value: size
-				});
-			}
 			if (colour) {
 				variants.push({
 					name: 'Colour',
 					value: colour
+				});
+			}
+			if (size) {
+				variants.push({
+					name: 'Size',
+					value: size
 				});
 			}
 			return variants;
@@ -171,7 +171,6 @@ const vendors = [
 		updateInventory: true,
 		updateProducts: true,
 		addProducts: true,
-		
 		useTitleForMatching: true,
 		useBarcodeForExclusiveMatching: true,
 		getSKU: item => item['Variant SKU'],
@@ -271,7 +270,6 @@ const vendors = [
 			return images;
 		},
 		getTitle: item => item.Title,
-		useTitleForMatching: true,
 		getBarcode: item => item.Ean,
 		getTaxable: item => item.Taxable === 'True',
 		// getVariantCorrelationId: item => item.LinkComponent || item.Link.replace('https://www.blitzsport.com/', ', '),
@@ -292,16 +290,16 @@ const vendors = [
 		getDescription: item => item.Description,
 		getVariants: item => {
 			const variants = [];
-			if (item.Size) {
-				variants.push({
-					name: 'Size',
-					value: item.Size
-				});
-			}
 			if (item.Colour) {
 				variants.push({
 					name: 'Colour',
 					value: item.Colour
+				});
+			}
+			if (item.Size) {
+				variants.push({
+					name: 'Size',
+					value: item.Size
 				});
 			}
 			if (item.Design) {

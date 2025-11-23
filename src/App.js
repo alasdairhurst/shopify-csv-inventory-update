@@ -488,11 +488,13 @@ const getShopifyProductAndParent = (shopifyProducts, vendor, vendorProduct) => {
   let shopifyProduct;
   let shopifyProductLabel;
   const shopifyParent = shopifyProducts.find(r => {
+    // eslint-disable-next-line no-cond-assign
     if (shopifyProductLabel = matchProduct(r, r.primaryRow, vendor, vendorProduct)) {
       shopifyProduct = r.primaryRow;
       return true;
     }
     return !!r.secondaryRows.find(secondaryRow => {
+      // eslint-disable-next-line no-cond-assign
       if (shopifyProductLabel = matchProduct(r, secondaryRow, vendor, vendorProduct)) {
         shopifyProduct = secondaryRow;
         return true;
