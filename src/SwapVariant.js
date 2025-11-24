@@ -355,6 +355,7 @@ const swapVariants = async () => {
       item['Option2 Linked To'] = variant1.linkedTo;
       return true;
     }
+    return false;
   });
 
   if (filtered.length === 0) {

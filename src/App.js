@@ -87,6 +87,13 @@ if (DEBUG) {
   logger.debug = console.debug;
 }
 
+const isOnSale = shopifyProduct => {
+  // Update the product sale tag - run after price update
+    const price = +shopifyProduct['Variant Price'];
+    const rrp = +shopifyProduct['Variant Compare At Price'];
+    return (price / rrp) <= 0.7;
+}
+
 let cancelled = false;
 
 const GLOBAL_QUOTE_RX = /[["']/g;
@@ -612,19 +619,18 @@ const updateProducts = async (e, { updateImages }) => {
         shopifyParent.edited = true;
       }
 
-      // Update the product sale tag - run after price update
-      const price = +shopifyProduct['Variant Price'];
-      const rrp = +shopifyProduct['Variant Compare At Price'];
-      // Set sale if any variant has a sale. then we'll use that to update the parent tags
-      shopifyParent.sale = shopifyParent.sale ?? price < rrp;
+      // Set sale if any variant seen has a sale. then we'll use that to update the parent tags
+      // This expects all variants from the vendor to be iterated so by the time we get to the
+      // last one we'll know for sure. This may stil end up with an update if the tag is removed
+      // before a later sale is seen.
+      shopifyParent.sale = shopifyParent.sale ?? isOnSale(shopifyProduct);
 
-      const hasSaleTag = tags.includes('sale');
-      if (shopifyParent.sale && !hasSaleTag) {
+      if (shopifyParent.sale && !tags.includes('sale')) {
         logger.log(`[TAGS UPDATE] shopify product ${shopifyProductLabel} tags are missing sale: [${tags}]`);
         tags.push('sale');
         shopifyParent.primaryRow.Tags = tags.join(', ');
         shopifyParent.edited = true;
-      } else if (!shopifyParent.sale && hasSaleTag) {
+      } else if (!shopifyParent.sale && tags.includes('sale')) {
         logger.log(`[TAGS UPDATE] shopify product ${shopifyProductLabel} tags should not have sale: [${tags}]`);
         tags.splice(tags.indexOf('sale'), 1);
         shopifyParent.primaryRow.Tags = tags.join(', ');
@@ -786,7 +792,6 @@ const addProducts = async (e, { maxQuantity }) => {
       }
 
       const price = roundPrice(vendor.getPrice(vendorProduct));
-      const rrp = vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct, vendor)) : price;
       product = {
         ...DEFAULT_SHOPIFY_PRODUCT,
         ...product,
@@ -798,7 +803,7 @@ const addProducts = async (e, { maxQuantity }) => {
         'Variant Inventory Policy': 'deny',
         'Variant Fulfillment Service': 'manual',
         'Variant Price': price,
-        'Variant Compare At Price': rrp,
+        'Variant Compare At Price': vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct, vendor)) : price,
         'Variant Requires Shipping': 'TRUE',
         'Variant Taxable': vendor.getTaxable?.(vendorProduct)  ? 'TRUE' : 'FALSE',
         'Variant Tax Code': vendor.getTaxCode?.(vendorProduct),
@@ -841,20 +846,51 @@ const addProducts = async (e, { maxQuantity }) => {
           'Image Src': image,
         }))
       }
+
+      // Add or update parent tags
+      const tags = shopifyParent.primaryRow.Tags.split(', ');
+
+      // Ensure any product has new in when importing a new product or variant
+      if (!tags.includes('new in')) {
+        tags.push('new in');
+      }
+
+      // Ensure any product has the vendor as a tag
+      if (!tags.includes(vendor.name)) {
+        tags.push(vendor.name);
+      }
+
+      // Ensure the sale tag is either set or not set
+      // Check all the current rows with a price to see if any are already on sale
+      const currentOnSale = isOnSale(product);
+      const variantsOnSale = shopifyParent.secondaryRows.findOne(product => {
+        if (!product['Variant Price']) {
+          return;
+        }
+        return isOnSale(product);
+      });
+      const parentOnSale = shopifyParent && isOnSale(shopifyParent.primaryRow);
+      const onSale = currentOnSale || variantsOnSale || parentOnSale;
+
+      if (onSale && !tags.includes('sale')) {
+        tags.push('sale');
+      }
+
+      if (!onSale && tags.includes('sale')) {
+        tags.splice(tags.indexOf('sale'), 1);
+      }
+
+
+      if (vendor.getTags) {
+        tags.push(...vendor.getTags(vendorProduct));
+      }
       
       if (!isNewProduct) {
+        shopifyParent.primaryRow.Tags = tags.join(', ');
         shopifyParent.secondaryRows.push(product);
         shopifyParent.secondaryRows.push(...additionalImages);
         shopifyParent.edited = true;
       } else {
-        // Always add new in and vendor id tags
-        const tags = ['new in', vendor.name];
-        if (price < rrp) {
-          tags.push('sale');
-        }
-        if (vendor.getTags) {
-          tags.push(...vendor.getTags(vendorProduct));
-        }
         product.Tags = tags.join(', ');
         shopifyProducts.push({
           primaryRow: product,
