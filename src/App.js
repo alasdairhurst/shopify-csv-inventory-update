@@ -601,11 +601,33 @@ const updateProducts = async (e, { updateImages }) => {
         }
       }
 
+      // Update tags
+      const tags = shopifyParent.primaryRow.Tags.split(', ');
+      
       // Ensure the product has a vendor tag
-      const shopifyParentTags = shopifyParent.primaryRow.Tags;
-      if (!shopifyParentTags.split(', ').includes(vendor.name)) {
-        logger.log(`[TAGS UPDATE] shopify product ${shopifyProductLabel} tags are missing ${vendor.name} vendor: [${shopifyParentTags}]`);
-        shopifyParent.primaryRow.Tags += `, ${vendor.name}`;
+      if (!tags.includes(vendor.name)) {
+        logger.log(`[TAGS UPDATE] shopify product ${shopifyProductLabel} tags are missing ${vendor.name} vendor: [${tags}]`);
+        tags.push(vendor.name);
+        shopifyParent.primaryRow.Tags = tags.join(', ');
+        shopifyParent.edited = true;
+      }
+
+      // Update the product sale tag - run after price update
+      const price = +shopifyProduct['Variant Price'];
+      const rrp = +shopifyProduct['Variant Compare At Price'];
+      // Set sale if any variant has a sale. then we'll use that to update the parent tags
+      shopifyParent.sale = shopifyParent.sale ?? price < rrp;
+
+      const hasSaleTag = tags.includes('sale');
+      if (shopifyParent.sale && !hasSaleTag) {
+        logger.log(`[TAGS UPDATE] shopify product ${shopifyProductLabel} tags are missing sale: [${tags}]`);
+        tags.push('sale');
+        shopifyParent.primaryRow.Tags = tags.join(', ');
+        shopifyParent.edited = true;
+      } else if (!shopifyParent.sale && hasSaleTag) {
+        logger.log(`[TAGS UPDATE] shopify product ${shopifyProductLabel} tags should not have sale: [${tags}]`);
+        tags.splice(tags.indexOf('sale'), 1);
+        shopifyParent.primaryRow.Tags = tags.join(', ');
         shopifyParent.edited = true;
       }
 
@@ -764,6 +786,7 @@ const addProducts = async (e, { maxQuantity }) => {
       }
 
       const price = roundPrice(vendor.getPrice(vendorProduct));
+      const rrp = vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct, vendor)) : price;
       product = {
         ...DEFAULT_SHOPIFY_PRODUCT,
         ...product,
@@ -775,7 +798,7 @@ const addProducts = async (e, { maxQuantity }) => {
         'Variant Inventory Policy': 'deny',
         'Variant Fulfillment Service': 'manual',
         'Variant Price': price,
-        'Variant Compare At Price': vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct, vendor)) : price,
+        'Variant Compare At Price': rrp,
         'Variant Requires Shipping': 'TRUE',
         'Variant Taxable': vendor.getTaxable?.(vendorProduct)  ? 'TRUE' : 'FALSE',
         'Variant Tax Code': vendor.getTaxCode?.(vendorProduct),
@@ -826,6 +849,9 @@ const addProducts = async (e, { maxQuantity }) => {
       } else {
         // Always add new in and vendor id tags
         const tags = ['new in', vendor.name];
+        if (price < rrp) {
+          tags.push('sale');
+        }
         if (vendor.getTags) {
           tags.push(...vendor.getTags(vendorProduct));
         }
@@ -1008,7 +1034,7 @@ function App() {
           <p/>
         </form>
       </header>
-      <div style={{ position: 'absolute', bottom: '10px', left: '10px', color: 'white' }}>
+      <div className="version-footer">
         Version: {new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(+process.env.BUILD_TIME)}
       </div>
     </div>

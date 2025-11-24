@@ -28,6 +28,14 @@
   color: white;
 }
 
+.version-footer {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  color: white;
+  font-size: 12px;
+}
+
 .App-link {
   color: #61dafb;
 }
