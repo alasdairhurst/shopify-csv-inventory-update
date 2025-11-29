@@ -5,7 +5,7 @@ import { diceCoefficient } from 'string-comparison';
 import './App.css';
 import vendors from './vendors';
 import { useState } from 'react';
-import Alert from './Alert';
+import Alert from './Alert.tsx';
 
 const DOWNLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
 const DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME = 'completed_products_update_for_shopify.csv';
@@ -848,7 +848,7 @@ const addProducts = async (e, { maxQuantity }) => {
       }
 
       // Add or update parent tags
-      const tags = shopifyParent.primaryRow.Tags.split(', ');
+      const tags = shopifyParent?.primaryRow.Tags.split(', ') ?? [];
 
       // Ensure any product has new in when importing a new product or variant
       if (!tags.includes('new in')) {
@@ -863,14 +863,14 @@ const addProducts = async (e, { maxQuantity }) => {
       // Ensure the sale tag is either set or not set
       // Check all the current rows with a price to see if any are already on sale
       const currentOnSale = isOnSale(product);
-      const variantsOnSale = shopifyParent.secondaryRows.findOne(product => {
+      const anyVariantOnSale = shopifyParent?.secondaryRows.some(product => {
         if (!product['Variant Price']) {
-          return;
+          return false;
         }
         return isOnSale(product);
-      });
+      }) ?? false;
       const parentOnSale = shopifyParent && isOnSale(shopifyParent.primaryRow);
-      const onSale = currentOnSale || variantsOnSale || parentOnSale;
+      const onSale = currentOnSale || anyVariantOnSale || parentOnSale;
 
       if (onSale && !tags.includes('sale')) {
         tags.push('sale');
@@ -968,7 +968,7 @@ function App() {
     cancelled = true;
     setAlert(null);
   }
-  const onError = err => {
+  const onError = (err) => {
     logger.error(err);
     const message = err instanceof ExpectedError ? err.message : err.stack;
     setAlert({ header: 'Error', message });

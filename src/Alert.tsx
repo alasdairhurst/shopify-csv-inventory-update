@@ -1,5 +1,12 @@
-import { Fragment } from "react";
-function Alert({header, message, onClose, hasClose=true}) {
+import { Fragment, ReactNode } from 'react';
+
+type Props = {
+  header: ReactNode;
+  message: ReactNode;
+  onClose: (e: React.BaseSyntheticEvent) => void;
+  hasClose?: boolean;
+}
+function Alert({ header, message, onClose, hasClose = true }: Props) {
   let content;
   if (typeof message === 'string') {
     content = (
