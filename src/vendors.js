@@ -83,14 +83,12 @@ const vendors = [
 	{
 		name: 'cartas-inventory',
 		importLabel: 'Cartas Inventory CSV',
-		forceHeaders: ['a', 'b', 'c', 'd', 'SKU', 'Title', 'f', 'g', 'Quantity', 'h'],
 		updateInventory: true,
-		updateProducts: false,
-		
+		updateProducts: false,		
 		useTitleForMatching: true,
-		getSKU: item => item.SKU,
-		getQuantity: item => Math.min(+item.Quantity, 50),
-		getTitle: item => item.Title
+		getSKU: item => item.CHILD_CODE,
+		getQuantity: item => Math.min(+item.QUANTITY, 50),
+		getTitle: item => item.PRODUCT_NAME
 	},
 	{
 		name: 'cartas',
