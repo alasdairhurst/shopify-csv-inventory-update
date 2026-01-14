@@ -1,7 +1,8 @@
 const PARENT_SYMBOL = Symbol.for('parent');
 
-const RM_SMALL_SHIPPING = 5;
+const RM_SMALL_SHIPPING = 5.50;
 const RM_LARGE_SHIPPING = 20;
+const RM_LARGE_SHIPPING_MTB = 25;
 
 const blitzShipping = {
 	16098: 42,
@@ -194,7 +195,16 @@ const vendors = [
 		},
 		getWeight: item => +item['Variant Weight'],
 		getTaxable: item => item['Variant Taxable'] === 'true',
-		getPrice: item => +item['Variant Price'],
+		getPrice: item => {
+			let price = +item['Variant Price'];
+			let weight = +item['Variant Weight'];
+			// Add price for heavy/large items like punching bags
+			if (weight >= 30) {
+				price += RM_LARGE_SHIPPING_MTB;
+			}
+			return price;
+		},
+		getRRP: item => +item['Variant Price'],
 		getDescription: item => item['Body HTML'],
 		getVendor: item => item.Vendor,
 		getMainImageURL: item => item['Image Src'],
