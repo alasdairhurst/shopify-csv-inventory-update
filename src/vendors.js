@@ -198,11 +198,15 @@ const vendors = [
 		getPrice: item => {
 			let price = +item['Variant Price'];
 			let weight = +item['Variant Weight'];
+			let vendor = item['Vendor'];
 			// Add price for heavy/large items like punching bags
 			if (weight >= 30) {
-				price += RM_LARGE_SHIPPING_MTB;
+				return price + RM_LARGE_SHIPPING_MTB;
 			}
-			return price;
+			if (vendor === 'TUFF Sport') {
+				return price;
+			}
+			return price + RM_SMALL_SHIPPING;
 		},
 		getRRP: item => +item['Variant Price'],
 		getDescription: item => item['Body HTML'],
