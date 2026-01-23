@@ -1,8 +1,9 @@
 import { Vendor } from './helpers';
-import reydon from './reydon';
+import { reydon, reydonInventory } from './reydon';
 
 const vendors: Array<Vendor> = [
-    reydon
+    reydon,
+    reydonInventory
 ];
 
 export default vendors;
