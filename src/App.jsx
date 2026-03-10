@@ -513,7 +513,6 @@ const getShopifyProductAndParent = (shopifyProducts, vendor, vendorProduct) => {
 }
 
 const updateProducts = async (e, { updateImages }) => {
-  console.log({ updateImages})
   const shopifyProductsFiles = getFiles('shopify-products');
   if (!shopifyProductsFiles.length) {
     throw new ExpectedError('no shopify products CSV selected');
