@@ -1,6 +1,6 @@
 const PARENT_SYMBOL = Symbol.for('parent');
 
-const RM_SMALL_SHIPPING = 5.50;
+const RM_SMALL_SHIPPING = 5;
 const RM_LARGE_SHIPPING = 10;
 const RM_LARGE_SHIPPING_MTB = 25;
 
