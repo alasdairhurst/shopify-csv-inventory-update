@@ -72,7 +72,7 @@ const DEFAULT_SHOPIFY_PRODUCT = {
   'Status': ''
 };
 
-let logger = {
+const logger = {
   debug: () => {},
   log: console.log,
   warn: console.warn,

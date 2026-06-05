@@ -1,7 +1,7 @@
 import {
 	RM_LARGE_SHIPPING,
 	RM_SMALL_SHIPPING
-} from '../utils/constants';
+} from '../../utils/constants';
 
 export const reydonInventory = {
 	name: 'reydon-inventory',
