@@ -1,15 +1,16 @@
+import { useState } from 'react';
 import Papa from 'papaparse';
 import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
 import he from 'he';
 import { diceCoefficient } from 'string-comparison';
 import './App.css';
 import vendors from './vendors';
-import { useState } from 'react';
-import Alert from './Alert.tsx';
+import Alert from './components/Alert.tsx';
+import { PARENT_SYMBOL } from './utils/constants.js';
 
 const DOWNLOAD_INVENTORY_FILE_NAME = 'completed_inventory_update_for_shopify.csv';
 const DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME = 'completed_products_update_for_shopify.csv';
-const DONWLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
+const DOWNLOAD_PRODUCTS_FILE_NAME = 'new_products_for_shopify.csv';
 const DEFAULT_SHOPIFY_PRODUCT = {
   'Handle': '',
   'Title': '',
@@ -70,8 +71,6 @@ const DEFAULT_SHOPIFY_PRODUCT = {
   'Cost per item': '',
   'Status': ''
 };
-
-const PARENT_SYMBOL = Symbol.for('parent');
 
 let logger = {
   debug: () => {},
@@ -912,7 +911,7 @@ const addProducts = async (e, { maxQuantity }) => {
     // trim additional temp metadata like parsed barcode
     columns: SHOPIFY_PRODUCTS_OPTIONS.expectedHeaders
   });
-  downloadCSV(csv, DONWLOAD_PRODUCTS_FILE_NAME);
+  downloadCSV(csv, DOWNLOAD_PRODUCTS_FILE_NAME);
 }
 
 // products format
