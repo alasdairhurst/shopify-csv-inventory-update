@@ -1,2 +1,2 @@
 #!/bin/sh
-echo bananas
+npm run tsc
