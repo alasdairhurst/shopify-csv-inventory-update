@@ -1,0 +1,5 @@
+#!/bin/sh
+npm run build
+git add .
+
+echo "Built web ui"
