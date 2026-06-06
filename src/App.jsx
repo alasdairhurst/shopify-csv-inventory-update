@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Papa from 'papaparse';
 import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
 import he from 'he';
-import { diceCoefficient } from 'string-comparison';
+import sc from 'string-comparison';
 import './App.css';
 import vendors from './vendors';
 import Alert from './components/Alert.tsx';
@@ -450,7 +450,7 @@ const matchShopifyItems = (shopifyItem, vendor, vendorProduct, options = {}) => 
   // if the sku matches but could have a duplicate then we'll have to use the title to see how close it is.
   if (options.matchTitle && vendor.useTitleForMatching) {
     // compare titles to have some safety net
-    const similarity = diceCoefficient.similarity(vendorProductTitle, shopifyItem.title);
+    const similarity = sc.diceCoefficient.similarity(vendorProductTitle, shopifyItem.title);
     if (similarity <= 0.4) {
       logger.warn(`[WARN] ${vendor.name} SKU ${vendorProductLabel} matches SKU but does not match shopify product title ${shopifyItemLabel}. (${similarity} similar)`);
       return;

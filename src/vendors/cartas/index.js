@@ -1,4 +1,4 @@
-import { RM_SMALL_SHIPPING } from '../utils/constants';
+import { RM_SMALL_SHIPPING } from '../../utils/constants';
 
 export const cartas = {
 	name: 'cartas',

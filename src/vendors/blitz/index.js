@@ -1,4 +1,4 @@
-import { RM_SMALL_SHIPPING, PARENT_SYMBOL } from '../utils/constants';
+import { RM_SMALL_SHIPPING, PARENT_SYMBOL } from '../../utils/constants';
 
 const blitzShipping = {
 	16098: 42,
