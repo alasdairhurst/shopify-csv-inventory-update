@@ -1,0 +1,8 @@
+- Service worker threads for main actions to avoid locking browser
+- UI rewrite
+    - Support fetch from URL, default values
+    - Wizard with context based fields, one vendor at a time
+    - CSV visualization before download, text and table view
+    - Logs visible in UI - default to info for obvious activity but controlled via UI toggles
+- Typescript types
+- Integration tests with real examples
