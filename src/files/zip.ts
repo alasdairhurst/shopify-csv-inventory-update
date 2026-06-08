@@ -1,15 +1,15 @@
 
 import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
 
-export async function readZip(file) {
+export async function readZip(file: File) {
 	const entries = await (
 		new ZipReader(new BlobReader(file))
 	).getEntries();
 
 	// Only read the first csv entry
 	const csvFile = entries.find(entry => entry.filename.endsWith('.csv'));
-	if (!csvFile) {
-		throw new Error('Cannot find .csv in zip file', file.name)
+	if (!csvFile || csvFile.directory) {
+		throw new Error(`Cannot find .csv in zip file: ${file.name}`);
 	}
 	const blob = await csvFile.getData(new BlobWriter());
 

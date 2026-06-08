@@ -1,4 +1,6 @@
 import { parseBarcode } from '../utils/helpers';
+import { CSVItem } from '../vendors/types';
+import type { Vendor } from '../vendors2';
 import { matchShopifyItems } from './items';
 
 export const DEFAULT_SHOPIFY_PRODUCT = {
@@ -60,30 +62,50 @@ export const DEFAULT_SHOPIFY_PRODUCT = {
 	'Variant Tax Code': '',
 	'Cost per item': '',
 	'Status': ''
+} as const;
+
+export type ExternalShopifyProduct = CSVItem<readonly (keyof typeof DEFAULT_SHOPIFY_PRODUCT)[]> & {
+	_parsedBarcode?: string
 };
 
-export const isOnSale = shopifyProduct => {
+export const SHOPIFY_PRODUCTS_OPTIONS = {
+	orderBy: (item: ExternalShopifyProduct) => item.Handle,
+	importLabel: 'Shopify products CSV',
+	name: 'shopify-products',
+	expectedHeaders: Object.keys(DEFAULT_SHOPIFY_PRODUCT)
+};
+
+export type ShopifyProduct = {
+	primaryRow: ExternalShopifyProduct;
+	secondaryRows: ExternalShopifyProduct[];
+	edited: boolean;
+	sale?: boolean; // TODO: do this better
+	_parsedBarcode?: string;
+};
+
+export const isOnSale = (shopifyProduct: ExternalShopifyProduct) => {
 	// Update the product sale tag - run after price update
 	const price = +shopifyProduct['Variant Price'];
 	const rrp = +shopifyProduct['Variant Compare At Price'];
 	return (price / rrp) <= 0.7;
 };
 
-export const getShopifyProductParsedBarcode = product => {
+// Replace
+export const getShopifyProductParsedBarcode = (product: ExternalShopifyProduct) => {
 	if (!('_parsedBarcode' in product)) {
 		product._parsedBarcode = parseBarcode(product['Variant Barcode']);
 	}
 	return product._parsedBarcode;
 }
 
-export const convertShopifyProductsToInternal = (shopifyProductsCSV) => {
+export const convertShopifyProductsToInternal = (shopifyProductsCSV: ExternalShopifyProduct[]) => {
 	shopifyProductsCSV = shopifyProductsCSV.sort((a, b) => {
 		return a.Handle.localeCompare(b.Handle);
 	});
 
 	// reformat
-	const shopifyProductsNewFormat = [];
-	let currentProduct;
+	const shopifyProductsNewFormat: ShopifyProduct[] = [];
+	let currentProduct: ShopifyProduct | undefined;
 	for (const shopifyProduct of shopifyProductsCSV) {
 		shopifyProduct['Variant SKU'] = shopifyProduct['Variant SKU'].replace(/^'/, '');
 		if (currentProduct?.primaryRow.Handle !== shopifyProduct.Handle) {
@@ -100,8 +122,8 @@ export const convertShopifyProductsToInternal = (shopifyProductsCSV) => {
 	return shopifyProductsNewFormat;
 }
 
-export const convertShopifyProductsToExternal = (products, options = {}) => {
-	const shopifyProductsCSV = [];
+export const convertShopifyProductsToExternal = (products: ShopifyProduct[], options: { onlyEdited?: boolean} = {}) => {
+	const shopifyProductsCSV: ExternalShopifyProduct[] = [];
 	for (const product of products) {
 		if (options.onlyEdited && !product.edited) {
 			continue;
@@ -112,7 +134,7 @@ export const convertShopifyProductsToExternal = (products, options = {}) => {
 	return shopifyProductsCSV;
 }
 
-const matchProduct = (shopifyParent, shopifyProduct, vendor, vendorProduct) => {
+const matchProduct = (shopifyParent: ShopifyProduct, shopifyProduct: ExternalShopifyProduct, vendor: Vendor<any>, vendorProduct: any) => {
 	return matchShopifyItems(
 		{
 			sku: shopifyProduct['Variant SKU'],
@@ -128,18 +150,18 @@ const matchProduct = (shopifyParent, shopifyProduct, vendor, vendorProduct) => {
 	);
 };
 
-export const getShopifyProductAndParent = (shopifyProducts, vendor, vendorProduct) => {
-	let shopifyProduct;
-	let shopifyProductLabel;
-	const shopifyParent = shopifyProducts.find(r => {
+export const getShopifyProductAndParent = (shopifyProducts: ShopifyProduct[], vendor: Vendor<any>, vendorProduct: any) => {
+	let shopifyProduct: ExternalShopifyProduct | undefined;
+	let shopifyProductLabel: string | undefined;
+	const shopifyParent = shopifyProducts.find(product => {
 		// eslint-disable-next-line no-cond-assign
-		if (shopifyProductLabel = matchProduct(r, r.primaryRow, vendor, vendorProduct)) {
-			shopifyProduct = r.primaryRow;
+		if (shopifyProductLabel = matchProduct(product, product.primaryRow, vendor, vendorProduct)) {
+			shopifyProduct = product.primaryRow;
 			return true;
 		}
-		return !!r.secondaryRows.find(secondaryRow => {
+		return !!product.secondaryRows.find(secondaryRow => {
 			// eslint-disable-next-line no-cond-assign
-			if (shopifyProductLabel = matchProduct(r, secondaryRow, vendor, vendorProduct)) {
+			if (shopifyProductLabel = matchProduct(product, secondaryRow, vendor, vendorProduct)) {
 				shopifyProduct = secondaryRow;
 				return true;
 			}

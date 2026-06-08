@@ -6,3 +6,10 @@
     - Logs visible in UI - default to info for obvious activity but controlled via UI toggles
 - Typescript types
 - Integration tests with real examples
+- Better validation on parsing products, ignore and log rather than propagating broken values (i.e. NaN)
+
+- FIXES:
+	- Newlines in descriptions leaking into CSV
+
+- IMPROVEMENTS:
+	- Handle/automate trimming in vendor class rather than in logic

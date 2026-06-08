@@ -1,4 +1,3 @@
-
 import sc from 'string-comparison';
 import { parseSKU } from '../utils/helpers';
 import logger from '../utils/logger';

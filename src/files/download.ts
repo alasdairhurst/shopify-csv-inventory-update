@@ -1,5 +1,5 @@
-export function downloadTextFile(content, filename, mimeType) {
-	const blob = new Blob([content], { type: mimeType });
+export function downloadTextFile(content: string, filename: string, mimeType: `${string}/${string}`) {
+	const blob = new Blob([ content ], { type: mimeType });
 	const url = URL.createObjectURL(blob);
 
 	const a = document.createElement('a');

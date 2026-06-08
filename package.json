@@ -51,8 +51,8 @@
     "string-comparison": "^1.1.0",
     "style-loader": "^3.3.1",
     "tailwindcss": "^3.0.2",
-    "typescript": "^5.9.3",
     "terser-webpack-plugin": "^5.2.5",
+    "typescript": "^5.9.3",
     "web-vitals": "^2.1.4",
     "webpack": "^5.64.4",
     "webpack-dev-server": "^5.0.0",
@@ -62,7 +62,21 @@
   "eslintConfig": {
     "extends": [
       "react-app"
-    ]
+    ],
+    "rules": {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          "args": "all",
+          "argsIgnorePattern": "^_",
+          "caughtErrors": "all",
+          "caughtErrorsIgnorePattern": "^_",
+          "destructuredArrayIgnorePattern": "^_",
+          "varsIgnorePattern": "^_",
+          "ignoreRestSiblings": true
+        }
+      ]
+    }
   },
   "browserslist": {
     "production": [
@@ -75,5 +89,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/he": "^1.2.3",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.2.17"
   }
 }
