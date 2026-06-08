@@ -1,6 +1,6 @@
-import { Vendor } from '../vendors2';
-import { CSVItem } from '../vendors/types';
-import { matchShopifyItems } from './items';
+import { Vendor } from '../vendors2/index.ts';
+import { CSVItem } from '../vendors/types.ts';
+import { matchShopifyItems } from './items.ts';
 
 export const SHOPIFY_INVENTORY_ON_HAND_CURRENT = 'On hand (current)';
 export const SHOPIFY_INVENTORY_ON_HAND_NEW = 'On hand (new)';

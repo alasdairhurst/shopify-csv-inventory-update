@@ -1,4 +1,4 @@
-import { Vendor, Product, InventoryUpdatable } from './vendor';
+import { Vendor, Product, InventoryUpdatable } from './vendor.ts';
 
 export type UnicornProduct = Product & {
 	SKU: string;

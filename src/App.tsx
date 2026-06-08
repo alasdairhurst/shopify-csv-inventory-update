@@ -1,28 +1,29 @@
 import { ReactNode, useState } from 'react';
 import he from 'he';
-import Spinner from './components/Spinner.jsx';
-import { vendors, Vendor, forEachVendorAsync, VendorProducts } from './vendors2';
-import { Product } from './vendors2/vendor.ts';
+import { vendors, Vendor, forEachVendorAsync } from './vendors2/index.ts';
+import Spinner from './components/Spinner.tsx';
+import type { VendorProducts } from './vendors2/index.ts';
+import type { Product } from './vendors2/vendor.ts';
 import Alert from './components/Alert.tsx';
 import {
 	PARENT_SYMBOL,
 	DOWNLOAD_INVENTORY_FILE_NAME,
 	DOWNLOAD_PRODUCTS_FILE_NAME,
 	DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME
-} from './utils/constants.js';
+} from './utils/constants.ts';
 import {
 	SHOPIFY_PRODUCTS_OPTIONS,
 	convertShopifyProductsToExternal,
 	convertShopifyProductsToInternal
-} from './shopify/products.js';
+} from './shopify/products.ts';
 import {
 	SHOPIFY_INVENTORY_OPTIONS,
-} from './shopify/inventory.js';
-import { readZip } from './files/zip.js'
-import { downloadTextFile } from './files/download.js';
-import logger from './utils/logger.js';
-import * as csv from './files/csv.js';
-import ExpectedError from './utils/ExpectedError.js';
+} from './shopify/inventory.ts';
+import { readZip } from './files/zip.ts'
+import { downloadTextFile } from './files/download.ts';
+import logger from './utils/logger.ts';
+import * as csv from './files/csv.ts';
+import ExpectedError from './utils/ExpectedError.ts';
 import updateInventory from './functions/updateInventory.ts';
 import updateProducts from './functions/updateProducts.ts';
 import addProducts from './functions/addProducts.ts';
@@ -141,7 +142,7 @@ const loadVendorFiles = async (filter?: <P extends Product>(vendor: Vendor<P>) =
 			return;
 		}
 		const files = getFilesFromInput(vendor.name);
-		if (!files) {
+		if (!files || !files[0]) {
 			logger.debug(`[SKIP] no files selected for ${vendor.name}`);
 			return;
 		}

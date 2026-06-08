@@ -1,20 +1,20 @@
-import { VendorProducts, forEachVendor } from '../vendors2';
-import logger from '../utils/logger';
+import { VendorProducts, forEachVendor } from '../vendors2/index.ts';
+import logger from '../utils/logger.ts';
 import {
 	escapeBarcode,
 	escapeSKU,
 	parseSKU,
 	roundPrice
-} from '../utils/helpers';
+} from '../utils/helpers.ts';
 import {
 	DEFAULT_SHOPIFY_PRODUCT,
 	ExternalShopifyProduct,
 	getShopifyProductAndParent,
 	isOnSale,
 	ShopifyProduct
-} from '../shopify/products';
-import { PARENT_SYMBOL } from '../utils/constants';
-import { intRange } from '../utils/number';
+} from '../shopify/products.ts';
+import { PARENT_SYMBOL } from '../utils/constants.ts';
+import { intRange } from '../utils/number.ts';
 
 const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: VendorProducts) => {
 	forEachVendor((key, vendor) => {
@@ -30,9 +30,7 @@ const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: VendorPr
 		}
 
 		logger.log(`[INFO] loading ${vendorProductCSV.length} items from ${vendor.name}`);
-		for (const vp of vendorProductCSV) {
-			// FIXME to avoid any
-			const vendorProduct: any = vp;
+		for (const vendorProduct of vendorProductCSV) {
 			const vendorProductSKU = parseSKU(vendor.getSKU(vendorProduct));
 			if (!vendorProductSKU) {
 				logger.debug(`[NOT FOUND] ${vendor.name} no SKU found for product`, vendorProduct);

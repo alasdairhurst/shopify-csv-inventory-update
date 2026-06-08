@@ -1,11 +1,11 @@
-import logger from '../utils/logger';
+import logger from '../utils/logger.ts';
 import {
 	SHOPIFY_INVENTORY_ON_HAND_NEW,
 	SHOPIFY_INVENTORY_ON_HAND_CURRENT,
 	matchInventory
-} from '../shopify/inventory';
-import { parseSKU } from '../utils/helpers';
-import { forEachVendor } from '../vendors2';
+} from '../shopify/inventory.ts';
+import { parseSKU } from '../utils/helpers.ts';
+import { forEachVendor } from '../vendors2/index.ts';
 
 type VendorInventory = Record<string, any>;
 

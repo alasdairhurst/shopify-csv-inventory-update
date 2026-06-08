@@ -1,4 +1,4 @@
-import { BARCODE_DOES_NOT_APPLY } from './constants';
+import { BARCODE_DOES_NOT_APPLY } from './constants.ts';
 
 const GLOBAL_QUOTE_RX = /[["']/g;
 const UPEC_EAN_RX_SMALLER = /^[0-9]+$/;

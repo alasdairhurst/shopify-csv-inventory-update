@@ -1,10 +1,16 @@
 import sc from 'string-comparison';
-import { parseSKU } from '../utils/helpers';
-import logger from '../utils/logger';
+import { parseSKU } from '../utils/helpers.ts';
+import logger from '../utils/logger.ts';
+import { Product, Vendor } from '../vendors2/vendor.ts';
 
-export const matchShopifyItems = (shopifyItem, vendor, vendorProduct, options = {}) => {
+type MatchShopifyItemsOptions = {
+	matchVendorTag?: boolean;
+	matchTitle?: boolean;
+};
+
+export const matchShopifyItems = <P extends Product>(shopifyItem: any, vendor: Vendor<P>, vendorProduct: P, options: MatchShopifyItemsOptions = {}) => {
 	const vendorProductSKU = parseSKU(vendor.getSKU(vendorProduct));
-	if (shopifyItem.sku !== vendorProductSKU) {
+	if (!vendorProductSKU || shopifyItem.sku !== vendorProductSKU) {
 		return;
 	}
 	if (vendor.deny?.includes(vendorProductSKU)) {

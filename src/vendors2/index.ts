@@ -1,7 +1,7 @@
-import { Vendor } from './vendor';
-import { Unicorn, UnicornProduct } from './unicorn';
+import { Vendor } from './vendor.ts';
+import { Unicorn, UnicornProduct } from './unicorn.ts';
 
-export { Vendor } from './vendor';
+export { Vendor } from './vendor.ts';
 
 // Define the vendors /////
 

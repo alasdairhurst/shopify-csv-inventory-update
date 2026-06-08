@@ -1,18 +1,18 @@
-import { forEachVendor, VendorProducts } from '../vendors2';
-import logger from '../utils/logger';
+import { forEachVendor, VendorProducts } from '../vendors2/index.ts';
+import logger from '../utils/logger.ts';
 import {
 	escapeBarcode,
 	parseSKU,
 	roundPrice
-} from '../utils/helpers';
+} from '../utils/helpers.ts';
 import {
 	DEFAULT_SHOPIFY_PRODUCT,
 	getShopifyProductAndParent,
 	getShopifyProductParsedBarcode,
 	isOnSale,
 	ShopifyProduct
-} from '../shopify/products';
-import { BARCODE_DOES_NOT_APPLY } from '../utils/constants';
+} from '../shopify/products.ts';
+import { BARCODE_DOES_NOT_APPLY } from '../utils/constants.ts';
 
 const updateProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: VendorProducts, { updateImages }: { updateImages : boolean }) => {
 	forEachVendor((key, vendor) => {

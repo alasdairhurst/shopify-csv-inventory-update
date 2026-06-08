@@ -1,7 +1,7 @@
-import { parseBarcode } from '../utils/helpers';
-import { CSVItem } from '../vendors/types';
-import type { Vendor } from '../vendors2';
-import { matchShopifyItems } from './items';
+import { parseBarcode } from '../utils/helpers.ts';
+import { CSVItem } from '../vendors/types.ts';
+import type { Vendor } from '../vendors2/index.ts';
+import { matchShopifyItems } from './items.ts';
 
 export const DEFAULT_SHOPIFY_PRODUCT = {
 	'Handle': '',

@@ -1,5 +1,3 @@
-'use strict';
-
 // Do this as the first thing so that any code reading it knows the right env.
 process.env.BABEL_ENV = 'development';
 process.env.NODE_ENV = 'development';
@@ -12,7 +10,7 @@ process.on('unhandledRejection', err => {
 });
 
 // Ensure environment variables are read.
-require('../config/env');
+require('../config/env.cjs');
 
 const fs = require('fs');
 const chalk = require('react-dev-utils/chalk');
@@ -26,9 +24,9 @@ const {
   prepareUrls,
 } = require('react-dev-utils/WebpackDevServerUtils');
 const openBrowser = require('react-dev-utils/openBrowser');
-const paths = require('../config/paths');
-const configFactory = require('../config/webpack.config');
-const createDevServerConfig = require('../config/webpackDevServer.config');
+const paths = require('../config/paths.cjs');
+const configFactory = require('../config/webpack.config.cjs');
+const createDevServerConfig = require('../config/webpackDevServer.config.cjs');
 
 const useYarn = fs.existsSync(paths.yarnLockFile);
 const isInteractive = process.stdout.isTTY;

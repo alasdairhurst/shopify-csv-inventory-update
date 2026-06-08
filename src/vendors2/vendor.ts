@@ -1,5 +1,5 @@
-import { PARENT_SYMBOL } from '../utils/constants';
-import { parseBarcode } from '../utils/helpers';
+import { PARENT_SYMBOL } from '../utils/constants.ts';
+import { parseBarcode } from '../utils/helpers.ts';
 
 interface WithParent { [PARENT_SYMBOL]?: this }
 export type Product = WithParent;
@@ -36,6 +36,7 @@ export abstract class Vendor<P extends Product = Product> {
 	useBarcodeForExclusiveMatching?: boolean;
 	forceHeaders?: string[];
 	htmlDecode?: boolean;
+	deny?: string[];
 
 	getQuantity?: (product: P) => number;
   getTitle?: (product: P) => string;

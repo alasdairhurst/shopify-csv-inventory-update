@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "node scripts/start.js",
-    "build": "node scripts/build.js",
+    "start": "node scripts/start.cjs",
+    "build": "node scripts/build.cjs",
     "tsc": "tsc",
     "prepare": "git config core.hooksPath hooks"
   },
+  "type": "module",
   "dependencies": {
     "@babel/core": "^7.16.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
@@ -93,6 +94,7 @@
   "devDependencies": {
     "@types/he": "^1.2.3",
     "@types/papaparse": "^5.5.2",
-    "@types/react": "^19.2.17"
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3"
   }
 }
