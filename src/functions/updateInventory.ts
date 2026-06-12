@@ -5,7 +5,7 @@ import {
 	matchInventory
 } from '../shopify/inventory.ts';
 import { parseSKU } from '../utils/helpers.ts';
-import { forEachVendor } from '../vendors2/index.ts';
+import { forEachVendor } from '../vendors/index.ts';
 
 type VendorInventory = Record<string, any>;
 

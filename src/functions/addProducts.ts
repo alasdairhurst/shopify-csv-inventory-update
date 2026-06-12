@@ -1,4 +1,4 @@
-import { VendorProducts, forEachVendor } from '../vendors2/index.ts';
+import { VendorProducts, forEachVendor } from '../vendors/index.ts';
 import logger from '../utils/logger.ts';
 import {
 	escapeBarcode,
@@ -7,14 +7,13 @@ import {
 	roundPrice
 } from '../utils/helpers.ts';
 import {
-	DEFAULT_SHOPIFY_PRODUCT,
-	ExternalShopifyProduct,
 	getShopifyProductAndParent,
 	isOnSale,
 	ShopifyProduct
 } from '../shopify/products.ts';
 import { PARENT_SYMBOL } from '../utils/constants.ts';
 import { intRange } from '../utils/number.ts';
+import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../vendors/shopify.ts';
 
 const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: VendorProducts) => {
 	forEachVendor((key, vendor) => {
@@ -38,7 +37,9 @@ const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: VendorPr
 			}
 
 			const Title = vendor.getTitle(vendorProduct).trim();
-			const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct);
+			// FIXME: allow the parsedBarcode as string since we already checked the sku
+			// but should avoid undefined sku in the first place
+			const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct) as string;
 			const vendorProductLabel = `${vendorProductSKU} (${Title}/${vendorProductBarcode})`;
 			const { shopifyProduct } = getShopifyProductAndParent(
 				shopifyProducts, vendor, vendorProduct
@@ -88,18 +89,15 @@ const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: VendorPr
 				Handle,
 				'Variant SKU': escapeSKU(vendorProductSKU),
 				'Variant Inventory Tracker': 'shopify',
-				// maybe it works, maybe it doesnt?
-				// 'Variant Inventory Qty': String(Math.min(vendor.getQuantity(vendorProduct), maxQuantity)),
 				'Variant Inventory Policy': 'deny',
 				'Variant Fulfillment Service': 'manual',
 				'Variant Price': String(price),
 				'Variant Compare At Price': String(vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct)) : price),
 				'Variant Requires Shipping': 'TRUE',
-				'Variant Taxable': vendor.getTaxable?.(vendorProduct) ? 'TRUE' : 'FALSE',
+				'Variant Taxable': vendor.getTaxable?.(vendorProduct) === false ? 'FALSE' : 'TRUE',
 				'Variant Barcode': escapeBarcode(vendorProductBarcode),
 				'Gift Card': 'FALSE',
 				'Variant Weight Unit': 'kg',
-				// 'Included / United Kingdom': 'TRUE',
 				'Status': 'active'
 			};
 

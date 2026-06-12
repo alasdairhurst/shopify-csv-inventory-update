@@ -1,7 +1,7 @@
 import sc from 'string-comparison';
 import { parseSKU } from '../utils/helpers.ts';
 import logger from '../utils/logger.ts';
-import { Product, Vendor } from '../vendors2/vendor.ts';
+import { Product, Vendor } from '../vendors/vendor.ts';
 
 type MatchShopifyItemsOptions = {
 	matchVendorTag?: boolean;

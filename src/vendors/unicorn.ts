@@ -1,28 +1,33 @@
-import { Vendor } from './types';
+import { Vendor, Product, InventoryUpdatable } from './vendor.ts';
 
-const unicornHeaders = [
-	'SKU',
-	'Description',
-	'QTY',
-	'Unit Of Measure',
-	'Barcode EAN/UPC',
-	'Material Group',
-	'Brand',
-	'URL'
-] as const;
-
-export const unicorn = {
-	name: 'unicorn',
-	importLabel: 'Unicorn CSV',
-	updateInventory: true,
-	updateProducts: true,
-	useTitleForMatching: true,
-	useBarcodeForExclusiveMatching: true,
-	expectedHeaders: unicornHeaders,
-	// implemented later
-	getParsedBarcode: () => '',
-	getSKU: item => item.SKU,
-	getQuantity: item => Number(item.QTY),
-	getBarcode: item => item['Barcode EAN/UPC'],
-	getTitle: item => item.Description
-} satisfies Vendor<'unicorn', typeof unicornHeaders>;
+export type UnicornProduct = Product & {
+	SKU: string;
+	Description: string;
+	QTY: string;
+	['Unit Of Measure']: string;
+	['Barcode EAN/UPC']: string;
+	['Material Group']: string;
+	Brand: string;
+	URL: string;
+}
+export class Unicorn extends Vendor<UnicornProduct> implements InventoryUpdatable<UnicornProduct> {
+	name = 'unicorn';
+	importLabel = 'Unicorn CSV';
+	updateInventory = true;
+	useTitleForMatching = true;
+	useBarcodeForExclusiveMatching = true;
+	expectedHeaders = [
+		'SKU',
+		'Description',
+		'QTY',
+		'Unit Of Measure',
+		'Barcode EAN/UPC',
+		'Material Group',
+		'Brand',
+		'URL'
+	];
+	getSKU = (product: UnicornProduct) => product.SKU;
+	getQuantity = (product: UnicornProduct) => Number(product.QTY);
+	getBarcode = (product: UnicornProduct) => product['Barcode EAN/UPC'];
+	getTitle = (product: UnicornProduct) => product.Description;
+};

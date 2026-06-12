@@ -1,89 +1,107 @@
-import { RM_SMALL_SHIPPING } from '../utils/constants';
-import { intRange } from '../utils/number';
-import type { CSVItem, Vendor } from './types';
+import { RM_SMALL_SHIPPING } from '../utils/constants.ts';
+import { intRange } from '../utils/number.ts';
+import { Vendor, Product, InventoryUpdatable, ProductAddable } from './vendor.ts';
 
-const cartasProductHeaders = [
-	'STATUS',
-	'CODE',
-	'WEIGHT',
-	'STOCK',
-	'CATEGORY',
-	'BRAND',
-	'EAN',
-	'VAT',
-	'TRADE_PRICE',
-	'DESCRIPTION',
-	'MAIN_IMAGE',
-	'PRODUCT_NAME',
-	'IMAGE_1',
-	'IMAGE_2',
-	'IMAGE_3',
-	'IMAGE_4',
-	'SIZE',
-	'COLOUR',
-	'PERANT_ID',
-	'LENGTH',
-	'WIDTH',
-	'HEIGHT'
-] as const;
-
-const getBasePrice = (item: CSVItem<typeof cartasProductHeaders>) => {
-		const VAT = cartas.getVAT(item);
-		return +item.TRADE_PRICE * 1.45 * VAT;
+export type CartasProduct = Product & {
+	STATUS: string;
+	CODE: string;
+	WEIGHT: string;
+	STOCK: string;
+	CATEGORY: string;
+	BRAND: string;
+	EAN: string;
+	VAT: string;
+	TRADE_PRICE: string;
+	DESCRIPTION: string;
+	MAIN_IMAGE: string;
+	PRODUCT_NAME: string;
+	IMAGE_1: string;
+	IMAGE_2: string;
+	IMAGE_3: string;
+	IMAGE_4: string;
+	SIZE: string;
+	COLOUR: string;
+	PERANT_ID: string;
+	LENGTH: string;
+	WIDTH: string;
+	HEIGHT: string;
 };
 
-export const cartas = {
-	name: 'cartas',
-	importLabel: 'Cartas Products CSV',
-	updateInventory: false,
-	updateProducts: true,
-	addProducts: true,
-	useTitleForMatching: true,
-	useBarcodeForExclusiveMatching: false,
-	expectedHeaders: cartasProductHeaders,
-	// implemented later
-	getParsedBarcode: _item => '',
-	getSKU: item => item.STATUS === 'LIVE' ? item.CODE.trim() : undefined,
-	// What unit? Convert to kg
-	getWeight: item => +item.WEIGHT.trim(),
-	getQuantity: item => Math.min(+item.STOCK, 50),
-	getType: item => item.CATEGORY.replace(item.BRAND.toUpperCase(), '').replace(/-/g, '').trim(),
-	getBarcode: item => item.EAN,
-	getShipping: _item => {
-		return RM_SMALL_SHIPPING;
-	},
-	getPrice: (item): number => {
-		return (getBasePrice(item) * 0.9) + cartas.getShipping(item);
-	},
-	getRRP: (item): number => {
-		return (getBasePrice(item) + cartas.getShipping(item)) * 1.2;
-	},
-	getVAT: item => {
-		const VATpc = Number(item.VAT.replace('%', ''));
-		const VAT = (VATpc / 100) + 1
+export class Cartas extends Vendor<CartasProduct> implements ProductAddable<CartasProduct> {
+	name = 'cartas';
+	importLabel = 'Cartas Products CSV';
+	updateInventory = false;
+	updateProducts = true;
+	addProducts = true;
+	useTitleForMatching = true;
+	useBarcodeForExclusiveMatching = false;
+	expectedHeaders = [
+		'STATUS',
+		'CODE',
+		'WEIGHT',
+		'STOCK',
+		'CATEGORY',
+		'BRAND',
+		'EAN',
+		'VAT',
+		'TRADE_PRICE',
+		'DESCRIPTION',
+		'MAIN_IMAGE',
+		'PRODUCT_NAME',
+		'IMAGE_1',
+		'IMAGE_2',
+		'IMAGE_3',
+		'IMAGE_4',
+		'SIZE',
+		'COLOUR',
+		'PERANT_ID',
+		'LENGTH',
+		'WIDTH',
+		'HEIGHT'
+	];
+	getBasePrice = (product: CartasProduct) => {
+		return Number(product.TRADE_PRICE) * 1.45 * this.getVAT(product);
+	};
+	// FIXME: either support undefined or filter it out in the parser
+	getSKU = (product: CartasProduct) => product.STATUS === 'LIVE' ? product.CODE.trim() : undefined;
+	// TODO Convert to grams, TODO trim everything during import
+	getWeight = (product: CartasProduct) => Number(product.WEIGHT.trim());
+	getQuantity = (product: CartasProduct) => Math.min(Number(product.STOCK), 50);
+	getType = (product: CartasProduct) => product.CATEGORY.replace(product.BRAND.toUpperCase(), '').replace(/-/g, '').trim();
+	getBarcode = (product: CartasProduct) => product.EAN;
+	getShipping = (_product: CartasProduct) => RM_SMALL_SHIPPING;
+	getPrice = (product: CartasProduct) => {
+		return (this.getBasePrice(product) * 0.9) + this.getShipping(product);
+	};
+	getRRP = (product: CartasProduct) => {
+		return (this.getBasePrice(product) + this.getShipping(product)) * 1.2;
+	};
+	getVAT = (product: CartasProduct) => {
+		const VATpc = Number(product.VAT.replace('%', ''));
+		const VAT = (VATpc / 100) + 1;
 		return VAT;
-	},
-	getTaxable: (item): boolean => cartas.getVAT(item) > 1,
-	getVendor: item => item.BRAND.trim(),
-	getDescription: item => item.DESCRIPTION.replace(/^'/, '').replace(/'$/, '').trim(),
-	getMainImageURL: item => item.MAIN_IMAGE.trim(),
-	getVariantImageURL: item => item.MAIN_IMAGE.trim(),
-	getTitle: item => item.PRODUCT_NAME.trim(),
-	getAdditionalImages: item => {
+	};
+	getTaxable = (product: CartasProduct) => this.getVAT(product) > 1;
+	getVendor = (product: CartasProduct) => product.BRAND.trim();
+	getDescription = (product: CartasProduct) => product.DESCRIPTION.replace(/^'/, '').replace(/'$/, '').trim();
+	getMainImageURL = (product: CartasProduct) => product.MAIN_IMAGE.trim();
+	getVariantImageURL = (product: CartasProduct) => product.MAIN_IMAGE.trim();
+	getTitle = (product: CartasProduct) => product.PRODUCT_NAME.trim();
+	getAdditionalImages = (product: CartasProduct) => {
 		const images = [];
 		for (const i of intRange(1, 4)) {
-			const image = item[`IMAGE_${i}`].trim();
+			const image = product[`IMAGE_${i}`].trim();
 			if (image) {
 				images.push(image);
 			}
 
 		}
 		return images;
-	},
-	getVariants: item => {
+	};
+	getVariants = (product: CartasProduct) => {
 		const variants = [];
-		const size = item.SIZE.trim();
-		const colour = item.COLOUR.trim();
+		const size = product.SIZE.trim();
+		const colour = product.COLOUR.trim();
 		if (colour) {
 			variants.push({
 				name: 'Colour',
@@ -97,31 +115,36 @@ export const cartas = {
 			});
 		}
 		return variants;
-	},
-	getVariantCorrelationId: item => item.PERANT_ID
-} satisfies Vendor<'cartas', typeof cartasProductHeaders> ;
+	};
+	getVariantCorrelationId = (product: CartasProduct) => product.PERANT_ID
+};
 
-const cartasInventoryHeaders = [
-	'PRODUCT_ID',
-	'PARENT_CODE',
-	'PRODUCT_NAME',
-	'OPTION_NAME',
-	'SIZE',
-	'CHILD_CODE',
-	'QUANTITY',
-	'LIST_PRICE'
-] as const;
+export type CartasInventoryProduct = Product & {
+	PRODUCT_ID: string;
+	PARENT_CODE: string;
+	PRODUCT_NAME: string;
+	OPTION_NAME: string;
+	SIZE: string;
+	CHILD_CODE: string;
+	QUANTITY: string;
+	LIST_PRICE: string;
+};
 
-export const cartasInventory = {
-	name: 'cartas-inventory',
-	importLabel: 'Cartas Inventory CSV',
-	updateInventory: true,
-	updateProducts: false,
-	useTitleForMatching: true,
-	getSKU: item => item.CHILD_CODE.trim(),
-	getQuantity: item => Math.min(+item.QUANTITY.trim(), 50),
-	getTitle: item => item.PRODUCT_NAME.trim(),
-	expectedHeaders: cartasInventoryHeaders,
-	// implemented later
-	getParsedBarcode: () => ''
-} satisfies Vendor<'cartas-inventory', typeof cartasInventoryHeaders>;
+export class CartasInventory extends Vendor<CartasInventoryProduct> implements InventoryUpdatable<CartasInventoryProduct> {
+	name = 'cartas-inventory';
+	importLabel = 'Cartas Inventory CSV';
+	useTitleForMatching = true;
+	expectedHeaders = [
+		'PRODUCT_ID',
+		'PARENT_CODE',
+		'PRODUCT_NAME',
+		'OPTION_NAME',
+		'SIZE',
+		'CHILD_CODE',
+		'QUANTITY',
+		'LIST_PRICE'
+	];
+	getSKU = (product: CartasInventoryProduct) => product.CHILD_CODE.trim();
+	getQuantity = (product: CartasInventoryProduct) => Math.min(Number(product.QUANTITY.trim()), 50);
+	getTitle = (product: CartasInventoryProduct) => product.PRODUCT_NAME.trim();
+};

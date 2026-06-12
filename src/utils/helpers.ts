@@ -31,7 +31,7 @@ export const parseBarcode = (barcode?: string) => {
   return BARCODE_DOES_NOT_APPLY;
 }
 
-export const escapeBarcode = (barcode?: string) => {
+export const escapeBarcode = (barcode: string) => {
   if (barcode === BARCODE_DOES_NOT_APPLY) {
     return barcode;
   }

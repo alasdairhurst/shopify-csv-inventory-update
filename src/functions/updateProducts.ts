@@ -1,4 +1,4 @@
-import { forEachVendor, VendorProducts } from '../vendors2/index.ts';
+import { forEachVendor, VendorProducts } from '../vendors/index.ts';
 import logger from '../utils/logger.ts';
 import {
 	escapeBarcode,
@@ -6,13 +6,13 @@ import {
 	roundPrice
 } from '../utils/helpers.ts';
 import {
-	DEFAULT_SHOPIFY_PRODUCT,
 	getShopifyProductAndParent,
 	getShopifyProductParsedBarcode,
 	isOnSale,
 	ShopifyProduct
 } from '../shopify/products.ts';
 import { BARCODE_DOES_NOT_APPLY } from '../utils/constants.ts';
+import { DEFAULT_SHOPIFY_PRODUCT } from '../vendors/shopify.ts';
 
 const updateProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: VendorProducts, { updateImages }: { updateImages : boolean }) => {
 	forEachVendor((key, vendor) => {
@@ -33,7 +33,9 @@ const updateProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Vendo
 			}
 
 			const vendorProductTitle = vendor.getTitle?.(vendorProduct) || '';
-			const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct);
+			// FIXME: allow the parsedBarcode as string since we already checked the sku
+			// but should avoid undefined sku in the first place
+			const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct) as string;
 			const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
 			const { shopifyProduct, shopifyParent, shopifyProductLabel } = getShopifyProductAndParent(
 				shopifyProducts, vendor, vendorProduct

@@ -1,112 +1,119 @@
-import { RM_SMALL_SHIPPING } from '../utils/constants';
-import { Vendor } from './types';
+import { RM_SMALL_SHIPPING } from '../utils/constants.ts';
+import { InventoryUpdatable, Product, ProductAddable, Vendor } from './vendor.ts';
 
 const RM_LARGE_SHIPPING_MTB = 25;
 
-// TODO: order?
-const mtbHeaders = [
-	'Variant SKU',
-	'Variant Barcode',
-	'Variant Inventory Qty',
-	'Title',
-	'Vendor',
-	'Variant Weight',
-	'Variant Taxable',
-	'Variant Price',
-	'Body HTML',
-	'Image Src',
-	'Option1 Name',
-	'Option1 Value',
-	'Handle'
-] as const;
-
-type Additional = {
-	additionalImages?: string[]
+export type MTBProduct = Product & {
+	['Variant SKU']: string;
+	['Variant Barcode']: string;
+	['Variant Inventory Qty']: string;
+	Title: string;
+	Vendor: string;
+	['Variant Weight']: string;
+	['Variant Taxable']: string;
+	['Variant Price']: string;
+	['Body HTML']: string;
+	['Image Src']: string;
+	['Option1 Name']: string;
+	['Option1 Value']: string;
+	Handle: string;
+	// Additional
+	_additionalImages?: string[];
 };
 
-export const mtb = {
-	name: 'mtb',
-	importLabel: 'Muay Thai Boxing CSV',
-	updateInventory: true,
-	updateProducts: true,
-	addProducts: true,
-	useTitleForMatching: true,
-	useBarcodeForExclusiveMatching: true,
-	expectedHeaders: mtbHeaders,
-	// implemented later
-	getParsedBarcode: () => '',
-	getSKU: item => item['Variant SKU'],
-	getBarcode: item => item['Variant Barcode'],
-	getQuantity: item => +item['Variant Inventory Qty'],
-	getTitle: item => {
-		const title = item.Title;
-		if (['Fairtex', 'Twins Special', 'MTG Pro'].includes(item.Vendor)) {
-			const skuStart = item['Variant SKU'].split('-')[0];
+export class MTB extends Vendor<MTBProduct> implements ProductAddable<MTBProduct>, InventoryUpdatable<MTBProduct> {
+	name = 'mtb';
+	importLabel = 'Muay Thai Boxing CSV';
+	updateInventory = true;
+	updateProducts = true;
+	addProducts = true;
+	useTitleForMatching = true;
+	useBarcodeForExclusiveMatching = true;
+	expectedHeaders = [
+		'Variant SKU',
+		'Variant Barcode',
+		'Variant Inventory Qty',
+		'Title',
+		'Vendor',
+		'Variant Weight',
+		'Variant Taxable',
+		'Variant Price',
+		'Body HTML',
+		'Image Src',
+		'Option1 Name',
+		'Option1 Value',
+		'Handle'
+	];
+	getSKU = (product: MTBProduct) => product['Variant SKU'];
+	getBarcode = (product: MTBProduct) => product['Variant Barcode'];
+	getQuantity = (product: MTBProduct) => Number(product['Variant Inventory Qty']);
+	getTitle = (product: MTBProduct) => {
+		const title = product.Title;
+		if (['Fairtex', 'Twins Special', 'MTG Pro'].includes(product.Vendor)) {
+			const skuStart = product['Variant SKU'].split('-')[0];
 			let newTitle = title.replace(new RegExp(`^${skuStart}\\s`), '');
 			if (newTitle === title) {
-				const skuMiddle = item['Variant SKU'].split('-')[1];
+				const skuMiddle = product['Variant SKU'].split('-')[1];
 				newTitle = title.replace(new RegExp(`^${skuStart}-${skuMiddle}\\s`), '');
 			}
 			return newTitle;
 
-		} else if (item.Vendor === 'TUFF Sport') {
-			const skuStart = item['Variant SKU'].split('-')[1];
+		} else if (product.Vendor === 'TUFF Sport') {
+			const skuStart = product['Variant SKU'].split('-')[1];
 			return title.replace(new RegExp(`^${skuStart}\\s`), '');
 		}
 		return title;
-	},
-	getWeight: item => +item['Variant Weight'],
-	getTaxable: item => item['Variant Taxable'] === 'true',
-	getPrice: (item): number => {
-		let rrp = mtb.getRRP(item);
-		let weight = mtb.getWeight(item);
-		let vendor = mtb.getVendor(item);
+	};
+	getWeight = (product: MTBProduct) => Number(product['Variant Weight']);
+	getTaxable = (product: MTBProduct) => product['Variant Taxable'] === 'true';
+	getPrice = (product: MTBProduct) => {
+		const rrp = this.getRRP(product);
 		// Add price for heavy/large items like punching bags
-		if (weight >= 30) {
+		if (this.getWeight(product) >= 30) {
 			return rrp + RM_LARGE_SHIPPING_MTB;
 		}
-		if (vendor === 'TUFF Sport') {
+		if (this.getVendor(product) === 'TUFF Sport') {
 			return rrp;
 		}
 		return rrp + RM_SMALL_SHIPPING;
-	},
-	getRRP: item => +item['Variant Price'],
-	getDescription: item => item['Body HTML'],
-	getVendor: item => item.Vendor,
-	getMainImageURL: item => item['Image Src'],
-	getAdditionalImages: item => {
-		return item.additionalImages || [];
-	},
-	getVariants: item => {
+	};
+	getRRP = (product: MTBProduct) => Number(product['Variant Price']);
+	getDescription = (product: MTBProduct) => product['Body HTML'];
+	getVendor = (product: MTBProduct) => product.Vendor;
+	getMainImageURL = (product: MTBProduct) => product['Image Src'];
+	getAdditionalImages = (product: MTBProduct) => {
+		return product._additionalImages || [];
+	};
+	getVariants = (product: MTBProduct) => {
 		return [
 			{
-				name: item['Option1 Name'],
-				value: item['Option1 Value'],
+				name: product['Option1 Name'],
+				value: product['Option1 Value'],
 			}
 		];
-	},
-	getVariantCorrelationId: item => item.Handle,
-	parseImport: items => {
-		const csv: (typeof items[0] & Additional)[] = [];
+	};
+	getVariantCorrelationId = (product: MTBProduct) => product.Handle;
+	parseImport = (products: MTBProduct[]) => {
+		const csv: MTBProduct[] = [];
 		let variant: typeof csv[0] | undefined;
-		for (const item of items) {
+		for (const product of products) {
 			// variant parent
-			if (item['Variant SKU']) {
-				variant = item;
-				csv.push(item);
+			if (product['Variant SKU']) {
+				variant = product;
+				csv.push(product);
 				continue;
 			}
 
 			// who knows what happened here
-			if (item.Handle !== variant?.Handle) {
+			if (product.Handle !== variant?.Handle) {
 				variant = undefined;
 				continue;
 			}
 
 			// assume subsequent lines without sku are images
-			variant.additionalImages = variant.additionalImages || [];
-			variant.additionalImages.push(item['Image Src']);
+			variant._additionalImages = variant._additionalImages || [];
+			variant._additionalImages.push(product['Image Src']);
 		}
 		return csv;
 	}
-} satisfies Vendor<'mtb', typeof mtbHeaders, Additional>
+};

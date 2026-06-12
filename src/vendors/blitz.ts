@@ -1,7 +1,6 @@
-import { RM_SMALL_SHIPPING, PARENT_SYMBOL } from '../utils/constants';
-import type { Vendor } from './types';
-import { intRange } from '../utils/number';
-import { objEntries } from '../utils/object';
+import { RM_SMALL_SHIPPING, PARENT_SYMBOL } from '../utils/constants.ts';
+import { Vendor, Product, InventoryUpdatable, ProductAddable } from './vendor.ts';
+import { intRange } from '../utils/number.ts';
 
 // Fixed price shipping for certain SKUs
 const blitzShipping: Record<string, number> = {
@@ -15,174 +14,207 @@ const blitzShipping: Record<string, number> = {
 	'6371': 42
 };
 
-const blitzHeaders = [
-	'Title',
-	'Link',
-	'LinkComponent',
-	'Description',
-	'Sku',
-	'ParentSku',
-	'Ean',
-	'CatCode',
-	'Type',
-	'Taxable',
-	'Brand',
-	'Category',
-	'ImageUrl',
-	'InStock',
-	'Weight',
-	'RetailPrice',
-	'TradePrice',
-	'Feature1',
-	'Feature2',
-	'Feature3',
-	'Feature4',
-	'Feature5',
-	'DueDate',
-	'Size',
-	'Colour',
-	'Design',
-	'AltImage1',
-	'AltImage2',
-	'AltImage3',
-	'AltImage4',
-	'AltImage5',
-	'AltImage6',
-	'AltImage7',
-	'AltImage8',
-	'AltImage9',
-	'AltImage10',
-	'AltImage11',
-	'AltImage12',
-] as const;
+export type BlitzProduct = Product & {
+	Title: string;
+	Link: string;
+	LinkComponent: string;
+	Description: string;
+	Sku: string;
+	ParentSku: string;
+	Ean: string;
+	CatCode: string;
+	Type: string;
+	Taxable: 'True' | 'False';
+	Brand: string;
+	Category: string;
+	ImageUrl: string;
+	InStock: 'True' | 'False';
+	Weight: string;
+	RetailPrice: string;
+	TradePrice: string;
+	Feature1: string;
+	Feature2: string;
+	Feature3: string;
+	Feature4: string;
+	Feature5: string;
+	DueDate: string;
+	Size: string;
+	Colour: string;
+	Design: string;
+	AltImage1: string;
+	AltImage2: string;
+	AltImage3: string;
+	AltImage4: string;
+	AltImage5: string;
+	AltImage6: string;
+	AltImage7: string;
+	AltImage8: string;
+	AltImage9: string;
+	AltImage10: string;
+	AltImage11: string;
+	AltImage12: string;
+}
 
-export const blitz = {
-	name: 'blitz',
-	importLabel: 'Blitz CSV',
-	updateInventory: true,
-	updateProducts: true,
-	addProducts: true,
-	htmlDecode: true,
-	useTitleForMatching: true,
-	useBarcodeForExclusiveMatching: true,
-	expectedHeaders: blitzHeaders,
-	// implemented later
-	getParsedBarcode: () => '',
-	getSKU: item => item.Sku,
-	getQuantity: item => item.InStock === 'True' ? 25 : 0,
-	getPrice: (item): number => {
-		return +item.TradePrice * 1.45 * blitz.getVAT(item) + blitz.getShipping(item);
-	},
-	getVAT: item => {
-		return item.Taxable === 'True' ? 1.2 : 1
-	},
-	getShipping: item => {
-		return blitzShipping[item.Sku] || RM_SMALL_SHIPPING;
-	},
-	getRRP: item => Number(item.RetailPrice),
-	getMainImageURL: item => item.ImageUrl,
-	getVariantImageURL: item => item.ImageUrl,
-	getAdditionalImages: item => {
-		if (item[PARENT_SYMBOL]) {
+export class Blitz extends Vendor<BlitzProduct> implements InventoryUpdatable<BlitzProduct>, ProductAddable<BlitzProduct> {
+	name = 'blitz';
+	importLabel = 'Blitz CSV';
+	htmlDecode = true;
+	useTitleForMatching = true;
+	useBarcodeForExclusiveMatching = true;
+	deny = [
+		'21682' // Test product
+	];
+	expectedHeaders = [
+		'Title',
+		'Link',
+		'LinkComponent',
+		'Description',
+		'Sku',
+		'ParentSku',
+		'Ean',
+		'CatCode',
+		'Type',
+		'Taxable',
+		'Brand',
+		'Category',
+		'ImageUrl',
+		'InStock',
+		'Weight',
+		'RetailPrice',
+		'TradePrice',
+		'Feature1',
+		'Feature2',
+		'Feature3',
+		'Feature4',
+		'Feature5',
+		'DueDate',
+		'Size',
+		'Colour',
+		'Design',
+		'AltImage1',
+		'AltImage2',
+		'AltImage3',
+		'AltImage4',
+		'AltImage5',
+		'AltImage6',
+		'AltImage7',
+		'AltImage8',
+		'AltImage9',
+		'AltImage10',
+		'AltImage11',
+		'AltImage12',
+	]
+	getSKU = (product: BlitzProduct) => product.Sku;
+	getQuantity = (product: BlitzProduct) => product.InStock === 'True' ? 25 : 0;
+	getPrice = (product: BlitzProduct) => {
+		return +product.TradePrice * 1.45 * this.getVAT(product) + this.getShipping(product);
+	};
+	getVAT = (product: BlitzProduct) => {
+		return product.Taxable === 'True' ? 1.2 : 1;
+	};
+	getShipping = (product: BlitzProduct) => {
+		return blitzShipping[product.Sku] || RM_SMALL_SHIPPING;
+	};
+	getRRP = (product: BlitzProduct) => Number(product.RetailPrice);
+	getMainImageURL = (product: BlitzProduct) => product.ImageUrl;
+	getVariantImageURL = (product: BlitzProduct) => product.ImageUrl;
+	getAdditionalImages = (product: BlitzProduct) => {
+		if (product[PARENT_SYMBOL]) {
 			return [];
 		}
 		const images = [];
 		for (const i of intRange(1, 12)) {
-			const image = item[`AltImage${i}`];
+			const image = product[`AltImage${i}`];
 			if (image) {
 				images.push(image);
 			}
 		}
 		return images;
-	},
-	getTitle: item => item.Title,
-	getBarcode: item => item.Ean,
-	getTaxable: item => item.Taxable === 'True',
-	// getVariantCorrelationId: item => item.LinkComponent || item.Link.replace('https://www.blitzsport.com/', ', '),
-	getVariantCorrelationId: item => item.ParentSku,
-	getFeatures: item => {
+	};
+	getTitle = (product: BlitzProduct) => product.Title;
+	getBarcode = (product: BlitzProduct) => product.Ean;
+	getTaxable = (product: BlitzProduct) => product.Taxable === 'True';
+	getVariantCorrelationId = (product: BlitzProduct) => product.ParentSku;
+	getFeatures = (product: BlitzProduct) => {
 		const features = [];
 		for (const i of intRange(1, 5)) {
-			if (item[`Feature${i}`]) {
-				features.push(item[`Feature${i}`]);
+			if (product[`Feature${i}`]) {
+				features.push(product[`Feature${i}`]);
 			}
 		}
 		return features;
-	},
-	getWeight: item => Number(item.Weight),
-	getType: item => item.Category,
-	getVendor: item => item.Brand,
-	getDescription: item => item.Description,
-	getVariants: item => {
+	};
+	getWeight = (product: BlitzProduct) => Number(product.Weight);
+	getType = (product: BlitzProduct) => product.Category;
+	getVendor = (product: BlitzProduct) => product.Brand;
+	getDescription = (product: BlitzProduct) => product.Description;
+	getVariants = (product: BlitzProduct) => {
 		const variants = [];
-		if (item.Colour) {
+		if (product.Colour) {
 			variants.push({
 				name: 'Colour',
-				value: item.Colour
+				value: product.Colour
 			});
 		}
-		if (item.Size) {
+		if (product.Size) {
 			variants.push({
 				name: 'Size',
-				value: item.Size
+				value: product.Size
 			});
 		}
-		if (item.Design) {
+		if (product.Design) {
 			variants.push({
 				name: 'Design',
-				value: item.Design
+				value: product.Design
 			});
 		}
 		return variants;
-	},
-	deny: [
-		// Test item
-		'21682'
-	],
-	parseImport: items => {
-		const csv: typeof items = [];
-		const parents: Record<string, typeof items[number]> = {};
-		for (const item of items) {
+	};
+	parseImport = (products: BlitzProduct[]) => {
+		const csv: BlitzProduct[] = [];
+		const parents: Record<string, typeof products[number]> = {};
+		for (const product of products) {
 			// variant parent
-			if (item.Type === 'Parent') {
-				if (parents[item.Sku]) {
-					console.error(`[ERROR] blitz duplicate parent SKU ${item.Sku}`);
+			if (product.Type === 'Parent') {
+				if (parents[product.Sku]) {
+					console.error(`[ERROR] blitz duplicate parent SKU ${product.Sku}`);
 					continue;
 				}
-				parents[item.Sku] = item;
+				parents[product.Sku] = product;
 				continue;
 			}
 			// singular
-			if (item.Type === 'Standard') {
-				csv.push(item);
+			if (product.Type === 'Standard') {
+				csv.push(product);
 				continue;
 			}
-			if (item.Type !== 'Child') {
+			if (product.Type !== 'Child') {
 				continue;
 			}
-			// variant
-			const parentItem = parents[item.ParentSku];
-			if (!parentItem) {
+			// Add as a variant row
+			const parentproduct = parents[product.ParentSku];
+			if (!parentproduct) {
 				// there are one or two missing a parent, add as a regular?
-				console.warn(`[WARN] blitz dangling child/variant without parent SKU ${item.Sku}`)
-				parents[item.Sku] = item;
-				csv.push(item);
+				console.warn(`[WARN] blitz dangling child/variant without parent SKU ${product.Sku}`)
+				parents[product.Sku] = product;
+				csv.push(product);
 				continue;
 			}
 
-			// use parent as a base and override with non-empty values for each key, ignoring title
-			const newItem: typeof parentItem = { ...parentItem };
-			for (const [ key, value ] of objEntries(item)) {
-				if (key !== 'Title' && key !== PARENT_SYMBOL && value !== '') {
-					newItem[key] = value;
-				} else if (key === PARENT_SYMBOL) {
-					// happens to be OK because parent_symbol is the only non-string value
-					// maybe needs to be tweaked to always resolve the correct type later.
-					newItem[key] = value;
-				}
-			}
-			csv.push(newItem);
+			// Add a regular product
+			// Use parent as a base and override with non-empty values for each key, ignoring title
+			const regularProduct: BlitzProduct = {
+				...parentproduct,
+				...Object.fromEntries(
+					Object.entries(product).filter(
+						([key, value]) =>
+							key !== 'Title' &&
+							value !== ''
+						)
+				)
+			};
+			csv.push(regularProduct);
 		}
 		return csv;
-	}
-} satisfies Vendor<'blitz', typeof blitzHeaders>;
+	};
+};

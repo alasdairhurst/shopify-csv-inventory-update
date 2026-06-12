@@ -1,9 +1,13 @@
 import { ReactNode, useState } from 'react';
 import he from 'he';
-import { vendors, Vendor, forEachVendorAsync } from './vendors2/index.ts';
+import { vendors, Vendor, forEachVendorAsync } from './vendors/index.ts';
 import Spinner from './components/Spinner.tsx';
-import type { VendorProducts } from './vendors2/index.ts';
-import type { Product } from './vendors2/vendor.ts';
+import {
+	VendorProducts,
+	shopifyVendor,
+	shopifyInventoryVendor
+} from './vendors/index.ts';
+import type { Product } from './vendors/vendor.ts';
 import Alert from './components/Alert.tsx';
 import {
 	PARENT_SYMBOL,
@@ -12,13 +16,9 @@ import {
 	DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME
 } from './utils/constants.ts';
 import {
-	SHOPIFY_PRODUCTS_OPTIONS,
 	convertShopifyProductsToExternal,
 	convertShopifyProductsToInternal
 } from './shopify/products.ts';
-import {
-	SHOPIFY_INVENTORY_OPTIONS,
-} from './shopify/inventory.ts';
 import { readZip } from './files/zip.ts'
 import { downloadTextFile } from './files/download.ts';
 import logger from './utils/logger.ts';
@@ -75,7 +75,7 @@ async function parseFileAsCSV<P extends Product>(file: File, vendor: Vendor<P>) 
 		fileContent = he.decode(fileContent);
 	}
 
-	let [csvObj, headers] = await csv.parseString(headerRow + fileContent);
+	let [csvObj, headers] = await csv.parseString<P>(headerRow + fileContent);
 
 	// Check the headers as soon as we parse the csv before we use any properties.
 	let match = false;
@@ -161,7 +161,7 @@ const updateInventoryAction = async (options: { maxQuantity: number }) => {
 	if (!shopifyInventoryFiles) {
 		throw new ExpectedError('no shopify inventory CSV selected');
 	}
-	const shopifyInventoryCSV = await parseFilesAsCSV(shopifyInventoryFiles, SHOPIFY_INVENTORY_OPTIONS);
+	const shopifyInventoryCSV = await parseFilesAsCSV(shopifyInventoryFiles, shopifyInventoryVendor);
 	const vendorInventory = await loadVendorFiles(vendor => vendor.canUpdateInventory());
 
 	const shopifyInventoryUpdates = updateInventory(shopifyInventoryCSV, vendorInventory, options)
@@ -179,7 +179,7 @@ const updateProductsAction = async (options: { updateImages: boolean }) => {
 	if (!shopifyProductsFiles) {
 		throw new ExpectedError('no shopify products CSV selected');
 	}
-	const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, SHOPIFY_PRODUCTS_OPTIONS);
+	const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, shopifyVendor);
 	const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
 	const vendorProducts = await loadVendorFiles();
 	const updatedProducts = updateProducts(shopifyProducts, vendorProducts, options);
@@ -192,7 +192,7 @@ const updateProductsAction = async (options: { updateImages: boolean }) => {
 	logger.log('[DONE] Downloading products CSV');
 	const text = csv.unparse(shopifyProductsCSVExport, {
 		// trim additional temp metadata like parsed barcode
-		columns: SHOPIFY_PRODUCTS_OPTIONS.expectedHeaders
+		columns: shopifyVendor.expectedHeaders
 	});
 	downloadTextFile(text, DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME, 'text/csv');
 }
@@ -202,7 +202,7 @@ const addProductsAction = async (_options?: undefined) => {
 	if (!shopifyProductsFiles) {
 		throw new ExpectedError('no shopify products CSV selected');
 	}
-	const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, SHOPIFY_PRODUCTS_OPTIONS);
+	const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, shopifyVendor);
 	const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
 	const vendorProducts = await loadVendorFiles(vendor => vendor.canAddProducts());
 	const newProducts = addProducts(shopifyProducts, vendorProducts);
@@ -214,7 +214,7 @@ const addProductsAction = async (_options?: undefined) => {
 	logger.log('[DONE] Downloading products CSV');
 	const text = csv.unparse(shopifyProductsCSVExport, {
 		// trim additional temp metadata like parsed barcode
-		columns: SHOPIFY_PRODUCTS_OPTIONS.expectedHeaders
+		columns: shopifyVendor.expectedHeaders
 	});
 	downloadTextFile(text, DOWNLOAD_PRODUCTS_FILE_NAME, 'text/csv');
 }
@@ -262,11 +262,11 @@ function App() {
 				{alert ? <Alert header={alert.header} message={alert.message} hasClose={alert.hasClose} onClose={() => setAlert(null)} /> : null}
 				<form style={{ pointerEvents: alert ? 'none' : undefined }} id="myform" className="form" onSubmit={e => { e.preventDefault() }}>
 					<h2>Shopify Inventory</h2>
-					<label htmlFor="shopify-inventory">{SHOPIFY_INVENTORY_OPTIONS.importLabel} </label>
+					<label htmlFor="shopify-inventory">{shopifyInventoryVendor.importLabel} </label>
 					<input type="file" multiple accept=".csv,.zip" id="shopify-inventory" name="shopify-inventory" />
 					<p />
 					<h2>Shopify Products</h2>
-					<label htmlFor="shopify-products">{SHOPIFY_PRODUCTS_OPTIONS.importLabel} </label>
+					<label htmlFor="shopify-products">{shopifyVendor.importLabel} </label>
 					<input type="file" multiple accept=".csv,.zip" id="shopify-products" name="shopify-products" />
 					<p />
 					<h2>Vendor Inventory</h2>

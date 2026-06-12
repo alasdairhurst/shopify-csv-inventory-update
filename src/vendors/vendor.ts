@@ -16,6 +16,7 @@ export interface ProductAddable<P extends Product> {
 	getVendor: (product: P) => string;
 	getMainImageURL: (product: P) => string;
 	getQuantity: (product: P) => number;
+	getBarcode: (product: P) => string;
 }
 
 export type ProductOf<V> = V extends Vendor<infer P> ? P : never;
@@ -25,13 +26,10 @@ export abstract class Vendor<P extends Product = Product> {
 	abstract name: string; // Can this be dropped if we rely on key?
 	abstract importLabel: string;
 	abstract expectedHeaders: string[];
-
-	abstract getSKU: (product: P) => string;
-	// abstract getTitle: (product: P) => string;
+	// FIXME: undefined is a bit of a hack to filter out rows. use parse instead
+	abstract getSKU: (product: P) => string | undefined;
 
 	// optional
-	updateInventory?: boolean;
-	addProducts?: boolean;
 	useTitleForMatching?: boolean;
 	useBarcodeForExclusiveMatching?: boolean;
 	forceHeaders?: string[];
@@ -50,12 +48,14 @@ export abstract class Vendor<P extends Product = Product> {
 	getVendor?: (product: P) => string;
 	getType?: (product: P) => string;
 	getRRP?: (product: P) => number;
+	// VAT multiplier: i.e. 1.2 for 20%
+	getVAT?: (product: P) => number;
 	getTaxable?: (product: P) => boolean;
-	// Should be in grams
+	// Should be in grams TODO: Make it explicit in function name
 	getWeight?: (product: P) => number;
 	getVariants?: (product: P) => { name: string, value: string }[];
 	orderBy?: (product: P) => string;
-	parseImport?: (product: unknown[]) => P[];
+	parseImport?: (product: P[]) => P[];
 	getVariantCorrelationId?: (product: P) => string;
 
 	_parsedBarcodes: Record<string, string|undefined> = {}
@@ -65,11 +65,17 @@ export abstract class Vendor<P extends Product = Product> {
 	// TODO: replace this somewhere so there's just one getBarcode function
 	getParsedBarcode(product: P) {
 		const sku = this.getSKU(product);
-		if (this.getBarcode !== undefined && !(sku in this._parsedBarcodes)) {
-			const barcode = this.getBarcode(product);
-			this._parsedBarcodes[sku] = parseBarcode(barcode);
+		if (sku === undefined) {
+			throw new Error('Should not be called when sku is undefined');
 		}
-		return this._parsedBarcodes[sku];
+		if (this.getBarcode !== undefined) {
+			if (!this._parsedBarcodes[sku]) {
+				const barcode = this.getBarcode(product);
+				this._parsedBarcodes[sku] = parseBarcode(barcode);
+			}
+			return this._parsedBarcodes[sku];
+		}
+		return;
 	}
 
 	// Performs type narrowing at runtime
