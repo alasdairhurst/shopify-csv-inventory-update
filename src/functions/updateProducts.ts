@@ -1,4 +1,4 @@
-import { forEachVendor, VendorProducts } from '../vendors/index.ts';
+import { vendors, Product } from '../vendors/index.ts';
 import logger from '../utils/logger.ts';
 import {
 	escapeBarcode,
@@ -14,12 +14,12 @@ import {
 import { BARCODE_DOES_NOT_APPLY } from '../utils/constants.ts';
 import { DEFAULT_SHOPIFY_PRODUCT } from '../vendors/shopify.ts';
 
-const updateProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: VendorProducts, { updateImages }: { updateImages : boolean }) => {
-	forEachVendor((key, vendor) => {
-		const vendorProductCSV = vendorProducts[key];
+const updateProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Record<string, Product[]>, { updateImages }: { updateImages : boolean }) => {
+	for (const vendor of vendors) {
+		const vendorProductCSV = vendorProducts[vendor.name];
 		if (!vendorProductCSV) {
 			logger.log(`[SKIP] no product file selected for ${vendor.name}`);
-			return;
+			continue;
 		}
 
 		logger.log(`Reading ${vendorProductCSV.length} items from product file for ${vendor.name}`);
@@ -167,7 +167,7 @@ const updateProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Vendo
 				}
 			}
 		}
-	});
+	}
 
 	return shopifyProducts;
 }

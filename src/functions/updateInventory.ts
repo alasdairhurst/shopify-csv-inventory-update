@@ -5,24 +5,22 @@ import {
 	matchInventory
 } from '../shopify/inventory.ts';
 import { parseSKU } from '../utils/helpers.ts';
-import { forEachVendor } from '../vendors/index.ts';
-
-type VendorInventory = Record<string, any>;
+import { vendors, Product } from '../vendors/index.ts';
 
 // Updates existing items in inventory
 // The full inventory is not downloaded, only updated rows
-const updateInventory = (shopifyInventoryCSV: any[], vendorInventory: VendorInventory, { maxQuantity }: { maxQuantity: number }) => {
+const updateInventory = (shopifyInventoryCSV: any[], vendorInventory: Record<string, Product[]>, { maxQuantity }: { maxQuantity: number }) => {
 	const shopifyInventoryUpdates: any[] = [];
-	forEachVendor((key, vendor) => {
+	for (const vendor of vendors) {
 		if (!vendor.canUpdateInventory()) {
 				logger.debug(`[SKIP] no inventory update support for ${vendor.name}`);
-				return;
+				continue;
 		}
 
-		let vendorInventoryCSV = vendorInventory[key];
+		let vendorInventoryCSV = vendorInventory[vendor.name];
 		if (!vendorInventoryCSV) {
 			logger.log(`[SKIP] no inventory file selected for ${vendor.name}`);
-			return;
+			continue;
 		}
 
 		for (const vendorItem of vendorInventoryCSV) {
@@ -60,7 +58,7 @@ const updateInventory = (shopifyInventoryCSV: any[], vendorInventory: VendorInve
 				shopifyInventoryUpdates.push(shopifyItem);
 			}
 		}
-	});
+	}
 	return shopifyInventoryUpdates;
 }
 

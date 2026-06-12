@@ -1,4 +1,4 @@
-import { Product, Vendor } from '../vendors/vendor.ts';
+import { Product, Vendor } from './vendor.ts';
 
 export const DEFAULT_SHOPIFY_PRODUCT = {
 	'Handle': '',

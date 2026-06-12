@@ -1,4 +1,4 @@
-import { VendorProducts, forEachVendor } from '../vendors/index.ts';
+import { vendors, Product } from '../vendors/index.ts';
 import logger from '../utils/logger.ts';
 import {
 	escapeBarcode,
@@ -15,17 +15,17 @@ import { PARENT_SYMBOL } from '../utils/constants.ts';
 import { intRange } from '../utils/number.ts';
 import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../vendors/shopify.ts';
 
-const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: VendorProducts) => {
-	forEachVendor((key, vendor) => {
+const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Record<string, Product[]>) => {
+	for (const vendor of vendors) {
 		if (!vendor.canAddProducts()) {
 			logger.debug(`[SKIP] Vendor ${vendor.name} does not support adding products`);
-			return;
+			continue;
 		}
 
-		const vendorProductCSV = vendorProducts[key];
+		const vendorProductCSV = vendorProducts[vendor.name];
 		if (!vendorProductCSV) {
 			logger.log(`[SKIP] no product file selected for ${vendor.name}`);
-			return;
+			continue;
 		}
 
 		logger.log(`[INFO] loading ${vendorProductCSV.length} items from ${vendor.name}`);
@@ -178,7 +178,7 @@ const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: VendorPr
 				});
 			}
 		}
-	});
+	}
 
 	return shopifyProducts;
 }

@@ -1,13 +1,11 @@
 import { ReactNode, useState } from 'react';
 import he from 'he';
-import { vendors, Vendor, forEachVendorAsync } from './vendors/index.ts';
+import { vendors, Vendor, Product } from './vendors/index.ts';
 import Spinner from './components/Spinner.tsx';
 import {
-	VendorProducts,
 	shopifyVendor,
 	shopifyInventoryVendor
 } from './vendors/index.ts';
-import type { Product } from './vendors/vendor.ts';
 import Alert from './components/Alert.tsx';
 import {
 	PARENT_SYMBOL,
@@ -134,23 +132,23 @@ const getFilesFromInput = (inputID: string) => {
 	return input?.files ?? undefined;
 }
 
-const loadVendorFiles = async (filter?: <P extends Product>(vendor: Vendor<P>) => boolean) => {
-	const vendorInventory: VendorProducts = {};
-	await forEachVendorAsync(async (key, vendor) => {
+const loadVendorFiles = async (filter?: (vendor: Vendor) => boolean) => {
+	const vendorInventory: Record<string, Product[]> = {};
+	for (const vendor of vendors) {
 		if (filter && !filter(vendor)) {
 			logger.debug(`[SKIP] load not applicable to ${vendor.name}`);
-			return;
+			continue;
 		}
 		const files = getFilesFromInput(vendor.name);
 		if (!files || !files[0]) {
 			logger.debug(`[SKIP] no files selected for ${vendor.name}`);
-			return;
+			continue;
 		}
 		const products = await parseFileAsCSV(files[0], vendor);
 		if (products) {
-			vendorInventory[key] = products;
+			vendorInventory[vendor.name] = products;
 		}
-	});
+	}
 	return vendorInventory;
 }
 
@@ -270,7 +268,7 @@ function App() {
 					<input type="file" multiple accept=".csv,.zip" id="shopify-products" name="shopify-products" />
 					<p />
 					<h2>Vendor Inventory</h2>
-					{Object.values(vendors).map(vendor =>
+					{vendors.map(vendor =>
 						<div key={vendor.name}>
 							<label className="vendor-label" htmlFor={vendor.name}>{vendor.importLabel}</label>
 							<input type="file" accept=".csv,.zip" id={vendor.name} name={vendor.name} />
