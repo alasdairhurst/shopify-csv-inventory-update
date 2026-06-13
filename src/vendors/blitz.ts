@@ -1,6 +1,7 @@
 import { RM_SMALL_SHIPPING, PARENT_SYMBOL } from '../utils/constants.ts';
 import { Vendor, Product, InventoryUpdatable, ProductAddable } from './vendor.ts';
 import { intRange } from '../utils/number.ts';
+import { roundPrice } from '../utils/helpers.ts';
 
 // Fixed price shipping for certain SKUs
 const blitzShipping: Record<string, number> = {
@@ -107,7 +108,8 @@ export class Blitz extends Vendor<BlitzProduct> implements InventoryUpdatable<Bl
 	getSKU = (product: BlitzProduct) => product.Sku;
 	getQuantity = (product: BlitzProduct) => product.InStock === 'True' ? 25 : 0;
 	getPrice = (product: BlitzProduct) => {
-		return +product.TradePrice * 1.45 * this.getVAT(product) + this.getShipping(product);
+		const price = Number(product.TradePrice) * 1.45 * this.getVAT(product) + this.getShipping(product);
+		return roundPrice(price);
 	};
 	getVAT = (product: BlitzProduct) => {
 		return product.Taxable === 'True' ? 1.2 : 1;
@@ -115,7 +117,7 @@ export class Blitz extends Vendor<BlitzProduct> implements InventoryUpdatable<Bl
 	getShipping = (product: BlitzProduct) => {
 		return blitzShipping[product.Sku] || RM_SMALL_SHIPPING;
 	};
-	getRRP = (product: BlitzProduct) => Number(product.RetailPrice);
+	getRRP = (product: BlitzProduct) => roundPrice(Number(product.RetailPrice));
 	getMainImageURL = (product: BlitzProduct) => product.ImageUrl;
 	getVariantImageURL = (product: BlitzProduct) => product.ImageUrl;
 	getAdditionalImages = (product: BlitzProduct) => {
@@ -132,7 +134,7 @@ export class Blitz extends Vendor<BlitzProduct> implements InventoryUpdatable<Bl
 		return images;
 	};
 	getTitle = (product: BlitzProduct) => product.Title;
-	getBarcode = (product: BlitzProduct) => product.Ean;
+	getBarcode = (product: BlitzProduct) => this._parseBarcode(product, product.Ean);
 	getTaxable = (product: BlitzProduct) => product.Taxable === 'True';
 	getVariantCorrelationId = (product: BlitzProduct) => product.ParentSku;
 	getFeatures = (product: BlitzProduct) => {
@@ -144,7 +146,7 @@ export class Blitz extends Vendor<BlitzProduct> implements InventoryUpdatable<Bl
 		}
 		return features;
 	};
-	getWeight = (product: BlitzProduct) => Number(product.Weight);
+	getWeightGrams = (product: BlitzProduct) => Number(product.Weight) * 1000;
 	getType = (product: BlitzProduct) => product.Category;
 	getVendor = (product: BlitzProduct) => product.Brand;
 	getDescription = (product: BlitzProduct) => product.Description;

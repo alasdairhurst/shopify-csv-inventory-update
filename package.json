@@ -6,6 +6,8 @@
     "start": "node scripts/start.cjs",
     "build": "node scripts/build.cjs",
     "tsc": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest run --standalone --watch",
     "prepare": "git config core.hooksPath hooks"
   },
   "type": "module",
@@ -92,9 +94,14 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/he": "^1.2.3",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3"
+    "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^4.1.8",
+    "jsdom": "^22.0.0",
+    "vitest": "^4.1.8"
   }
 }

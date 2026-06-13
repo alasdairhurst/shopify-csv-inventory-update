@@ -77,6 +77,8 @@ export type ShopifyInventoryProduct = Product & {
 	Handle: string;
 	Title: string;
 	SKU: string;
+	['On hand (current)']: string;
+	['On hand (new)']: string;
 };
 
 export class ShopifyInventory extends Vendor<ShopifyInventoryProduct> {

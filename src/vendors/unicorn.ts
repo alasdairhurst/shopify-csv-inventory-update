@@ -26,8 +26,8 @@ export class Unicorn extends Vendor<UnicornProduct> implements InventoryUpdatabl
 		'Brand',
 		'URL'
 	];
-	getSKU = (product: UnicornProduct) => product.SKU;
+	getSKU = (product: UnicornProduct) => product.SKU.replaceAll(/["\n]/g, '');
 	getQuantity = (product: UnicornProduct) => Number(product.QTY);
-	getBarcode = (product: UnicornProduct) => product['Barcode EAN/UPC'];
+	getBarcode = (product: UnicornProduct) => this._parseBarcode(product, product['Barcode EAN/UPC']);
 	getTitle = (product: UnicornProduct) => product.Description;
 };

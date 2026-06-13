@@ -15,3 +15,6 @@
 - IMPROVEMENTS:
 	- Handle/automate trimming in vendor class rather than in logic
 	- Add product structure type as code and derive both typescript type and headers from one place
+
+- FIRST CHANGES:
+	- Pull out as much logic as possible from app.

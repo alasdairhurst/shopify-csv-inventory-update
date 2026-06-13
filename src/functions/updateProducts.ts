@@ -2,8 +2,7 @@ import { vendors, Product } from '../vendors/index.ts';
 import logger from '../utils/logger.ts';
 import {
 	escapeBarcode,
-	parseSKU,
-	roundPrice
+	parseSKU
 } from '../utils/helpers.ts';
 import {
 	getShopifyProductAndParent,
@@ -32,10 +31,8 @@ const updateProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Recor
 				continue;
 			}
 
-			const vendorProductTitle = vendor.getTitle?.(vendorProduct) || '';
-			// FIXME: allow the parsedBarcode as string since we already checked the sku
-			// but should avoid undefined sku in the first place
-			const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct) as string;
+			const vendorProductTitle = vendor.getTitle?.(vendorProduct) ?? '';
+			const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) ?? '';
 			const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
 			const { shopifyProduct, shopifyParent, shopifyProductLabel } = getShopifyProductAndParent(
 				shopifyProducts, vendor, vendorProduct
@@ -53,7 +50,7 @@ const updateProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Recor
 			if (!vendor.getPrice) {
 				// logger.debug(`[WARN] cannot update price for vendor ${vendor.name} getPrice not implemented`);
 			} else {
-				const vendorProductPrice = roundPrice(vendor.getPrice(vendorProduct)).toString();
+				const vendorProductPrice = vendor.getPrice(vendorProduct).toString();
 				const shopifyProductPrice = shopifyProduct['Variant Price'].toString();
 
 				if (shopifyProductPrice === vendorProductPrice) {

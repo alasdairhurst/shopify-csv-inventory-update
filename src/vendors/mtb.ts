@@ -1,4 +1,5 @@
 import { RM_SMALL_SHIPPING } from '../utils/constants.ts';
+import { roundPrice } from '../utils/helpers.ts';
 import { InventoryUpdatable, Product, ProductAddable, Vendor } from './vendor.ts';
 
 const RM_LARGE_SHIPPING_MTB = 25;
@@ -24,9 +25,6 @@ export type MTBProduct = Product & {
 export class MTB extends Vendor<MTBProduct> implements ProductAddable<MTBProduct>, InventoryUpdatable<MTBProduct> {
 	name = 'mtb';
 	importLabel = 'Muay Thai Boxing CSV';
-	updateInventory = true;
-	updateProducts = true;
-	addProducts = true;
 	useTitleForMatching = true;
 	useBarcodeForExclusiveMatching = true;
 	expectedHeaders = [
@@ -45,7 +43,7 @@ export class MTB extends Vendor<MTBProduct> implements ProductAddable<MTBProduct
 		'Handle'
 	];
 	getSKU = (product: MTBProduct) => product['Variant SKU'];
-	getBarcode = (product: MTBProduct) => product['Variant Barcode'];
+	getBarcode = (product: MTBProduct) => this._parseBarcode(product, product['Variant Barcode']);
 	getQuantity = (product: MTBProduct) => Number(product['Variant Inventory Qty']);
 	getTitle = (product: MTBProduct) => {
 		const title = product.Title;
@@ -64,12 +62,12 @@ export class MTB extends Vendor<MTBProduct> implements ProductAddable<MTBProduct
 		}
 		return title;
 	};
-	getWeight = (product: MTBProduct) => Number(product['Variant Weight']);
+	getWeightGrams = (product: MTBProduct) => Number(product['Variant Weight']) * 1000;
 	getTaxable = (product: MTBProduct) => product['Variant Taxable'] === 'true';
 	getPrice = (product: MTBProduct) => {
 		const rrp = this.getRRP(product);
 		// Add price for heavy/large items like punching bags
-		if (this.getWeight(product) >= 30) {
+		if (this.getWeightGrams(product) >= 3000) {
 			return rrp + RM_LARGE_SHIPPING_MTB;
 		}
 		if (this.getVendor(product) === 'TUFF Sport') {
@@ -77,7 +75,7 @@ export class MTB extends Vendor<MTBProduct> implements ProductAddable<MTBProduct
 		}
 		return rrp + RM_SMALL_SHIPPING;
 	};
-	getRRP = (product: MTBProduct) => Number(product['Variant Price']);
+	getRRP = (product: MTBProduct) => roundPrice(Number(product['Variant Price']));
 	getDescription = (product: MTBProduct) => product['Body HTML'];
 	getVendor = (product: MTBProduct) => product.Vendor;
 	getMainImageURL = (product: MTBProduct) => product['Image Src'];

@@ -51,8 +51,7 @@ export abstract class Vendor<P extends Product = Product> {
 	// VAT multiplier: i.e. 1.2 for 20%
 	getVAT?: (product: P) => number;
 	getTaxable?: (product: P) => boolean;
-	// Should be in grams TODO: Make it explicit in function name
-	getWeight?: (product: P) => number;
+	getWeightGrams?: (product: P) => number;
 	getVariants?: (product: P) => { name: string, value: string }[];
 	orderBy?: (product: P) => string;
 	parseImport?: (product: P[]) => P[];
@@ -63,27 +62,23 @@ export abstract class Vendor<P extends Product = Product> {
 	// base functionality
 
 	// TODO: replace this somewhere so there's just one getBarcode function
-	getParsedBarcode(product: P) {
+	_parseBarcode(product: P, barcode: string) {
 		const sku = this.getSKU(product);
 		if (sku === undefined) {
 			throw new Error('Should not be called when sku is undefined');
 		}
-		if (this.getBarcode !== undefined) {
-			if (!this._parsedBarcodes[sku]) {
-				const barcode = this.getBarcode(product);
-				this._parsedBarcodes[sku] = parseBarcode(barcode);
-			}
-			return this._parsedBarcodes[sku];
+		if (!this._parsedBarcodes[sku]) {
+			this._parsedBarcodes[sku] = parseBarcode(barcode);
 		}
-		return;
+		return this._parsedBarcodes[sku];
 	}
 
 	// Performs type narrowing at runtime
   canUpdateInventory(): this is this & InventoryUpdatable<P> {
-    return 'getQuantity' in this;
+    return this.getQuantity !== undefined;
   }
 
   canAddProducts(): this is this & ProductAddable<P> {
-    return 'getTitle' in this && 'getPrice' in this;
+    return this.getTitle !== undefined && this.getPrice !== undefined;
   }
 }

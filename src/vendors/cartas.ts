@@ -1,4 +1,5 @@
 import { RM_SMALL_SHIPPING } from '../utils/constants.ts';
+import { roundPrice } from '../utils/helpers.ts';
 import { intRange } from '../utils/number.ts';
 import { Vendor, Product, InventoryUpdatable, ProductAddable } from './vendor.ts';
 
@@ -30,11 +31,7 @@ export type CartasProduct = Product & {
 export class Cartas extends Vendor<CartasProduct> implements ProductAddable<CartasProduct> {
 	name = 'cartas';
 	importLabel = 'Cartas Products CSV';
-	updateInventory = false;
-	updateProducts = true;
-	addProducts = true;
 	useTitleForMatching = true;
-	useBarcodeForExclusiveMatching = false;
 	expectedHeaders = [
 		'STATUS',
 		'CODE',
@@ -64,17 +61,17 @@ export class Cartas extends Vendor<CartasProduct> implements ProductAddable<Cart
 	};
 	// FIXME: either support undefined or filter it out in the parser
 	getSKU = (product: CartasProduct) => product.STATUS === 'LIVE' ? product.CODE.trim() : undefined;
-	// TODO Convert to grams, TODO trim everything during import
-	getWeight = (product: CartasProduct) => Number(product.WEIGHT.trim());
+	// TODO trim everything during import
+	getWeightGrams = (product: CartasProduct) => Number(product.WEIGHT.trim());
 	getQuantity = (product: CartasProduct) => Math.min(Number(product.STOCK), 50);
 	getType = (product: CartasProduct) => product.CATEGORY.replace(product.BRAND.toUpperCase(), '').replace(/-/g, '').trim();
-	getBarcode = (product: CartasProduct) => product.EAN;
+	getBarcode = (product: CartasProduct) => this._parseBarcode(product, product.EAN);
 	getShipping = (_product: CartasProduct) => RM_SMALL_SHIPPING;
 	getPrice = (product: CartasProduct) => {
-		return (this.getBasePrice(product) * 0.9) + this.getShipping(product);
+		return roundPrice((this.getBasePrice(product) * 0.9) + this.getShipping(product));
 	};
 	getRRP = (product: CartasProduct) => {
-		return (this.getBasePrice(product) + this.getShipping(product)) * 1.2;
+		return roundPrice((this.getBasePrice(product) + this.getShipping(product)) * 1.2);
 	};
 	getVAT = (product: CartasProduct) => {
 		const VATpc = Number(product.VAT.replace('%', ''));

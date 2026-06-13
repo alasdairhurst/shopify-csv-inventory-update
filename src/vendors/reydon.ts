@@ -1,5 +1,9 @@
 import { RM_LARGE_SHIPPING, RM_SMALL_SHIPPING } from '../utils/constants.ts';
+import { roundPrice } from '../utils/helpers.ts';
 import { InventoryUpdatable, Product, ProductAddable, Vendor } from './vendor.ts';
+
+const MAX_DIMENTIONS_FOR_SMALL_SHIPPING = 120;
+const MAX_WEIGHT_FOR_SMALL_SHIPPING = 1500;
 
 export type ReydonProduct = Product & {
 	Sku_Code: string;
@@ -72,28 +76,34 @@ export class Reydon extends Vendor<ReydonProduct> implements ProductAddable<Reyd
 		'Price_Updated'
 	];
 	getTitle = (product: ReydonProduct) => product.Product_Name;
-	getDescription = (product: ReydonProduct) => product.Description;
+	getDescription = (product: ReydonProduct) => product.Description.replaceAll(/\s/g, ' ');
 	getVendor = (product: ReydonProduct) => product.Brand;
 	getSKU = (product: ReydonProduct) => product.Sku_Code.replace('\n', '');
 	getMainImageURL = (product: ReydonProduct) => product['Image_FTP'];
 	getVariantImageURL = (product: ReydonProduct) => product['Image_FTP'];
 	getQuantity = (product: ReydonProduct) => +product.Free_Stock;
-	getVAT = (product: ReydonProduct) => 1 + (Number(product) / 100);
+	getVAT = (product: ReydonProduct) => 1 + (Number(product.VAT) / 100);
 	getTaxable = (product: ReydonProduct) => this.getVAT(product) > 1;
-	getRRP = (product: ReydonProduct) => this.getPrice(product) * 1.2;
+	// FIXME: is that 1.2 meant to be VAT?
+	getRRP = (product: ReydonProduct) => roundPrice(this.getPrice(product) * 1.2);
 	getShipping = (product: ReydonProduct) => {
-		if (Math.max(Number(product.Width_CM), Number(product.Length_CM), Number(product.Height_CM)) > 120) {
+		if (Math.max(Number(product.Width_CM), Number(product.Length_CM), Number(product.Height_CM)) > MAX_DIMENTIONS_FOR_SMALL_SHIPPING) {
 			return RM_LARGE_SHIPPING;
-		} else if (this.getWeight(product) > 15) {
+		} else if (this.getWeightGrams(product) > MAX_WEIGHT_FOR_SMALL_SHIPPING) {
 			return RM_LARGE_SHIPPING;
 		}
 		return RM_SMALL_SHIPPING;
 	};
 	getPrice = (product: ReydonProduct) => {
-		// your price + profit + vat + shipping
-		return Number(product.Your_Price) * 1.45 * this.getVAT(product) + this.getShipping(product);
+		const PROFIT = 1.45;
+		return roundPrice(
+			Number(product.Your_Price)
+				* PROFIT
+				* this.getVAT(product)
+				+ this.getShipping(product)
+		);
 	};
-	getWeight = (product: ReydonProduct) => +product.Weight_KG;
+	getWeightGrams = (product: ReydonProduct) => Number(product.Weight_KG) * 1000;
 	getVariants = (product: ReydonProduct) => {
 		const variants = [];
 		if (product.Colour) {
@@ -110,7 +120,7 @@ export class Reydon extends Vendor<ReydonProduct> implements ProductAddable<Reyd
 		}
 		return variants;
 	};
-	getBarcode = (product: ReydonProduct) => product.Barcode;
+	getBarcode = (product: ReydonProduct) => this._parseBarcode(product, product.Barcode);
 	getVariantCorrelationId = (product: ReydonProduct) => product.Product_Name;
 	orderBy = (product: ReydonProduct)=> product.Product_Name;
 };
@@ -132,5 +142,5 @@ export class ReydonInventory extends Vendor<ReydonInventoryProduct> implements I
 	];
 	getSKU = (product: ReydonInventoryProduct) => product.Code.replace('\n', '');
 	getQuantity = (product: ReydonInventoryProduct) => Number(product.Quantity);
-	getTitle = (product: ReydonInventoryProduct) => product['Product Name'].replace(/\([^()]*\)/g, '');
+	getTitle = (product: ReydonInventoryProduct) => product['Product Name'].replace(/\([^()]*\)/g, '').trim();
 };

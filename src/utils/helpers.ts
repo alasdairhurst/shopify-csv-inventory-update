@@ -14,7 +14,7 @@ export const parseSKU = (sku?: string) => {
   return sku;
 }
 
-export const parseBarcode = (barcode?: string) => {
+export const parseBarcode = (barcode: string) => {
   if (barcode) {
     let newBarcode = barcode.trim().replace(GLOBAL_QUOTE_RX, '');
     if (newBarcode.length === 11) {
@@ -49,8 +49,8 @@ export const escapeSKU = (sku: string) => {
 }
 
 export function roundPrice(price: number) {
-  if (isNaN(price)) {
-    throw new Error('Price is not a number');
-  }
-  return Math.ceil(price) - 0.01
+	if (isNaN(price)) {
+		throw new Error('Price is not a number');
+	}
+	return Math.ceil(price) - 0.01
 }

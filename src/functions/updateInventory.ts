@@ -1,16 +1,13 @@
 import logger from '../utils/logger.ts';
-import {
-	SHOPIFY_INVENTORY_ON_HAND_NEW,
-	SHOPIFY_INVENTORY_ON_HAND_CURRENT,
-	matchInventory
-} from '../shopify/inventory.ts';
+import { matchInventory } from '../shopify/inventory.ts';
 import { parseSKU } from '../utils/helpers.ts';
 import { vendors, Product } from '../vendors/index.ts';
+import { ShopifyInventoryProduct } from '../vendors/shopify.ts';
 
 // Updates existing items in inventory
 // The full inventory is not downloaded, only updated rows
-const updateInventory = (shopifyInventoryCSV: any[], vendorInventory: Record<string, Product[]>, { maxQuantity }: { maxQuantity: number }) => {
-	const shopifyInventoryUpdates: any[] = [];
+const updateInventory = (shopifyInventoryCSV: ShopifyInventoryProduct[], vendorInventory: Record<string, Product[]>, { maxQuantity }: { maxQuantity: number }) => {
+	const shopifyInventoryUpdates: ShopifyInventoryProduct[] = [];
 	for (const vendor of vendors) {
 		if (!vendor.canUpdateInventory()) {
 				logger.debug(`[SKIP] no inventory update support for ${vendor.name}`);
@@ -44,12 +41,12 @@ const updateInventory = (shopifyInventoryCSV: any[], vendorInventory: Record<str
 
 			// Cap the new quantity
 			const vendorItemQuantity = Math.min(vendor.getQuantity(vendorItem), maxQuantity);
-			const shopifyItemQuantity = +shopifyItem[SHOPIFY_INVENTORY_ON_HAND_CURRENT];
+			const shopifyItemQuantity = Number(shopifyItem['On hand (current)']);
 			if (shopifyItemQuantity === vendorItemQuantity) {
 				logger.debug(`[QUANTITY MATCH] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} matches shopify inventory: ${shopifyItemQuantity}`);
 			} else {
 				logger.log(`[QUANTITY UPDATE] ${vendor.name} SKU ${vendorItemSKU} quantity ${vendorItemQuantity} differs in shopify inventory: ${shopifyItemQuantity}`);
-				shopifyItem[SHOPIFY_INVENTORY_ON_HAND_NEW] = vendorItemQuantity;
+				shopifyItem['On hand (new)'] = String(vendorItemQuantity);
 				updated = true;
 			}
 

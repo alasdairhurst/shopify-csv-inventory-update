@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest", "node", "jsdom"],
+    "module": "nodenext",
+    "jsx": "react-jsx"
+  },
+  "include": ["src/**/*", "test/**/*"]
+}

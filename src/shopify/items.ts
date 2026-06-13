@@ -18,8 +18,8 @@ export const matchShopifyItems = <P extends Product>(shopifyItem: any, vendor: V
 	}
 
 	const shopifyItemLabel = `${shopifyItem.sku} (${shopifyItem.title}/${shopifyItem.barcode})`;
-	const vendorProductTitle = vendor.getTitle?.(vendorProduct) || '';
-	const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct);
+	const vendorProductTitle = vendor.getTitle?.(vendorProduct) ?? '';
+	const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) ?? '';
 	const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
 
 	// Check the product for the vendor tag. Use this to differentiate matching skus across different vendors

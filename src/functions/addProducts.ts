@@ -3,8 +3,7 @@ import logger from '../utils/logger.ts';
 import {
 	escapeBarcode,
 	escapeSKU,
-	parseSKU,
-	roundPrice
+	parseSKU
 } from '../utils/helpers.ts';
 import {
 	getShopifyProductAndParent,
@@ -37,9 +36,7 @@ const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Record<s
 			}
 
 			const Title = vendor.getTitle(vendorProduct).trim();
-			// FIXME: allow the parsedBarcode as string since we already checked the sku
-			// but should avoid undefined sku in the first place
-			const vendorProductBarcode = vendor.getParsedBarcode(vendorProduct) as string;
+			const vendorProductBarcode = vendor.getBarcode(vendorProduct);
 			const vendorProductLabel = `${vendorProductSKU} (${Title}/${vendorProductBarcode})`;
 			const { shopifyProduct } = getShopifyProductAndParent(
 				shopifyProducts, vendor, vendorProduct
@@ -82,7 +79,7 @@ const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Record<s
 				logger.log(`[ADDING] ${vendor.name} SKU ${vendorProductLabel} to existing product in shopify`);
 			}
 
-			const price = roundPrice(vendor.getPrice(vendorProduct));
+			const price = vendor.getPrice(vendorProduct);
 			const product: ExternalShopifyProduct = {
 				...DEFAULT_SHOPIFY_PRODUCT,
 				...parentOnlyFields,
@@ -92,7 +89,7 @@ const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Record<s
 				'Variant Inventory Policy': 'deny',
 				'Variant Fulfillment Service': 'manual',
 				'Variant Price': String(price),
-				'Variant Compare At Price': String(vendor.getRRP ? roundPrice(vendor.getRRP(vendorProduct)) : price),
+				'Variant Compare At Price': String(vendor.getRRP?.(vendorProduct) ?? price),
 				'Variant Requires Shipping': 'TRUE',
 				'Variant Taxable': vendor.getTaxable?.(vendorProduct) === false ? 'FALSE' : 'TRUE',
 				'Variant Barcode': escapeBarcode(vendorProductBarcode),
@@ -101,8 +98,8 @@ const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Record<s
 				'Status': 'active'
 			};
 
-			if (vendor.getWeight) {
-				product['Variant Grams'] = Math.min(vendor.getWeight(vendorProduct), 999).toString();
+			if (vendor.getWeightGrams) {
+				product['Variant Grams'] = Math.min(vendor.getWeightGrams(vendorProduct), 9999).toString();
 			}
 
 			const variants = vendor.getVariants?.(vendorProduct);
