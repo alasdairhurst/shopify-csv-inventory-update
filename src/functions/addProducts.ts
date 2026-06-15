@@ -6,15 +6,17 @@ import {
 	parseSKU
 } from '../utils/helpers.ts';
 import {
+	convertShopifyProductsToExternal,
+	convertShopifyProductsToInternal,
 	getShopifyProductAndParent,
-	isOnSale,
-	ShopifyProduct
+	isOnSale
 } from '../shopify/products.ts';
 import { PARENT_SYMBOL } from '../utils/constants.ts';
 import { intRange } from '../utils/number.ts';
 import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../vendors/shopify.ts';
 
-const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Record<string, Product[]>) => {
+const addProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendorProducts: Record<string, Product[]>) => {
+	const shopifyProducts = convertShopifyProductsToInternal(externalShopifyProducts);
 	for (const vendor of vendors) {
 		if (!vendor.canAddProducts()) {
 			logger.debug(`[SKIP] Vendor ${vendor.name} does not support adding products`);
@@ -177,7 +179,7 @@ const addProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Record<s
 		}
 	}
 
-	return shopifyProducts;
+	return convertShopifyProductsToExternal(shopifyProducts, { onlyEdited: true });
 }
 
 export default addProducts;

@@ -76,7 +76,21 @@ export class Shopify extends Vendor<ExternalShopifyProduct> {
 export type ShopifyInventoryProduct = Product & {
 	Handle: string;
 	Title: string;
+	['Option1 Name']: string;
+	['Option1 Value']: string;
+	['Option2 Name']: string;
+	['Option2 Value']: string;
+	['Option3 Name']: string;
+	['Option3 Value']: string;
 	SKU: string;
+	['HS Code']: string;
+	COO: string;
+	Location: string;
+	['Bin name']: string;
+	['Incoming (not editable)']: string;
+	['Unavailable (not editable)']: string;
+	['Committed (not editable)']: string;
+	['Available (not editable)']: string;
 	['On hand (current)']: string;
 	['On hand (new)']: string;
 };

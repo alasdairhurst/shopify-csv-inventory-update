@@ -24,8 +24,8 @@ export const loadExpectedFixture = (filename: string) => {
 
 export const isRegenFixtures = () => process.env.REGEN_FIXTURES === 'true';
 
-export const writeExpectedFixture = (filename: string, csvText: string) => {
-  writeFileSync(resolve(expectedRoot, filename), csvText, 'utf8');
+export const writeExpectedFixture = (filename: string, content: string) => {
+  writeFileSync(resolve(expectedRoot, filename), content, 'utf8');
 };
 
 const normalizeRow = (row: CsvRow, keys: string[]) => {
@@ -48,4 +48,15 @@ export const assertCsvFixtureMatches = async (actualCsv: string, expectedFilenam
   expect(actualRows.map(row => normalizeRow(row, keys))).toEqual(
     expectedRows.map(row => normalizeRow(row, keys))
   );
+};
+
+export const assertJsonFixtureMatches = async (expectedFilename: string, actualObject: Object) => {
+  if (isRegenFixtures()) {
+    writeExpectedFixture(expectedFilename, JSON.stringify(actualObject, null, 2));
+    return;
+  }
+
+  const expectedObject = JSON.parse(loadExpectedFixture(expectedFilename));
+
+	expect(expectedObject).toEqual(actualObject);
 };

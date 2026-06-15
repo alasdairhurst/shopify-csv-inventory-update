@@ -6,7 +6,7 @@ import ExpectedError from '../utils/ExpectedError.ts';
 import { PARENT_SYMBOL } from '../utils/constants.ts';
 import sortProducts from './sortProducts.ts';
 
-const parseProductsCSV = async function <P extends Product>(fileContent: string, vendor: Vendor<P>) {
+export const parseProductsCSV = async function <P extends Product>(fileContent: string, vendor: Vendor<P>) {
 	let headerRow = '';
 	// Add headers when csv is missing them
 	if (vendor.forceHeaders) {
@@ -46,7 +46,6 @@ const parseProductsCSV = async function <P extends Product>(fileContent: string,
 		products = csvObj as P[];
 	}
 
-	// since sort is used in a different context typescript thinks that orderBy can change...
 	sortProducts(products, vendor);
 
 	if (vendor.getVariantCorrelationId) {
@@ -62,5 +61,13 @@ const parseProductsCSV = async function <P extends Product>(fileContent: string,
 	}
 	return products;
 };
+
+export const parseProductsCSVs = async function <P extends Product>(csv: string[], vendor: Vendor<P>) {
+	const promises = csv.map(x => parseProductsCSV(x, vendor));
+	const products = (await Promise.all(promises)).flat();
+	// Sort all the products together
+	sortProducts(products, vendor);
+	return products;
+}
 
 export default parseProductsCSV;

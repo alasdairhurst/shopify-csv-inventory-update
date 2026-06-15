@@ -5,15 +5,17 @@ import {
 	parseSKU
 } from '../utils/helpers.ts';
 import {
+	convertShopifyProductsToExternal,
+	convertShopifyProductsToInternal,
 	getShopifyProductAndParent,
 	getShopifyProductParsedBarcode,
-	isOnSale,
-	ShopifyProduct
+	isOnSale
 } from '../shopify/products.ts';
 import { BARCODE_DOES_NOT_APPLY } from '../utils/constants.ts';
-import { DEFAULT_SHOPIFY_PRODUCT } from '../vendors/shopify.ts';
+import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../vendors/shopify.ts';
 
-const updateProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Record<string, Product[]>, { updateImages }: { updateImages : boolean }) => {
+const updateProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendorProducts: Record<string, Product[]>, { updateImages }: { updateImages : boolean }) => {
+	const shopifyProducts = convertShopifyProductsToInternal(externalShopifyProducts);
 	for (const vendor of vendors) {
 		const vendorProductCSV = vendorProducts[vendor.name];
 		if (!vendorProductCSV) {
@@ -166,7 +168,7 @@ const updateProducts = (shopifyProducts: ShopifyProduct[], vendorProducts: Recor
 		}
 	}
 
-	return shopifyProducts;
+	return convertShopifyProductsToExternal(shopifyProducts, { onlyEdited: true });
 }
 
 export default updateProducts;

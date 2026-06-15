@@ -11,10 +11,6 @@ import {
 	DOWNLOAD_PRODUCTS_FILE_NAME,
 	DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME
 } from './utils/constants.ts';
-import {
-	convertShopifyProductsToExternal,
-	convertShopifyProductsToInternal
-} from './shopify/products.ts';
 import { readZip } from './files/zip.ts'
 import { downloadTextFile } from './files/download.ts';
 import logger from './utils/logger.ts';
@@ -23,62 +19,54 @@ import ExpectedError from './utils/ExpectedError.ts';
 import updateInventory from './functions/updateInventory.ts';
 import updateProducts from './functions/updateProducts.ts';
 import addProducts from './functions/addProducts.ts';
-import parseProductsCSV from './functions/parseProductsCSV.ts';
-import sortProducts from './functions/sortProducts.ts';
+import { parseProductsCSVs } from './functions/parseProductsCSV.ts';
 import './App.css';
 
-async function parseFilesAsCSV<P extends Product>(files: FileList, vendor: Vendor<P>) {
-	const products = (await Promise.all(
-		Array.from(files).map(f => parseFileAsCSV(f, vendor))
-	))
-		.filter(f => f !== undefined)
-		.flat(1);
-	// Sort across all files
-	sortProducts(products, vendor);
-	return products;
+async function readCSVFileList(files: FileList) {
+	const csvs: string[] = [];
+	for (let file of Array.from(files)) {
+		// If the file is a zip, unzip it.
+		if (file.name.endsWith('.zip')) {
+			file = await readZip(file);
+		}
+
+		if (!file.name.endsWith('.csv')) {
+			throw new Error(`Unknown file type: ${file.name}`);
+		}
+
+		const reader = new FileReader();
+
+		// Read the file content synchronously
+		reader.readAsText(file);
+		await new Promise(resolve => {
+			reader.onload = resolve;
+		});
+
+		csvs.push(reader.result as string);
+	}
+	return csvs;
 }
 
-async function parseFileAsCSV<P extends Product>(file: File, vendor: Vendor<P>) {
-	if (!file) return;
-
-	if (file.name.endsWith('.zip')) {
-		file = await readZip(file);
-	}
-
-	if (!file.name.endsWith('.csv')) {
-		throw new Error(`Unknown file type: ${file.name}`);
-	}
-
-	const reader = new FileReader();
-
-	// Read the file content synchronously
-	reader.readAsText(file);
-	await new Promise(resolve => {
-		reader.onload = resolve;
-	});
-
-	return parseProductsCSV(reader.result as string, vendor);
-}
-
-const getFilesFromInput = (inputID: string) => {
+const getFileListFromInput = (inputID: string) => {
 	const form = document.getElementById('myform');
 	const input = form?.querySelector<HTMLInputElement>(`#${inputID}`);
 	return input?.files ?? undefined;
 }
 
-const loadVendorFiles = async (filter?: (vendor: Vendor) => boolean) => {
+const loadVendorProducts = async (filter?: (vendor: Vendor) => boolean) => {
 	const vendorInventory: Record<string, Product[]> = {};
 	for (const vendor of vendors) {
 		if (filter && !filter(vendor)) {
 			logger.debug(`[SKIP] load not applicable to ${vendor.name}`);
 			continue;
 		}
-		const files = getFilesFromInput(vendor.name);
+		const files = getFileListFromInput(vendor.name);
 		if (!files || !files[0]) {
 			logger.debug(`[SKIP] no files selected for ${vendor.name}`);
 			continue;
 		}
-		const products = await parseFileAsCSV(files[0], vendor);
+		const csvs = await readCSVFileList(files);
+		const products = await parseProductsCSVs(csvs, vendor);
 		if (products) {
 			vendorInventory[vendor.name] = products;
 		}
@@ -89,14 +77,16 @@ const loadVendorFiles = async (filter?: (vendor: Vendor) => boolean) => {
 // Updates existing items in inventory
 // The full inventory is not downloaded, only updated rows
 const updateInventoryAction = async (options: { maxQuantity: number }) => {
-	const shopifyInventoryFiles = getFilesFromInput('shopify-inventory');
+	const shopifyInventoryFiles = getFileListFromInput('shopify-inventory');
 	if (!shopifyInventoryFiles) {
 		throw new ExpectedError('no shopify inventory CSV selected');
 	}
-	const shopifyInventoryCSV = await parseFilesAsCSV(shopifyInventoryFiles, shopifyInventoryVendor);
-	const vendorInventory = await loadVendorFiles(vendor => vendor.canUpdateInventory());
+	const shopifyInventoryCSV = await readCSVFileList(shopifyInventoryFiles);
+	const shopifyInventory = await parseProductsCSVs(shopifyInventoryCSV, shopifyInventoryVendor);
+	const vendorInventory = await loadVendorProducts(vendor => vendor.canUpdateInventory());
 
-	const shopifyInventoryUpdates = updateInventory(shopifyInventoryCSV, vendorInventory, options)
+	const shopifyInventoryUpdates = updateInventory(shopifyInventory, vendorInventory, options)
+
 	if (!shopifyInventoryUpdates.length) {
 		logger.log('[DONE] Nothing to download');
 		return 'Nothing to download';
@@ -107,23 +97,22 @@ const updateInventoryAction = async (options: { maxQuantity: number }) => {
 }
 
 const updateProductsAction = async (options: { updateImages: boolean }) => {
-	const shopifyProductsFiles = getFilesFromInput('shopify-products');
+	const shopifyProductsFiles = getFileListFromInput('shopify-products');
 	if (!shopifyProductsFiles) {
 		throw new ExpectedError('no shopify products CSV selected');
 	}
-	const vendorProducts = await loadVendorFiles();
-	const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, shopifyVendor);
+	const vendorProducts = await loadVendorProducts();
+	const shopifyProductsCSV = await readCSVFileList(shopifyProductsFiles);
+	const shopifyProducts = await parseProductsCSVs(shopifyProductsCSV, shopifyVendor);
 
-	const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
 	const updatedProducts = updateProducts(shopifyProducts, vendorProducts, options);
-	const shopifyProductsCSVExport = convertShopifyProductsToExternal(updatedProducts, { onlyEdited: true });
 
-	if (!shopifyProductsCSVExport.length) {
+	if (!updatedProducts.length) {
 		logger.log('[DONE] Nothing to download');
 		return 'Nothing to download';
 	}
 	logger.log('[DONE] Downloading products CSV');
-	const text = csv.unparse(shopifyProductsCSVExport, {
+	const text = csv.unparse(updatedProducts, {
 		// trim additional temp metadata like parsed barcode
 		columns: shopifyVendor.expectedHeaders
 	});
@@ -131,21 +120,22 @@ const updateProductsAction = async (options: { updateImages: boolean }) => {
 }
 
 const addProductsAction = async (_options?: undefined) => {
-	const shopifyProductsFiles = getFilesFromInput('shopify-products');
+	const shopifyProductsFiles = getFileListFromInput('shopify-products');
 	if (!shopifyProductsFiles) {
 		throw new ExpectedError('no shopify products CSV selected');
 	}
-	const shopifyProductsCSV = await parseFilesAsCSV(shopifyProductsFiles, shopifyVendor);
-	const shopifyProducts = convertShopifyProductsToInternal(shopifyProductsCSV);
-	const vendorProducts = await loadVendorFiles(vendor => vendor.canAddProducts());
+	const vendorProducts = await loadVendorProducts(vendor => vendor.canAddProducts());
+	const shopifyProductsCSV = await readCSVFileList(shopifyProductsFiles);
+	const shopifyProducts = await parseProductsCSVs(shopifyProductsCSV, shopifyVendor);
+
 	const newProducts = addProducts(shopifyProducts, vendorProducts);
-	const shopifyProductsCSVExport = convertShopifyProductsToExternal(newProducts, { onlyEdited: true });
-	if (!shopifyProductsCSVExport.length) {
+
+	if (!newProducts.length) {
 		logger.log('[DONE] Nothing to download');
 		return 'Nothing to download';
 	}
 	logger.log('[DONE] Downloading products CSV');
-	const text = csv.unparse(shopifyProductsCSVExport, {
+	const text = csv.unparse(newProducts, {
 		// trim additional temp metadata like parsed barcode
 		columns: shopifyVendor.expectedHeaders
 	});
