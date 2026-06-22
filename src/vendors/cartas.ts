@@ -60,11 +60,11 @@ export class Cartas extends Vendor<CartasProduct> implements ProductAddable<Cart
 		return Number(product.TRADE_PRICE) * 1.45 * this.getVAT(product);
 	};
 	// FIXME: either support undefined or filter it out in the parser
-	getSKU = (product: CartasProduct) => product.STATUS === 'LIVE' ? product.CODE.trim() : undefined;
+	getSKU = (product: CartasProduct) => product.STATUS === 'LIVE' ? product.CODE : undefined;
 	// TODO trim everything during import
-	getWeightGrams = (product: CartasProduct) => Number(product.WEIGHT.trim());
+	getWeightGrams = (product: CartasProduct) => Number(product.WEIGHT);
 	getQuantity = (product: CartasProduct) => Math.min(Number(product.STOCK), 50);
-	getType = (product: CartasProduct) => product.CATEGORY.replace(product.BRAND.toUpperCase(), '').replace(/-/g, '').trim();
+	getType = (product: CartasProduct) => product.CATEGORY.replace(product.BRAND.toUpperCase(), '').replace(/-/g, '');
 	getBarcode = (product: CartasProduct) => this._parseBarcode(product, product.EAN);
 	getShipping = (_product: CartasProduct) => RM_SMALL_SHIPPING;
 	getPrice = (product: CartasProduct) => {
@@ -79,15 +79,15 @@ export class Cartas extends Vendor<CartasProduct> implements ProductAddable<Cart
 		return VAT;
 	};
 	getTaxable = (product: CartasProduct) => this.getVAT(product) > 1;
-	getVendor = (product: CartasProduct) => product.BRAND.trim();
-	getDescription = (product: CartasProduct) => product.DESCRIPTION.replace(/^'/, '').replace(/'$/, '').trim();
-	getMainImageURL = (product: CartasProduct) => product.MAIN_IMAGE.trim();
-	getVariantImageURL = (product: CartasProduct) => product.MAIN_IMAGE.trim();
-	getTitle = (product: CartasProduct) => product.PRODUCT_NAME.trim();
+	getVendor = (product: CartasProduct) => product.BRAND;
+	getDescription = (product: CartasProduct) => product.DESCRIPTION.replace(/^'/, '').replace(/'$/, '');
+	getMainImageURL = (product: CartasProduct) => product.MAIN_IMAGE;
+	getVariantImageURL = (product: CartasProduct) => product.MAIN_IMAGE;
+	getTitle = (product: CartasProduct) => product.PRODUCT_NAME;
 	getAdditionalImages = (product: CartasProduct) => {
 		const images = [];
 		for (const i of intRange(1, 4)) {
-			const image = product[`IMAGE_${i}`].trim();
+			const image = product[`IMAGE_${i}`];
 			if (image) {
 				images.push(image);
 			}
@@ -97,8 +97,8 @@ export class Cartas extends Vendor<CartasProduct> implements ProductAddable<Cart
 	};
 	getVariants = (product: CartasProduct) => {
 		const variants = [];
-		const size = product.SIZE.trim();
-		const colour = product.COLOUR.trim();
+		const size = product.SIZE;
+		const colour = product.COLOUR;
 		if (colour) {
 			variants.push({
 				name: 'Colour',
@@ -141,7 +141,7 @@ export class CartasInventory extends Vendor<CartasInventoryProduct> implements I
 		'QUANTITY',
 		'LIST_PRICE'
 	];
-	getSKU = (product: CartasInventoryProduct) => product.CHILD_CODE.trim();
-	getQuantity = (product: CartasInventoryProduct) => Math.min(Number(product.QUANTITY.trim()), 50);
-	getTitle = (product: CartasInventoryProduct) => product.PRODUCT_NAME.trim();
+	getSKU = (product: CartasInventoryProduct) => product.CHILD_CODE;
+	getQuantity = (product: CartasInventoryProduct) => Math.min(Number(product.QUANTITY), 50);
+	getTitle = (product: CartasInventoryProduct) => product.PRODUCT_NAME;
 };

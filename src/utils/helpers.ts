@@ -16,7 +16,7 @@ export const parseSKU = (sku?: string) => {
 
 export const parseBarcode = (barcode: string) => {
   if (barcode) {
-    let newBarcode = barcode.trim().replace(GLOBAL_QUOTE_RX, '');
+    let newBarcode = barcode.replace(GLOBAL_QUOTE_RX, '');
     if (newBarcode.length === 11) {
       // really hope it's a UPC missing a leading 0
       newBarcode = '0' + newBarcode;

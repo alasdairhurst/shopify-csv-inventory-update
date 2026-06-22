@@ -142,5 +142,7 @@ export class ReydonInventory extends Vendor<ReydonInventoryProduct> implements I
 	];
 	getSKU = (product: ReydonInventoryProduct) => product.Code.replace('\n', '');
 	getQuantity = (product: ReydonInventoryProduct) => Number(product.Quantity);
-	getTitle = (product: ReydonInventoryProduct) => product['Product Name'].replace(/\([^()]*\)/g, '').trim();
+	// Reydon adds a lot of info to their inventory product names that don't
+	// match their other CSV so trim them off to help the title matching
+	getTitle = (product: ReydonInventoryProduct) => product['Product Name'].replace(/ *\([^()]*\)/g, '');
 };

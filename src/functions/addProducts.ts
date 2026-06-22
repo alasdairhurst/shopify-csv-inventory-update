@@ -37,7 +37,7 @@ const addProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendorPr
 				continue;
 			}
 
-			const Title = vendor.getTitle(vendorProduct).trim();
+			const Title = vendor.getTitle(vendorProduct);
 			const vendorProductBarcode = vendor.getBarcode(vendorProduct);
 			const vendorProductLabel = `${vendorProductSKU} (${Title}/${vendorProductBarcode})`;
 			const { shopifyProduct } = getShopifyProductAndParent(
