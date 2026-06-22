@@ -32,6 +32,7 @@ describe('vendor MTB', () => {
 		expect(mtb.canUpdateInventory()).toBe(true);
 	});
 
+	describe('parsing example CSV', () => {
 	it('accepts MTB headers and parses the example file', async () => {
 		const mtbCsv = loadExampleFixture(['vendors', 'mtb', 'mtb.csv']);
 		const products = await parseProductsCSV(mtbCsv, mtb);
@@ -101,6 +102,7 @@ describe('vendor MTB', () => {
 		]);
 		expect(mtb.getBarcode(product)).toEqual('8859368939758');
 		expect(mtb.getVariantCorrelationId(product)).toEqual('gd2-fairtex-maddox-ii-ultimate-grappling-dummy');
+	});
 	});
 
 	describe('getTitle()', () => {

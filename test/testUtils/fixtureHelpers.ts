@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import * as csv from '../../src/files/csv.ts';
 import { expect } from 'vitest';
+import { Vendor } from '../../src/vendors/vendor.ts';
 
 type CsvRow = Record<string, string>;
 
@@ -35,14 +36,14 @@ const normalizeRow = (row: CsvRow, keys: string[]) => {
   }, {} as CsvRow);
 };
 
-export const assertCsvFixtureMatches = async (actualCsv: string, expectedFilename: string, keys: string[]) => {
+export const assertCsvFixtureMatches = async (actualCsv: string, expectedFilename: string, keys: string[], vendor: Vendor<CsvRow>) => {
   if (isRegenFixtures()) {
     writeExpectedFixture(expectedFilename, actualCsv);
     return;
   }
 
-  const [actualRows] = await csv.parseString<CsvRow>(actualCsv);
-  const [expectedRows] = await csv.parseString<CsvRow>(loadExpectedFixture(expectedFilename));
+  const [actualRows] = await csv.parseString(actualCsv, vendor);
+  const [expectedRows] = await csv.parseString(loadExpectedFixture(expectedFilename), vendor);
 
   expect(actualRows.length).toBe(expectedRows.length);
   expect(actualRows.map(row => normalizeRow(row, keys))).toEqual(

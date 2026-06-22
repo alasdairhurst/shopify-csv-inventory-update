@@ -5,6 +5,7 @@ import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
 import { Blitz, BlitzProduct } from '../../src/vendors/blitz.ts';
 import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../../src/vendors/shopify.ts';
 import { assertJsonFixtureMatches, loadExampleFixture } from '../testUtils/fixtureHelpers.ts';
+import { shopifyVendor } from '../../src/vendors/index.ts';
 
 const makeShopifyProduct = (product: Partial<ExternalShopifyProduct>): ExternalShopifyProduct => ({
 	...DEFAULT_SHOPIFY_PRODUCT,
@@ -132,7 +133,7 @@ describe('addProducts()', () => {
 
 	it('adds Blitz products from the example fixture and asserts the full output', async () => {
 		const shopifyCsv = loadExampleFixture(['shopify', 'products.csv']);
-		const [shopifyRaw] = await csv.parseString<ExternalShopifyProduct>(shopifyCsv);
+		const [shopifyRaw] = await csv.parseString(shopifyCsv, shopifyVendor);
 		const blitzCsv = loadExampleFixture(['vendors', 'blitz', 'blitz.csv']);
 		const blitzProducts = await parseProductsCSV(blitzCsv, new Blitz());
 

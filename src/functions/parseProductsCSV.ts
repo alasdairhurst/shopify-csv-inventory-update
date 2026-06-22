@@ -16,7 +16,7 @@ export const parseProductsCSV = async function <P extends Product>(fileContent: 
 		fileContent = he.decode(fileContent);
 	}
 
-	let [csvObj, headers] = await csv.parseString<P>(headerRow + fileContent);
+	const [csvObj, headers] = await csv.parseString(headerRow + fileContent, vendor);
 
 	// Check the headers as soon as we parse the csv before we use any properties.
 	let match = false;

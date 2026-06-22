@@ -6,6 +6,7 @@ import { Blitz } from '../../src/vendors/blitz.ts';
 import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
 import { ShopifyInventoryProduct } from '../../src/vendors/shopify.ts';
 import { assertJsonFixtureMatches, loadExampleFixture } from '../testUtils/fixtureHelpers.ts';
+import { shopifyInventoryVendor } from '../../src/vendors/index.ts';
 
 const makeShopifyProduct = (product: Partial<ShopifyInventoryProduct>): ShopifyInventoryProduct => {
 	return {
@@ -119,7 +120,7 @@ describe('updateInventory()', () => {
 
   it('Updates inventory with blitz csv and asserts the full output', async () => {
     const inventoryCsv = loadExampleFixture(['shopify', 'inventory.csv']);
-    const [inventoryRows] = await csv.parseString<any>(inventoryCsv);
+    const [inventoryRows] = await csv.parseString(inventoryCsv, shopifyInventoryVendor);
     const blitzCsv = loadExampleFixture(['vendors', 'blitz', 'blitz.csv']);
     const blitzProducts = await parseProductsCSV(blitzCsv, new Blitz());
 

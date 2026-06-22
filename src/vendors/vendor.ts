@@ -32,7 +32,10 @@ export abstract class Vendor<P extends Product = Product> {
 	// optional
 	useTitleForMatching?: boolean;
 	useBarcodeForExclusiveMatching?: boolean;
+	// Appends the following headers to the CSV in case they are missing
 	forceHeaders?: string[];
+	// Fills in headers where the column name is missing in order of found empty header
+	forceEmptyHeaders?: string[];
 	htmlDecode?: boolean;
 	deny?: string[];
 

@@ -5,6 +5,7 @@ import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
 import { Cartas, CartasProduct } from '../../src/vendors/cartas.ts';
 import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../../src/vendors/shopify.ts';
 import { assertJsonFixtureMatches, loadExampleFixture } from '../testUtils/fixtureHelpers.ts';
+import { shopifyVendor } from '../../src/vendors/index.ts';
 
 const makeShopifyProduct = (product: Partial<ExternalShopifyProduct>): ExternalShopifyProduct => ({
 	...DEFAULT_SHOPIFY_PRODUCT,
@@ -111,7 +112,7 @@ describe('updateProducts()', () => {
 
 	it('updates Cartas products from the example fixture and asserts the full output', async () => {
 		const shopifyCsv = loadExampleFixture(['shopify', 'products.csv']);
-		const [shopifyRaw] = await csv.parseString<ExternalShopifyProduct>(shopifyCsv);
+		const [shopifyRaw] = await csv.parseString(shopifyCsv, shopifyVendor);
 		const cartasCsv = loadExampleFixture(['vendors', 'cartas', 'product.csv']);
 		const cartasProducts = await parseProductsCSV(cartasCsv, new Cartas());
 

@@ -7,7 +7,7 @@
     "build": "node scripts/build.cjs",
     "tsc": "tsc",
     "test": "vitest run",
-    "test:regen": "REGEN_FIXTURES=true vitest run",
+    "test:regen": "env REGEN_FIXTURES=true vitest run",
     "test:watch": "vitest run --standalone --watch",
     "prepare": "git config core.hooksPath hooks"
   },

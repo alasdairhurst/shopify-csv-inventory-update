@@ -36,6 +36,11 @@ export type TufProduct = Product & {
 export class Tuf extends Vendor<TufProduct> implements ProductAddable<TufProduct> {
 	name = 'tuf';
 	importLabel = 'Tuf Products CSV';
+	forceEmptyHeaders = [
+		'Price1',
+		'Price2',
+		'MyPrice'
+	];
 	expectedHeaders = [
 		'LONGCODE',
 		'PARENT CODE',
