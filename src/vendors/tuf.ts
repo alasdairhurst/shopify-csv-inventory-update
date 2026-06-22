@@ -1,6 +1,7 @@
 import { roundPrice } from '../utils/helpers.ts';
 import { intRange } from '../utils/number.ts';
 import { Vendor, Product, InventoryUpdatable, ProductAddable } from './vendor.ts';
+import type { Brand } from './brand.ts';
 
 const parseQuantity = (product: TufInventoryProduct | TufProduct) => {
 	const stock = product.STOCK;
@@ -158,4 +159,23 @@ export class TufInventory extends Vendor<TufInventoryProduct> implements Invento
 	getSKU = (product: TufInventoryProduct) => product.LONGCODE;
 	getQuantity = parseQuantity;
 	getTitle = (product: TufInventoryProduct) => product.Name;
+};
+
+export const tufBrand: Brand = {
+	id: 'tuf',
+	name: 'Tuf',
+	icon: {
+		url: 'https://tufweardirect.com/wp-content/uploads/2025/10/transparent-logo-white.png',
+		size: 'large' as const
+	},
+	fileInfo: {
+		inventory:    { label: 'Tuf Inventory CSV', description: 'The Tuf inventory export. Contains LONGCODE and STOCK columns.' },
+		addProducts:  { label: 'Tuf Products CSV', description: 'The Tuf full product export. Requires MyPrice, Discount, VAT, and CARRIAGE columns.' },
+		editProducts: { label: 'Tuf Products CSV', description: 'The Tuf full product export. Prices and images will be updated in Shopify.' },
+	},
+	vendorFor: {
+		inventory:    () => new TufInventory(),
+		addProducts:  () => new Tuf(),
+		editProducts: () => new Tuf(),
+	},
 };

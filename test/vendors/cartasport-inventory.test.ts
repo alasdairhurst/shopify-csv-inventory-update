@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
-import { CartasInventory, CartasInventoryProduct } from '../../src/vendors/cartas.ts';
+import { CartasportInventory, CartasportInventoryProduct } from '../../src/vendors/cartasport.ts';
 import { loadExampleFixture } from '../testUtils/fixtureHelpers.ts';
 
 describe('vendor Cartas Inventory', () => {
-	const cartasInventory = new CartasInventory();
+	const cartasInventory = new CartasportInventory();
 
-	const makeProduct = (overrides: Partial<CartasInventoryProduct>): CartasInventoryProduct => ({
+	const makeProduct = (overrides: Partial<CartasportInventoryProduct>): CartasportInventoryProduct => ({
 		PRODUCT_ID: '1',
 		PARENT_CODE: 'PARENT-001',
 		PRODUCT_NAME: 'Test Product',

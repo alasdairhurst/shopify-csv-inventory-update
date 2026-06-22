@@ -1,6 +1,9 @@
 import { ReactNode, useState } from 'react';
 import { vendors, Vendor, Product } from './vendors/index.ts';
+import Wizard from './components/wizard/Wizard.tsx';
 import Spinner from './components/Spinner.tsx';
+
+const USE_NEW_UI = true;
 import {
 	shopifyVendor,
 	shopifyInventoryVendor
@@ -179,6 +182,11 @@ function App() {
 			}
 		}
 	}
+	if (USE_NEW_UI) {
+		const version = `Built ${new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(+process.env.BUILD_TIME!)}`;
+		return <Wizard version={version} />;
+	}
+
 	return (
 		<div className="App">
 			<header className="App-header">

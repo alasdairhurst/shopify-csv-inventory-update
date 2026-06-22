@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
-import { Cartas, CartasProduct } from '../../src/vendors/cartas.ts';
+import { Cartasport, CartasportProduct } from '../../src/vendors/cartasport.ts';
 import { loadExampleFixture } from '../testUtils/fixtureHelpers.ts';
 
 describe('vendor Cartas', () => {
-	const cartas = new Cartas();
+	const cartas = new Cartasport();
 
-	const makeProduct = (overrides: Partial<CartasProduct>): CartasProduct => ({
+	const makeProduct = (overrides: Partial<CartasportProduct>): CartasportProduct => ({
 		STATUS: 'LIVE',
 		CODE: 'TEST-001',
 		WEIGHT: '100',
