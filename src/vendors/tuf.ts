@@ -63,9 +63,14 @@ export class Tuf extends Vendor<TufProduct> implements ProductAddable<TufProduct
 		'Price',
 		'Discount'
 	];
-	// getBasePrice = (product: TufProduct) => {
-	// 	return Number(product.TRADE_PRICE) * 1.45 * this.getVAT(product);
-	// };
+	shouldNotIgnore = (product: TufProduct) => {
+		const sku = this.getSKU(product);
+		// borked with invalid prices/shipping
+		if ([ 'TW38031-Black_GoldOne Size', 'TW38031-LightGreen_Black_WhiteOne Size' ].includes(sku)) {
+			return false;
+		}
+		return true;
+	};
 	getSKU = (product: TufProduct) => product.LONGCODE;
 	getQuantity = parseQuantity;
 	getBarcode = (product: TufProduct) => this._parseBarcode(product, product.SKU);
@@ -78,7 +83,8 @@ export class Tuf extends Vendor<TufProduct> implements ProductAddable<TufProduct
 	getPrice = (product: TufProduct) => {
 		const profit = 1.45;
 		// (myPrice - discount) + profit + VAT + shipping
-		return roundPrice((Number(product.MyPrice) * this.getDiscount(product)) * profit * this.getVAT(product) + this.getShipping(product));
+		const price = (Number(product.MyPrice) * this.getDiscount(product)) * profit * this.getVAT(product) + this.getShipping(product);
+		return roundPrice(price);
 	};
 	getRRP = (product: TufProduct) => {
 		return roundPrice(Number(product.RRP));

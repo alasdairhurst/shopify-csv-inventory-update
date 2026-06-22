@@ -145,6 +145,17 @@ describe('vendor Tuf', () => {
 		});
 	});
 
+	describe('shouldNotIgnore()', () => {
+		it('returns false when LONGCODE is one of the skipped values', () => {
+			expect(tuf.shouldNotIgnore(makeProduct({ LONGCODE: 'TW38031-Black_GoldOne Size' }))).toBe(false);
+			expect(tuf.shouldNotIgnore(makeProduct({ LONGCODE: 'TW38031-LightGreen_Black_WhiteOne Size' }))).toBe(false);
+		});
+
+			it('returns true when STATUS is LIVE', () => {
+			expect(tuf.shouldNotIgnore(makeProduct({ LONGCODE: 'BANANAS' }))).toBe(true);
+		});
+	});
+
 	describe('parsing example product CSV', () => {
 		it('accepts Tuf product headers and parses the example file', async () => {
 			const csv = loadExampleFixture(['vendors', 'tuf', 'product.csv']);

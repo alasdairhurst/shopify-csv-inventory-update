@@ -70,12 +70,18 @@ describe('vendor Cartas', () => {
 	});
 
 	describe('getSKU()', () => {
-		it('returns CODE when STATUS is LIVE', () => {
+		it('returns CODE', () => {
 			expect(cartas.getSKU(makeProduct({ STATUS: 'LIVE', CODE: 'MIZU00001' }))).toBe('MIZU00001');
 		});
+	});
 
-		it('returns undefined when STATUS is not LIVE', () => {
-			expect(cartas.getSKU(makeProduct({ STATUS: 'DELETED' }))).toBeUndefined();
+	describe('shouldNotIgnore()', () => {
+		it('returns false when STATUS is not LIVE', () => {
+			expect(cartas.shouldNotIgnore(makeProduct({ STATUS: 'DELETED' }))).toBe(false);
+		});
+
+			it('returns true when STATUS is LIVE', () => {
+			expect(cartas.shouldNotIgnore(makeProduct({ STATUS: 'LIVE' }))).toBe(true);
 		});
 	});
 

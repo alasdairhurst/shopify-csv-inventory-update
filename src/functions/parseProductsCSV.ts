@@ -46,6 +46,11 @@ export const parseProductsCSV = async function <P extends Product>(fileContent: 
 		products = csvObj as P[];
 	}
 
+	// filter ignored products
+	if (vendor.shouldNotIgnore) {
+		products = products.filter(vendor.shouldNotIgnore);
+	}
+
 	sortProducts(products, vendor);
 
 	if (vendor.getVariantCorrelationId) {

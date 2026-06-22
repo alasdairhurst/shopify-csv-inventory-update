@@ -62,9 +62,6 @@ export class Blitz extends Vendor<BlitzProduct> implements InventoryUpdatable<Bl
 	htmlDecode = true;
 	useTitleForMatching = true;
 	useBarcodeForExclusiveMatching = true;
-	deny = [
-		'21682' // Test product
-	];
 	expectedHeaders = [
 		'Title',
 		'Link',
@@ -104,7 +101,14 @@ export class Blitz extends Vendor<BlitzProduct> implements InventoryUpdatable<Bl
 		'AltImage10',
 		'AltImage11',
 		'AltImage12',
-	]
+	];
+	shouldNotIgnore = (product: BlitzProduct) => {
+		// Test product
+		if (product.Sku === '21682') {
+			return false;
+		}
+		return true;
+	};
 	getSKU = (product: BlitzProduct) => product.Sku;
 	getQuantity = (product: BlitzProduct) => product.InStock === 'True' ? 25 : 0;
 	getPrice = (product: BlitzProduct) => {

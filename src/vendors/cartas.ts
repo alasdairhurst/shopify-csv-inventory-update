@@ -59,9 +59,8 @@ export class Cartas extends Vendor<CartasProduct> implements ProductAddable<Cart
 	getBasePrice = (product: CartasProduct) => {
 		return Number(product.TRADE_PRICE) * 1.45 * this.getVAT(product);
 	};
-	// FIXME: either support undefined or filter it out in the parser
-	getSKU = (product: CartasProduct) => product.STATUS === 'LIVE' ? product.CODE : undefined;
-	// TODO trim everything during import
+	shouldNotIgnore = (product: CartasProduct) => product.STATUS === 'LIVE';
+	getSKU = (product: CartasProduct) => product.CODE;
 	getWeightGrams = (product: CartasProduct) => Number(product.WEIGHT);
 	getQuantity = (product: CartasProduct) => Math.min(Number(product.STOCK), 50);
 	getType = (product: CartasProduct) => product.CATEGORY.replace(product.BRAND.toUpperCase(), '').replace(/-/g, '');

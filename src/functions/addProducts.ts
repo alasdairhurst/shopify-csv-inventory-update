@@ -32,11 +32,6 @@ const addProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendorPr
 		logger.log(`[INFO] loading ${vendorProductCSV.length} items from ${vendor.name}`);
 		for (const vendorProduct of vendorProductCSV) {
 			const vendorProductSKU = parseSKU(vendor.getSKU(vendorProduct));
-			if (!vendorProductSKU) {
-				logger.debug(`[NOT FOUND] ${vendor.name} no SKU found for product`, vendorProduct);
-				continue;
-			}
-
 			const Title = vendor.getTitle(vendorProduct);
 			const vendorProductBarcode = vendor.getBarcode(vendorProduct);
 			const vendorProductLabel = `${vendorProductSKU} (${Title}/${vendorProductBarcode})`;

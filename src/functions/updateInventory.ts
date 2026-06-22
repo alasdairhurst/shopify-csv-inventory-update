@@ -22,10 +22,6 @@ const updateInventory = (shopifyInventoryCSV: ShopifyInventoryProduct[], vendorI
 
 		for (const vendorItem of vendorInventoryCSV) {
 			const vendorItemSKU = parseSKU(vendor.getSKU(vendorItem));
-			if (!vendorItemSKU) {
-				continue;
-			}
-
 			const shopifyItem = shopifyInventoryCSV.find((r: any) => {
 				return !!matchInventory(r, vendor, vendorItem)
 			});

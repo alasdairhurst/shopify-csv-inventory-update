@@ -26,8 +26,7 @@ export abstract class Vendor<P extends Product = Product> {
 	abstract name: string; // Can this be dropped if we rely on key?
 	abstract importLabel: string;
 	abstract expectedHeaders: string[];
-	// FIXME: undefined is a bit of a hack to filter out rows. use parse instead
-	abstract getSKU: (product: P) => string | undefined;
+	abstract getSKU: (product: P) => string;
 
 	// optional
 	useTitleForMatching?: boolean;
@@ -37,8 +36,8 @@ export abstract class Vendor<P extends Product = Product> {
 	// Fills in headers where the column name is missing in order of found empty header
 	forceEmptyHeaders?: string[];
 	htmlDecode?: boolean;
-	deny?: string[];
 
+	shouldNotIgnore?: (product: P) => boolean;
 	getQuantity?: (product: P) => number;
   getTitle?: (product: P) => string;
   getBarcode?: (product: P) => string;
@@ -67,9 +66,6 @@ export abstract class Vendor<P extends Product = Product> {
 	// TODO: replace this somewhere so there's just one getBarcode function
 	_parseBarcode(product: P, barcode: string) {
 		const sku = this.getSKU(product);
-		if (sku === undefined) {
-			throw new Error('Should not be called when sku is undefined');
-		}
 		if (!this._parsedBarcodes[sku]) {
 			this._parsedBarcodes[sku] = parseBarcode(barcode);
 		}

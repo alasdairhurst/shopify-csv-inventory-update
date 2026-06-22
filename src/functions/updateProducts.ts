@@ -28,11 +28,6 @@ const updateProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendo
 			// FIXME to avoid any
 			const vendorProduct: any = vp;
 			const vendorProductSKU = parseSKU(vendor.getSKU(vendorProduct));
-			if (!vendorProductSKU) {
-				logger.debug(`[NOT FOUND] ${vendor.name} no SKU found for product`, vendorProduct);
-				continue;
-			}
-
 			const vendorProductTitle = vendor.getTitle?.(vendorProduct) ?? '';
 			const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) ?? '';
 			const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;

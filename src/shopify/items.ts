@@ -10,10 +10,7 @@ type MatchShopifyItemsOptions = {
 
 export const matchShopifyItems = <P extends Product>(shopifyItem: any, vendor: Vendor<P>, vendorProduct: P, options: MatchShopifyItemsOptions = {}) => {
 	const vendorProductSKU = parseSKU(vendor.getSKU(vendorProduct));
-	if (!vendorProductSKU || shopifyItem.sku !== vendorProductSKU) {
-		return;
-	}
-	if (vendor.deny?.includes(vendorProductSKU)) {
+	if (shopifyItem.sku !== vendorProductSKU) {
 		return;
 	}
 

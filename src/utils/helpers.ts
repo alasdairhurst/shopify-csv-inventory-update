@@ -4,10 +4,10 @@ const GLOBAL_QUOTE_RX = /[["']/g;
 const UPEC_EAN_RX_SMALLER = /^[0-9]+$/;
 const NUMBER_SKU_RX = /^0+[0-9]*$/;
 
-export const parseSKU = (sku?: string) => {
-  if (!sku) {
-    return;
-  }
+export const parseSKU = (sku: string) => {
+	// SKUs that are numeric but encoded with leading apostraphe as a literal
+	// where the apostrophe was not trimmed on import should be trimmed again here.
+	// TODO: check if this is still necesarry
   if (sku[0] === '\'') {
     return sku.substring(1);
   }
