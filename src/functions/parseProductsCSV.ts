@@ -27,7 +27,7 @@ export const parseProductsCSV = async function <P extends Product>(fileContent: 
 		// fields we know/care about.
 		const there = headers.includes(expectedHeader);
 		if (!there) {
-			logger.warn(`[WARN] ${vendor.name} csv missing possible header: ${expectedHeader}`);
+			logger.warn(`[WARN] ${vendor.name} csv missing expected header: ${expectedHeader}`);
 		}
 		return there;
 	});

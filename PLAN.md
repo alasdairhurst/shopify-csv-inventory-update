@@ -9,11 +9,7 @@
 - Abstract products rather than vendors, just use vendors to parse/unparse the CSVs
 - Simplify code to only one vendor at a time. Could improve pulling out full csv-first logic from browser-specific code.
 
-- FIXES:
-	- Newlines in descriptions leaking into CSV
-
 - IMPROVEMENTS:
-	- Handle/automate trimming in vendor class rather than in logic
 	- Add product structure type as code and derive both typescript type and headers from one place
 
 - FIRST CHANGES:

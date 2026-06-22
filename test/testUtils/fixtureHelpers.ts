@@ -9,6 +9,23 @@ type CsvRow = Record<string, string>;
 const root = resolve(__dirname, '..');
 const expectedRoot = resolve(root, 'fixtures', 'expected');
 
+export const PRODUCT_CSV_KEYS = [
+	'Handle', 'Title', 'Body (HTML)', 'Vendor', 'Product Category', 'Type', 'Tags',
+	'Published', 'Status', 'Gift Card',
+	'Option1 Name', 'Option1 Value', 'Option2 Name', 'Option2 Value', 'Option3 Name', 'Option3 Value',
+	'Variant SKU', 'Variant Grams', 'Variant Inventory Tracker', 'Variant Inventory Policy',
+	'Variant Fulfillment Service', 'Variant Price', 'Variant Compare At Price',
+	'Variant Requires Shipping', 'Variant Taxable', 'Variant Barcode',
+	'Variant Weight Unit', 'Image Src', 'Variant Image'
+];
+
+export const INVENTORY_CSV_KEYS = [
+	'Handle', 'Title', 'Option1 Name', 'Option1 Value', 'Option2 Name', 'Option2 Value',
+	'Option3 Name', 'Option3 Value', 'SKU', 'HS Code', 'COO', 'Location',
+	'Bin name', 'Incoming (not editable)', 'Unavailable (not editable)',
+	'Committed (not editable)', 'Available (not editable)', 'On hand (current)', 'On hand (new)'
+];
+
 export const loadExampleFixture = (segments: string[]) => {
   const filePath = resolve(root, 'examples', ...segments);
   try {
@@ -36,7 +53,8 @@ const normalizeRow = (row: CsvRow, keys: string[]) => {
   }, {} as CsvRow);
 };
 
-export const assertCsvFixtureMatches = async (actualCsv: string, expectedFilename: string, keys: string[], vendor: Vendor<CsvRow>) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const assertCsvFixtureMatches = async (actualCsv: string, expectedFilename: string, keys: string[], vendor: Vendor<any>) => {
   if (isRegenFixtures()) {
     writeExpectedFixture(expectedFilename, actualCsv);
     return;

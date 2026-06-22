@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import * as csv from '../../src/files/csv.ts';
 import updateInventory from '../../src/functions/updateInventory.ts';
-import { ReydonInventoryProduct } from '../../src/vendors/reydon.ts';
+import { Cartas } from '../../src/vendors/cartas.ts';
+import { CartasInventory } from '../../src/vendors/cartas.ts';
+import { Reydon, ReydonInventory, ReydonInventoryProduct } from '../../src/vendors/reydon.ts';
+import { Tuf, TufInventory } from '../../src/vendors/tuf.ts';
+import { Unicorn } from '../../src/vendors/unicorn.ts';
 import { Blitz } from '../../src/vendors/blitz.ts';
 import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
 import { ShopifyInventoryProduct } from '../../src/vendors/shopify.ts';
-import { assertJsonFixtureMatches, loadExampleFixture } from '../testUtils/fixtureHelpers.ts';
+import { assertCsvFixtureMatches, assertJsonFixtureMatches, loadExampleFixture, INVENTORY_CSV_KEYS } from '../testUtils/fixtureHelpers.ts';
 import { shopifyInventoryVendor } from '../../src/vendors/index.ts';
 
 const makeShopifyProduct = (product: Partial<ShopifyInventoryProduct>): ShopifyInventoryProduct => {
@@ -138,4 +142,102 @@ describe('updateInventory()', () => {
 		// Assert against the full fixture for consistency
 		assertJsonFixtureMatches('blitz-update-inventory.json', updates);
   });
+
+	it('updates inventory with Tuf product CSV and asserts the full CSV output', async () => {
+		const inventoryCsv = loadExampleFixture(['shopify', 'inventory.csv']);
+		const [inventoryRows] = await csv.parseString(inventoryCsv, shopifyInventoryVendor);
+		const tufCsv = loadExampleFixture(['vendors', 'tuf', 'product.csv']);
+		const tufProducts = await parseProductsCSV(tufCsv, new Tuf());
+
+		const updates = updateInventory(inventoryRows, { tuf: tufProducts }, { maxQuantity: 25 });
+
+		expect(updates.every(row => Number(row['On hand (new)']) <= 25)).toBe(true);
+		expect(updates.every(row => Number(row['On hand (new)']) >= 0)).toBe(true);
+
+		await assertCsvFixtureMatches(csv.unparse(updates), 'tuf-update-inventory.csv', INVENTORY_CSV_KEYS, shopifyInventoryVendor);
+	});
+
+	it('updates inventory with TufInventory CSV and asserts the full CSV output', async () => {
+		const inventoryCsv = loadExampleFixture(['shopify', 'inventory.csv']);
+		const [inventoryRows] = await csv.parseString(inventoryCsv, shopifyInventoryVendor);
+		const tufInventoryCsv = loadExampleFixture(['vendors', 'tuf', 'inventory.csv']);
+		const tufInventoryProducts = await parseProductsCSV(tufInventoryCsv, new TufInventory());
+
+		const updates = updateInventory(inventoryRows, { 'tuf-inventory': tufInventoryProducts }, { maxQuantity: 25 });
+
+		expect(updates.every(row => Number(row['On hand (new)']) <= 25)).toBe(true);
+		expect(updates.every(row => Number(row['On hand (new)']) >= 0)).toBe(true);
+
+		await assertCsvFixtureMatches(csv.unparse(updates), 'tuf-inventory-update-inventory.csv', INVENTORY_CSV_KEYS, shopifyInventoryVendor);
+	});
+
+	it('updates inventory with Cartas product CSV and asserts the full CSV output', async () => {
+		const inventoryCsv = loadExampleFixture(['shopify', 'inventory.csv']);
+		const [inventoryRows] = await csv.parseString(inventoryCsv, shopifyInventoryVendor);
+		const cartasCsv = loadExampleFixture(['vendors', 'cartas', 'product.csv']);
+		const cartasProducts = await parseProductsCSV(cartasCsv, new Cartas());
+
+		const updates = updateInventory(inventoryRows, { cartas: cartasProducts }, { maxQuantity: 25 });
+
+		expect(updates.every(row => Number(row['On hand (new)']) <= 25)).toBe(true);
+		expect(updates.every(row => Number(row['On hand (new)']) >= 0)).toBe(true);
+
+		await assertCsvFixtureMatches(csv.unparse(updates), 'cartas-update-inventory.csv', INVENTORY_CSV_KEYS, shopifyInventoryVendor);
+	});
+
+	it('updates inventory with CartasInventory CSV and asserts the full CSV output', async () => {
+		const inventoryCsv = loadExampleFixture(['shopify', 'inventory.csv']);
+		const [inventoryRows] = await csv.parseString(inventoryCsv, shopifyInventoryVendor);
+		const cartasInventoryCsv = loadExampleFixture(['vendors', 'cartas', 'inventory.csv']);
+		const cartasInventoryProducts = await parseProductsCSV(cartasInventoryCsv, new CartasInventory());
+
+		const updates = updateInventory(inventoryRows, { 'cartas-inventory': cartasInventoryProducts }, { maxQuantity: 25 });
+
+		expect(updates.every(row => Number(row['On hand (new)']) <= 25)).toBe(true);
+		expect(updates.every(row => Number(row['On hand (new)']) >= 0)).toBe(true);
+
+		await assertCsvFixtureMatches(csv.unparse(updates), 'cartas-inventory-update-inventory.csv', INVENTORY_CSV_KEYS, shopifyInventoryVendor);
+	});
+
+	it('updates inventory with Reydon product CSV and asserts the full CSV output', async () => {
+		const inventoryCsv = loadExampleFixture(['shopify', 'inventory.csv']);
+		const [inventoryRows] = await csv.parseString(inventoryCsv, shopifyInventoryVendor);
+		const reydonCsv = loadExampleFixture(['vendors', 'reydon', 'product.csv']);
+		const reydonProducts = await parseProductsCSV(reydonCsv, new Reydon());
+
+		const updates = updateInventory(inventoryRows, { reydon: reydonProducts }, { maxQuantity: 25 });
+
+		expect(updates.every(row => Number(row['On hand (new)']) <= 25)).toBe(true);
+		expect(updates.every(row => Number(row['On hand (new)']) >= 0)).toBe(true);
+
+		await assertCsvFixtureMatches(csv.unparse(updates), 'reydon-update-inventory.csv', INVENTORY_CSV_KEYS, shopifyInventoryVendor);
+	});
+
+	it('updates inventory with ReydonInventory CSV and asserts the full CSV output', async () => {
+		const inventoryCsv = loadExampleFixture(['shopify', 'inventory.csv']);
+		const [inventoryRows] = await csv.parseString(inventoryCsv, shopifyInventoryVendor);
+		const reydonInventoryCsv = loadExampleFixture(['vendors', 'reydon', 'inventory.csv']);
+		const reydonInventoryProducts = await parseProductsCSV(reydonInventoryCsv, new ReydonInventory());
+
+		const updates = updateInventory(inventoryRows, { 'reydon-inventory': reydonInventoryProducts }, { maxQuantity: 25 });
+
+		expect(updates.every(row => Number(row['On hand (new)']) <= 25)).toBe(true);
+		expect(updates.every(row => Number(row['On hand (new)']) >= 0)).toBe(true);
+
+		await assertCsvFixtureMatches(csv.unparse(updates), 'reydon-inventory-update-inventory.csv', INVENTORY_CSV_KEYS, shopifyInventoryVendor);
+	});
+
+	it('updates inventory with Unicorn CSV and asserts the full CSV output', async () => {
+		const inventoryCsv = loadExampleFixture(['shopify', 'inventory.csv']);
+		const [inventoryRows] = await csv.parseString(inventoryCsv, shopifyInventoryVendor);
+		const unicornCsv = loadExampleFixture(['vendors', 'unicorn', 'unicorn.csv']);
+		const unicornProducts = await parseProductsCSV(unicornCsv, new Unicorn());
+
+		const updates = updateInventory(inventoryRows, { unicorn: unicornProducts }, { maxQuantity: 25 });
+
+		expect(updates.every(row => Number(row['On hand (new)']) <= 25)).toBe(true);
+		expect(updates.every(row => Number(row['On hand (new)']) >= 0)).toBe(true);
+
+		await assertCsvFixtureMatches(csv.unparse(updates), 'unicorn-update-inventory.csv', INVENTORY_CSV_KEYS, shopifyInventoryVendor);
+	});
 });

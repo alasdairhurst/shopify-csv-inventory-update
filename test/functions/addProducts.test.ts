@@ -3,8 +3,11 @@ import * as csv from '../../src/files/csv.ts';
 import addProducts from '../../src/functions/addProducts.ts';
 import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
 import { Blitz, BlitzProduct } from '../../src/vendors/blitz.ts';
+import { Cartas } from '../../src/vendors/cartas.ts';
+import { Reydon } from '../../src/vendors/reydon.ts';
+import { Tuf } from '../../src/vendors/tuf.ts';
 import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../../src/vendors/shopify.ts';
-import { assertJsonFixtureMatches, loadExampleFixture } from '../testUtils/fixtureHelpers.ts';
+import { assertCsvFixtureMatches, assertJsonFixtureMatches, loadExampleFixture, PRODUCT_CSV_KEYS } from '../testUtils/fixtureHelpers.ts';
 import { shopifyVendor } from '../../src/vendors/index.ts';
 
 const makeShopifyProduct = (product: Partial<ExternalShopifyProduct>): ExternalShopifyProduct => ({
@@ -146,5 +149,47 @@ describe('addProducts()', () => {
 
 		// Assert against the full fixture for consistency
 		await assertJsonFixtureMatches('blitz-add-products.json', result);
+	});
+
+	it('adds Cartas products from the example fixture and asserts the full CSV output', async () => {
+		const shopifyCsv = loadExampleFixture(['shopify', 'products.csv']);
+		const [shopifyRaw] = await csv.parseString(shopifyCsv, shopifyVendor);
+		const cartasCsv = loadExampleFixture(['vendors', 'cartas', 'product.csv']);
+		const cartasProducts = await parseProductsCSV(cartasCsv, new Cartas());
+
+		const result = addProducts(shopifyRaw, { cartas: cartasProducts });
+
+		expect(result.every(row => row.Handle !== '')).toBe(true);
+		expect(result.filter(row => row.Status !== '').every(row => row.Status === 'active')).toBe(true);
+
+		await assertCsvFixtureMatches(csv.unparse(result), 'cartas-add-products.csv', PRODUCT_CSV_KEYS, shopifyVendor);
+	});
+
+	it('adds Reydon products from the example fixture and asserts the full CSV output', async () => {
+		const shopifyCsv = loadExampleFixture(['shopify', 'products.csv']);
+		const [shopifyRaw] = await csv.parseString(shopifyCsv, shopifyVendor);
+		const reydonCsv = loadExampleFixture(['vendors', 'reydon', 'product.csv']);
+		const reydonProducts = await parseProductsCSV(reydonCsv, new Reydon());
+
+		const result = addProducts(shopifyRaw, { reydon: reydonProducts });
+
+		expect(result.every(row => row.Handle !== '')).toBe(true);
+		expect(result.filter(row => row.Status !== '').every(row => row.Status === 'active')).toBe(true);
+
+		await assertCsvFixtureMatches(csv.unparse(result), 'reydon-add-products.csv', PRODUCT_CSV_KEYS, shopifyVendor);
+	});
+
+	it('adds Tuf products from the example fixture and asserts the full CSV output', async () => {
+		const shopifyCsv = loadExampleFixture(['shopify', 'products.csv']);
+		const [shopifyRaw] = await csv.parseString(shopifyCsv, shopifyVendor);
+		const tufCsv = loadExampleFixture(['vendors', 'tuf', 'product.csv']);
+		const tufProducts = await parseProductsCSV(tufCsv, new Tuf());
+
+		const result = addProducts(shopifyRaw, { tuf: tufProducts });
+
+		expect(result.every(row => row.Handle !== '')).toBe(true);
+		expect(result.filter(row => row.Status !== '').every(row => row.Status === 'active')).toBe(true);
+
+		await assertCsvFixtureMatches(csv.unparse(result), 'tuf-add-products.csv', PRODUCT_CSV_KEYS, shopifyVendor);
 	});
 });

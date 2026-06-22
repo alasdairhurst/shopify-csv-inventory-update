@@ -62,7 +62,7 @@ export class Cartas extends Vendor<CartasProduct> implements ProductAddable<Cart
 	shouldNotIgnore = (product: CartasProduct) => product.STATUS === 'LIVE';
 	getSKU = (product: CartasProduct) => product.CODE;
 	getWeightGrams = (product: CartasProduct) => Number(product.WEIGHT);
-	getQuantity = (product: CartasProduct) => Math.min(Number(product.STOCK), 50);
+	getQuantity = (product: CartasProduct) => Math.max(0, Math.min(Number(product.STOCK), 50));
 	getType = (product: CartasProduct) => product.CATEGORY.replace(product.BRAND.toUpperCase(), '').replace(/-/g, '');
 	getBarcode = (product: CartasProduct) => this._parseBarcode(product, product.EAN);
 	getShipping = (_product: CartasProduct) => RM_SMALL_SHIPPING;
