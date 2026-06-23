@@ -56,7 +56,7 @@ export default function Step2ShopifyFile({ action, onNext, onBack }: Props) {
           Step 1 — Shopify Export
         </p>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#fff', margin: 0 }}>
-          Upload your Shopify export
+          Upload your Shopify {action === 'inventory' ? 'inventory' : 'products'} export
         </h2>
         <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.38)', marginTop: 6, fontWeight: 400 }}>{description}</p>
       </div>
