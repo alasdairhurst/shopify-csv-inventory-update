@@ -38,9 +38,10 @@ export class Tuf extends Vendor<TufProduct> implements ProductAddable<TufProduct
 	name = 'tuf';
 	importLabel = 'Tuf Products CSV';
 	forceEmptyHeaders = [
-		'Price1',
-		'Price2',
-		'MyPrice'
+		'PriceCalc1',
+		'PriceCalc2',
+		'PriceCalc3',
+		'Price'
 	];
 	expectedHeaders = [
 		'LONGCODE',
@@ -58,9 +59,9 @@ export class Tuf extends Vendor<TufProduct> implements ProductAddable<TufProduct
 		'RRP',
 		'Sell',
 		'Trade',
-		'Price1',
-		'Price2',
-		'MyPrice',
+		'PriceCalc1',
+		'PriceCalc2',
+		'PriceCalc3',
 		'Price',
 		'Discount'
 	];
@@ -83,8 +84,8 @@ export class Tuf extends Vendor<TufProduct> implements ProductAddable<TufProduct
 	}
 	getPrice = (product: TufProduct) => {
 		const profit = 1.45;
-		// (myPrice - discount) + profit + VAT + shipping
-		const price = (Number(product.MyPrice) * this.getDiscount(product)) * profit * this.getVAT(product) + this.getShipping(product);
+		// (Price - discount) + profit + VAT + shipping
+		const price = (Number(product.Price) * this.getDiscount(product)) * profit * this.getVAT(product) + this.getShipping(product);
 		return roundPrice(price);
 	};
 	getRRP = (product: TufProduct) => {
@@ -116,7 +117,7 @@ export class Tuf extends Vendor<TufProduct> implements ProductAddable<TufProduct
 };
 
 const tufHeaders = [
-	'LONGCODE',
+	'LONG CODE',
 	'PARENT CODE',
 	'Name',
 	'SIZE',
@@ -134,7 +135,7 @@ const tufHeaders = [
 ];
 
 export type TufInventoryProduct = Product & {
-	LONGCODE: string;
+	['LONG CODE']: string;
 	['PARENT CODE']: string;
 	Name: string;
 	SIZE: string;
@@ -155,8 +156,7 @@ export class TufInventory extends Vendor<TufInventoryProduct> implements Invento
 	name = 'tuf-inventory';
 	importLabel = 'Tuf Inventory CSV';
 	expectedHeaders = tufHeaders;
-	forceHeaders = tufHeaders;
-	getSKU = (product: TufInventoryProduct) => product.LONGCODE;
+	getSKU = (product: TufInventoryProduct) => product['LONG CODE'];
 	getQuantity = parseQuantity;
 	getTitle = (product: TufInventoryProduct) => product.Name;
 };

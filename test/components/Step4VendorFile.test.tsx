@@ -116,13 +116,6 @@ describe('Step4VendorFile', () => {
     expect(screen.getByText('+2 more')).toBeInTheDocument();
   });
 
-  it('hides file tab when supportsFile is false', () => {
-    const brand = makeBrand({ urlConfig: { supportsFile: false, supportsURL: true } });
-    render(<Step4VendorFile action="inventory" brand={brand} onNext={vi.fn()} onBack={vi.fn()} />);
-    expect(screen.queryByText('File')).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/https:\/\//)).toBeInTheDocument();
-  });
-
   it('hides URL tab when supportsURL is false', () => {
     const brand = makeBrand({ urlConfig: { supportsFile: true, supportsURL: false } });
     render(<Step4VendorFile action="inventory" brand={brand} onNext={vi.fn()} onBack={vi.fn()} />);

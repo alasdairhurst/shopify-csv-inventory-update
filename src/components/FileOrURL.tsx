@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 
 export interface UrlConfig {
   defaultURL?: string;
-  supportsFile: boolean;
+  supportsFile: true;
   supportsURL: boolean;
 }
 
