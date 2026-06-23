@@ -50,9 +50,12 @@ const addProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendorPr
 			) : { shopifyParent: undefined };
 			const isNewProduct = !shopifyParent;
 
+			// Attempt to get something unique across groups of variants
+			const handleSource = (vendor.getVariantCorrelationId?.(vendorProduct) ?? '') + Title;
+
 			// Generate a handle
 			const Handle = isNewProduct
-				? vendor.name + '-' + Title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-)|(-$)/g, '').replace(/-+/g, '-')
+				? vendor.name + '-' + handleSource.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-)|(-$)/g, '').replace(/-+/g, '-')
 				: shopifyParent.primaryRow.Handle;
 
 			let parentOnlyFields: Partial<ExternalShopifyProduct> = {};
@@ -107,9 +110,10 @@ const addProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendorPr
 				}
 
 				for (const i of intRange(1, 3)) {
-					if (variants[i]) {
-						product[`Option${i} Name`] = variants[i].name;
-						product[`Option${i} Value`] = variants[i].value;
+					const variant = variants[i-1];
+					if (variant) {
+						product[`Option${i} Name`] = variant.name;
+						product[`Option${i} Value`] = variant.value;
 					}
 				}
 			} else {

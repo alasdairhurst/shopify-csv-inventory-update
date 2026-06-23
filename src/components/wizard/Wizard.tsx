@@ -1,4 +1,4 @@
-import { useReducer } from 'react';
+import { useReducer, useRef, useLayoutEffect } from 'react';
 import type { WizardState, WizardDispatch, WizardStep } from './types.ts';
 import { ACTION_LABELS } from './types.ts';
 import Step1Home from './Step1Home.tsx';
@@ -86,12 +86,47 @@ function Breadcrumb({ state, dispatch }: { state: WizardState; dispatch: React.D
 
 export default function Wizard({ version }: { version?: string }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const worldRef = useRef<HTMLDivElement>(null);
+  const orbitRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * The home screen drives the camera with CSS animations. When a step changes,
+   * those animations stop matching and the transform would snap to its base
+   * value before the CSS transition can interpolate — causing a jump. To tween
+   * instead, freeze the camera at its current animated transform (pinned inline)
+   * just before leaving home, then release it on the next frame so the
+   * transition eases from the frozen pose to the new step's framing.
+   */
+  const freezeCamera = () => {
+    for (const el of [worldRef.current, orbitRef.current]) {
+      if (!el) continue;
+      const t = getComputedStyle(el).transform;
+      if (t && t !== 'none') {
+        el.style.transform = t;
+        el.style.animation = 'none';
+      }
+    }
+  };
+
+  useLayoutEffect(() => {
+    const w = worldRef.current, o = orbitRef.current;
+    const hasFrozen = (w && w.style.transform) || (o && o.style.transform);
+    if (!hasFrozen) return;
+    const id = requestAnimationFrame(() => {
+      for (const el of [w, o]) {
+        if (!el) continue;
+        el.style.transform = '';
+        el.style.animation = '';
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [state.step]);
 
   return (
-    <div className="arena">
+    <div className="arena" data-step={state.step}>
       {/* ── 3D world — atmosphere only (floor, fence, lights) ── */}
-      <div className="world" data-step={state.step} data-run-state={state.runState}>
-        <div className="world-orbit">
+      <div className="world" data-step={state.step} data-run-state={state.runState} ref={worldRef}>
+        <div className="world-orbit" ref={orbitRef}>
           <div className="world-origin">
             <OctagonScene />
           </div>
@@ -103,10 +138,14 @@ export default function Wizard({ version }: { version?: string }) {
       <div className="crowd-vignette" />
       <div className="arena-tint" data-step={state.step} />
 
+      {/* ── Cinematic letterbox bars (grow during the middle wizard stages) ── */}
+      <div className="cine-bar cine-bar-top" />
+      <div className="cine-bar cine-bar-bottom" />
+
       {/* ── Step content — screen space, always interactive ── */}
       <div className="arena-step-content">
         {state.step === 'home' && (
-          <Step1Home onSelect={action => dispatch({ type: 'SET_ACTION', action })} />
+          <Step1Home onSelect={action => { freezeCamera(); dispatch({ type: 'SET_ACTION', action }); }} />
         )}
         {state.step === 'shopifyFile' && state.action && (
           <Step2ShopifyFile

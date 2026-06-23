@@ -37,6 +37,26 @@
 .world[data-step="vendorFile"]  { transform: translate3d(-390px, 120px,  -75px); }
 .world[data-step="run"]         { transform: translate3d(   0px, 270px, -120px); }
 
+/*
+ * Home screen: until an action is taken, the camera drifts along a set path —
+ * panning across the ring, changing elevation and zoom (translate on .world)
+ * while slowly orbiting all the way around (rotation on .world-orbit, below).
+ * This shows off the whole arena that the wizard panel would otherwise hide.
+ * The translate animation overrides the static home transform above.
+ */
+/* animation-delay = the step transition time, so when returning to home the
+ * camera first tweens to the home framing, then the cinematic loop begins. */
+.world[data-step="home"] { animation: home-cam 48s ease-in-out 0.85s infinite; }
+
+@keyframes home-cam {
+  0%   { transform: translate3d(   0px, 120px, -120px); }
+  20%  { transform: translate3d( 210px,  70px, -300px); }  /* pan right, low & wide */
+  40%  { transform: translate3d(   0px, 300px,   10px); }  /* rise high, push in */
+  60%  { transform: translate3d(-210px,  70px, -300px); }  /* pan left, low & wide */
+  80%  { transform: translate3d(   0px, 150px,  -60px); }  /* settle, close */
+  100% { transform: translate3d(   0px, 120px, -120px); }
+}
+
 /* ── World orbit — handles Y-rotation independently of scale/position ──────── */
 /*
  * Sits between .world (camera translation) and .world-origin (scale/anchor).
@@ -47,6 +67,13 @@
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
+  /* Eases the rotation back to 0 when the home/run animation is removed. */
+  transition: transform 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Slow full orbit around the ring while on the home screen. */
+.world[data-step="home"] .world-orbit {
+  animation: camera-orbit 48s linear 0.85s infinite;
 }
 
 .world[data-run-state="running"] .world-orbit {
@@ -56,6 +83,13 @@
 @keyframes camera-orbit {
   from { transform: rotateY(0deg); }
   to   { transform: rotateY(360deg); }
+}
+
+/* Respect users who prefer reduced motion — hold the camera still. */
+@media (prefers-reduced-motion: reduce) {
+  .world[data-step="home"],
+  .world[data-step="home"] .world-orbit,
+  .world[data-run-state="running"] .world-orbit { animation: none; }
 }
 
 /* ── World origin — all 3D objects are children of this 0×0 anchor ───────── */
@@ -90,26 +124,51 @@
     radial-gradient(ellipse 700px 700px at 50% 50%, #ddd8cc 0%, #c0b8a5 42%, #3a2808 65%, #000 84%);
 }
 
-/* Octagon outline on canvas */
-.canvas-floor::after {
-  content: '';
+/* ── Octagon fighting mat (the actual canvas surface) ─────────────────────── */
+/*
+ * A real octagon-clipped div laid flat on the floor (Y = 0), sitting on top
+ * of the ambient canvas-floor glow. Carries the cage markings + centre logo.
+ */
+.octagon-mat {
   position: absolute;
-  inset: 350px;
-  border: 4px solid rgba(0,0,0,0.35);
+  width: 600px;
+  height: 600px;
+  margin-left: -300px;
+  margin-top: -300px;
+  transform: translateY(-1px) rotateX(90deg);   /* 1px above ambient floor to avoid z-fighting */
+  clip-path: polygon(29.3% 0%,70.7% 0%,100% 29.3%,100% 70.7%,70.7% 100%,29.3% 100%,0% 70.7%,0% 29.3%);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.10) 0%, transparent 55%),
+    repeating-conic-gradient(from 22.5deg at 50% 50%, rgba(0,0,0,0.04) 0deg 45deg, rgba(255,255,255,0.03) 45deg 90deg),
+    linear-gradient(135deg, #d8d2c4 0%, #c4bca8 45%, #a89e86 100%);
+  box-shadow:
+    inset 0 0 90px rgba(120,90,30,0.35),
+    inset 0 0 0 5px rgba(40,28,8,0.55),
+    inset 0 0 0 10px rgba(200,163,72,0.30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Inner octagon competition ring line */
+.octagon-mat-ring {
+  position: absolute;
+  inset: 86px;
+  border: 3px solid rgba(40,28,8,0.30);
   clip-path: polygon(29.3% 0%,70.7% 0%,100% 29.3%,100% 70.7%,70.7% 100%,29.3% 100%,0% 70.7%,0% 29.3%);
 }
 
-/* Center circle */
-.canvas-floor::before {
-  content: '';
-  position: absolute;
-  width: 120px;
-  height: 120px;
-  left: 50%;
-  top: 50%;
-  margin: -60px;
-  border: 3px solid rgba(0,0,0,0.20);
-  border-radius: 50%;
+/* Centre canvas logo (reads upright when viewed from the home camera) */
+.octagon-center-logo {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 2.2rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(40,28,8,0.18);
+  transform: rotate(180deg);
+  pointer-events: none;
+  user-select: none;
 }
 
 /* ── Floor advertisement panels (brand logos lying flat near each fence) ──── */
@@ -252,6 +311,223 @@
 .spot-light-2 { transform: translateX( 110px) translateY(-300px) translateZ( 60px); box-shadow: 0 0 30px 18px rgba(255,248,210,0.22); }
 .spot-light-3 { transform: translateX(   0px) translateY(-300px) translateZ(-60px); box-shadow: 0 0 30px 18px rgba(255,248,210,0.16); }
 
+/* ══ The fight ════════════════════════════════════════════════════════════ */
+/*
+ * Two upright billboard figures standing on the mat at world centre.
+ * .fight is a 0×0 anchor at the origin; each fighter's feet sit at Y = 0
+ * (margin-top: -130 lifts the 130px-tall figure so its base is on the floor).
+ */
+.fight { position: absolute; transform-style: preserve-3d; }
+
+/*
+ * Fighter motion is built from three stacked transforms so they read as a
+ * real fight — circling the ring while pressing in and breaking apart:
+ *   .fighter            turntable: rotateY around the cage centre (the lap)
+ *   .fighter-lunge      translateZ: distance from centre, pulsed in/out (exchanges)
+ *   .fighter-billboard  counter-rotateY: cancels the turntable so the flat
+ *                       silhouette always faces the camera (never goes edge-on)
+ * Y stays 0 throughout every layer, so the feet never leave the floor.
+ * Each layer needs preserve-3d so the rotations/translations compose in 3D.
+ */
+.fighter {
+  position: absolute;
+  width: 70px;
+  height: 130px;
+  margin-left: -35px;
+  margin-top: -130px;          /* feet at floor (Y = 0) */
+  transform-style: preserve-3d;
+  animation: fighter-turn 11s linear infinite;
+}
+/* Blue rides the turntable half a lap around, so the two circle each other. */
+.fighter-blue { animation-delay: -5.5s; }
+
+.fighter-lunge {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: fighter-lunge 2.3s ease-in-out infinite;
+}
+
+.fighter-billboard {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: fighter-turn-ccw 11s linear infinite;
+}
+.fighter-blue .fighter-billboard { animation-delay: -5.5s; }
+
+/* Facing flip — keeps the silhouettes mirrored without touching the motion. */
+.fighter-mirror { position: absolute; inset: 0; }
+.fighter-blue .fighter-mirror { transform: scaleX(-1); }
+
+@keyframes fighter-turn      { to { transform: rotateY(360deg); } }
+@keyframes fighter-turn-ccw  { to { transform: rotateY(-360deg); } }
+
+/* Press in toward the centre (toward the opponent) and break back out. */
+@keyframes fighter-lunge {
+  0%, 100% { transform: translateZ(170px); }
+  50%      { transform: translateZ( 78px); }
+}
+
+/* Bobbing body wrapper */
+.fighter-body {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+  animation: fighter-bob 0.9s ease-in-out infinite;
+}
+.fighter-blue .fighter-body { animation-delay: -0.45s; }
+
+@keyframes fighter-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%      { transform: translateY(-4px) rotate(1deg); }
+}
+
+/* Limbs / torso / head — silhouette built from rounded blocks */
+.fighter-red  .fighter-head,
+.fighter-red  .fighter-torso,
+.fighter-red  .fighter-arm,
+.fighter-red  .fighter-leg  { background: linear-gradient(180deg, #d24b4b 0%, #7a1f1f 100%); }
+.fighter-blue .fighter-head,
+.fighter-blue .fighter-torso,
+.fighter-blue .fighter-arm,
+.fighter-blue .fighter-leg  { background: linear-gradient(180deg, #4b6fd2 0%, #1f2f7a 100%); }
+
+.fighter-head {
+  position: absolute; top: 2px; left: 24px;
+  width: 22px; height: 22px; border-radius: 50%;
+  box-shadow: 0 0 8px rgba(0,0,0,0.5);
+}
+.fighter-torso {
+  position: absolute; top: 24px; left: 21px;
+  width: 28px; height: 48px; border-radius: 10px 10px 6px 6px;
+}
+.fighter-arm {
+  position: absolute; top: 28px;
+  width: 11px; height: 34px; border-radius: 6px;
+  transform-origin: 50% 6px;
+}
+.fighter-arm-back  { left: 14px; transform: rotate(28deg); opacity: 0.78; }
+.fighter-arm-front {
+  left: 45px;
+  animation: fighter-jab 1.8s ease-in-out infinite;
+}
+.fighter-blue .fighter-arm-front { animation-delay: -0.9s; }
+
+@keyframes fighter-jab {
+  0%, 60%, 100% { transform: rotate(20deg); }
+  70%           { transform: rotate(88deg) scaleY(1.18); }
+  80%           { transform: rotate(88deg) scaleY(1.18); }
+}
+
+.fighter-leg {
+  position: absolute; top: 68px;
+  width: 13px; height: 56px; border-radius: 6px;
+}
+.fighter-leg-back  { left: 20px; transform: rotate(8deg);  opacity: 0.82; }
+.fighter-leg-front { left: 37px; transform: rotate(-8deg); }
+
+.fighter-shadow {
+  position: absolute;
+  bottom: -6px; left: 50%;
+  width: 70px; height: 16px;
+  margin-left: -35px;
+  background: radial-gradient(ellipse, rgba(0,0,0,0.55) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+/* ══ Crowd ════════════════════════════════════════════════════════════════ */
+/*
+ * Eight tall panels ringing the cage at radius 470 (behind the fence at 300).
+ * Each is raked back slightly and filled with a dotted "heads" texture so the
+ * ring reads as a dark, packed audience.
+ */
+.crowd-panel {
+  position: absolute;
+  width: 640px;                /* > chord (~581px) at radius 760 so panels overlap */
+  height: 560px;
+  margin-left: -320px;
+  margin-top: -560px;          /* bottom at Y = 0 */
+  transform-origin: 50% 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden; /* cull near-side panels so the camera sees through to the far crowd */
+  pointer-events: none;
+  background-color: #08080b;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(60,52,40,0.55) 0%, transparent 60%),
+    radial-gradient(rgba(120,108,90,0.30) 1.4px, transparent 1.8px),
+    radial-gradient(rgba(90,80,66,0.22) 1.4px, transparent 1.8px);
+  background-size: 100% 100%, 18px 18px, 18px 18px;
+  background-position: 0 0, 0 0, 9px 9px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+  box-shadow: inset 0 -60px 80px rgba(0,0,0,0.65);
+}
+
+/* Camera flashes popping in the crowd */
+.crowd-flash {
+  position: absolute;
+  width: 3px; height: 3px;
+  margin: -1.5px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  animation-name: crowd-flash;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes crowd-flash {
+  0%, 100% { opacity: 0; box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  2%       { opacity: 1; box-shadow: 0 0 10px 4px rgba(255,255,255,0.9); }
+  10%      { opacity: 0; box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+}
+
+/* ══ Light show ═══════════════════════════════════════════════════════════ */
+/*
+ * Beams hang from the rig above centre and swing across the arena.
+ * transform-origin at the top so each beam pivots from the ceiling.
+ */
+.light-rig { position: absolute; transform-style: preserve-3d; }
+
+.beam {
+  position: absolute;
+  width: 26px;
+  height: 520px;
+  margin-left: -13px;
+  top: -360px;
+  border-radius: 50% 50% 40% 40%;
+  transform-origin: 50% 0%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  filter: blur(6px);
+  opacity: 0.55;
+}
+
+.beam-red   { background: linear-gradient(180deg, rgba(255,60,60,0.85) 0%, rgba(255,60,60,0.05) 70%, transparent 100%);  animation: beam-swing-a 5.5s ease-in-out infinite; }
+.beam-blue  { background: linear-gradient(180deg, rgba(70,110,255,0.85) 0%, rgba(70,110,255,0.05) 70%, transparent 100%); animation: beam-swing-b 6.5s ease-in-out infinite; }
+.beam-gold  { background: linear-gradient(180deg, rgba(255,205,90,0.85) 0%, rgba(255,205,90,0.05) 70%, transparent 100%); animation: beam-swing-a 7.5s ease-in-out infinite reverse; }
+.beam-white { background: linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.04) 70%, transparent 100%); animation: beam-swing-b 4.5s ease-in-out infinite reverse; }
+
+@keyframes beam-swing-a {
+  0%, 100% { transform: translateZ(40px) rotateZ(-34deg); }
+  50%      { transform: translateZ(40px) rotateZ( 30deg); }
+}
+@keyframes beam-swing-b {
+  0%, 100% { transform: translateZ(-40px) rotateZ( 36deg); }
+  50%      { transform: translateZ(-40px) rotateZ(-28deg); }
+}
+
+/* During a run the light show goes wild + the crowd flashes harder */
+.world[data-run-state="running"] .beam { animation-duration: 1.6s; opacity: 0.8; }
+.world[data-run-state="running"] .crowd-flash { animation-duration: 0.9s !important; }
+.world[data-run-state="running"] .fighter,
+.world[data-run-state="running"] .fighter-billboard { animation-duration: 4.5s; }
+.world[data-run-state="running"] .fighter-lunge { animation-duration: 1s; }
+.world[data-run-state="running"] .fighter-body { animation-duration: 0.5s; }
+.world[data-run-state="running"] .fighter-arm-front { animation-duration: 0.7s; }
+
 /* ── Step content (screen-space overlay, above the 3D scene) ────────────── */
 .arena-step-content {
   position: absolute;
@@ -271,7 +547,7 @@
   width: min(65vw, 560px);
   max-height: calc((100vh - 140px) / 1.3);
   overflow-y: auto;
-  background: rgba(4,4,4,0.90);
+  background: rgba(4,4,4,0.10);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(200,163,72,0.14);
   border-top: 2px solid rgba(200,163,72,0.42);
@@ -281,6 +557,35 @@
 
 .arena-step-content > .ufc-step-wide {
   width: min(72vw, 700px);
+}
+
+/* ── Cinematic letterbox bars ─────────────────────────────────────────────── */
+/*
+ * Black bars anchored to the top/bottom edges that grow during the middle
+ * wizard stages for a cinematic squeeze, and collapse on home + run so the
+ * arena opens back up. Sit below the step content (z-index 9 < 10) so they
+ * letterbox the 3D scene without ever covering or moving the UI. They render
+ * behind the HUD header/footer (z-index 20), reading as a taller black frame.
+ */
+.cine-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: #030303;
+  z-index: 9;
+  pointer-events: none;
+  transition: height 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.cine-bar-top    { top: 0;    box-shadow: 0  8px 20px rgba(0,0,0,0.55); }
+.cine-bar-bottom { bottom: 0; box-shadow: 0 -8px 20px rgba(0,0,0,0.55); }
+
+.arena[data-step="shopifyFile"] .cine-bar,
+.arena[data-step="vendor"]      .cine-bar,
+.arena[data-step="vendorFile"]  .cine-bar { height: 90px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-bar { transition: none; }
 }
 
 /* ── Screen-space overlays (not in 3D space) ─────────────────────────────── */
@@ -295,13 +600,13 @@
     radial-gradient(ellipse 380px 220px at 50% 0%, rgba(255,245,190,0.06) 0%, transparent 60%);
 }
 
-/* Dark crowd around edges */
+/* Dark crowd around edges (softened so the 3D crowd ring reads through) */
 .crowd-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 7;
-  background: radial-gradient(ellipse 80% 65% at 50% 42%, transparent 25%, rgba(0,0,0,0.82) 100%);
+  background: radial-gradient(ellipse 88% 72% at 50% 42%, transparent 38%, rgba(0,0,0,0.55) 78%, rgba(0,0,0,0.85) 100%);
 }
 
 /* ── Arena HUD (screen-space, above everything) ──────────────────────────── */
@@ -557,6 +862,13 @@
   border-color: rgba(80,200,80,0.48);
   border-style: solid;
   background: rgba(0,40,0,0.18);
+}
+
+/* Active drag-over state */
+.ufc-file-zone-drag {
+  border-color: rgba(200,163,72,0.85);
+  border-style: solid;
+  background: rgba(200,163,72,0.12);
 }
 
 /* ── Tab switcher ────────────────────────────────────────────────────────── */

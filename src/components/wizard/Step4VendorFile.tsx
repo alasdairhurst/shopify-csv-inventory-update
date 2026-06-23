@@ -22,6 +22,7 @@ export default function Step4VendorFile({ action, brand, onNext, onBack }: Props
   const [products, setProducts] = useState<Product[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [urlValue, setUrlValue] = useState(localStorage.getItem(`lastUrl:${brand.id}`) ?? '');
   const [urlTab, setUrlTab] = useState(!URL_CORS_DISABLED && (!supportsFile || !!localStorage.getItem(`lastUrl:${brand.id}`)));
   const [fetching, setFetching] = useState(false);
@@ -31,8 +32,7 @@ export default function Step4VendorFile({ action, brand, onNext, onBack }: Props
   const hasProducts = products !== null;
   const displayLabel = fileNames.length === 1 ? fileNames[0]! : `${fileNames.length} files`;
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
+  const processFiles = async (files: File[]) => {
     if (!files.length) return;
     setError(null);
     setLoading(true);
@@ -47,6 +47,16 @@ export default function Step4VendorFile({ action, brand, onNext, onBack }: Props
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    processFiles(Array.from(e.target.files ?? []));
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    processFiles(Array.from(e.dataTransfer.files));
   };
 
   const handleFetch = async () => {
@@ -116,7 +126,13 @@ export default function Step4VendorFile({ action, brand, onNext, onBack }: Props
         </p>
 
         {!urlTab ? (
-          <label className={`ufc-file-zone ${hasProducts ? 'ufc-file-zone-ready' : ''}`} style={fileNames.length > 2 ? { paddingTop: 12, paddingBottom: 12 } : { height: 96 }}>
+          <label
+            className={`ufc-file-zone ${hasProducts ? 'ufc-file-zone-ready' : ''} ${dragging ? 'ufc-file-zone-drag' : ''}`}
+            style={fileNames.length > 2 ? { paddingTop: 12, paddingBottom: 12 } : { height: 96 }}
+            onDragOver={e => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={e => { e.preventDefault(); setDragging(false); }}
+            onDrop={handleDrop}
+          >
             {loading ? (
               <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Loading…</span>
             ) : hasProducts ? (
