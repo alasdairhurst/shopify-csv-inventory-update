@@ -46,34 +46,67 @@ const mockBrands: Brand[] = [
 
 describe('Step3Vendor', () => {
   it('shows only brands applicable to the selected action (inventory)', () => {
-    render(<Step3Vendor action="inventory" onSelect={vi.fn()} onBack={vi.fn()} />);
+    render(<Step3Vendor action="inventory" onContinue={vi.fn()} onBack={vi.fn()} />);
     expect(screen.getByText('Alpha Co')).toBeInTheDocument();
     expect(screen.queryByText('Beta Inc')).not.toBeInTheDocument();
     expect(screen.getByText('Gamma Ltd')).toBeInTheDocument();
   });
 
   it('shows only brands applicable to addProducts action', () => {
-    render(<Step3Vendor action="addProducts" onSelect={vi.fn()} onBack={vi.fn()} />);
+    render(<Step3Vendor action="addProducts" onContinue={vi.fn()} onBack={vi.fn()} />);
     expect(screen.queryByText('Alpha Co')).not.toBeInTheDocument();
     expect(screen.getByText('Beta Inc')).toBeInTheDocument();
     expect(screen.getByText('Gamma Ltd')).toBeInTheDocument();
   });
 
-  it('calls onSelect with the correct brand when clicked', async () => {
+  it('Continue is disabled until at least one vendor is selected', async () => {
     const user = userEvent.setup();
-    const onSelect = vi.fn();
-    render(<Step3Vendor action="inventory" onSelect={onSelect} onBack={vi.fn()} />);
+    render(<Step3Vendor action="inventory" onContinue={vi.fn()} onBack={vi.fn()} />);
+    expect(screen.getByText('Continue →')).toBeDisabled();
     await user.click(screen.getByText('Alpha Co'));
-    expect(onSelect).toHaveBeenCalledWith(mockBrands[0]);
+    expect(screen.getByText('Continue →')).not.toBeDisabled();
+  });
+
+  it('calls onContinue with the selected brand', async () => {
+    const user = userEvent.setup();
+    const onContinue = vi.fn();
+    render(<Step3Vendor action="inventory" onContinue={onContinue} onBack={vi.fn()} />);
+    await user.click(screen.getByText('Alpha Co'));
+    await user.click(screen.getByText('Continue →'));
+    expect(onContinue).toHaveBeenCalledWith([mockBrands[0]]);
+  });
+
+  it('selects multiple vendors and passes them in selection order', async () => {
+    const user = userEvent.setup();
+    const onContinue = vi.fn();
+    render(<Step3Vendor action="inventory" onContinue={onContinue} onBack={vi.fn()} />);
+    await user.click(screen.getByText('Gamma Ltd'));
+    await user.click(screen.getByText('Alpha Co'));
+    await user.click(screen.getByText('Continue (2) →'));
+    expect(onContinue).toHaveBeenCalledWith([mockBrands[2], mockBrands[0]]);
+  });
+
+  it('toggles a vendor off when clicked twice', async () => {
+    const user = userEvent.setup();
+    render(<Step3Vendor action="inventory" onContinue={vi.fn()} onBack={vi.fn()} />);
+    await user.click(screen.getByText('Alpha Co'));
+    expect(screen.getByText('Continue →')).not.toBeDisabled();
+    await user.click(screen.getByText('Alpha Co'));
+    expect(screen.getByText('Continue →')).toBeDisabled();
+  });
+
+  it('pre-selects vendors passed via initialSelected', () => {
+    render(<Step3Vendor action="inventory" initialSelected={[mockBrands[0]!]} onContinue={vi.fn()} onBack={vi.fn()} />);
+    expect(screen.getByText('Continue →')).not.toBeDisabled();
   });
 
   it('renders large-icon layout for brands with size=large icon', () => {
-    render(<Step3Vendor action="addProducts" onSelect={vi.fn()} onBack={vi.fn()} />);
+    render(<Step3Vendor action="addProducts" onContinue={vi.fn()} onBack={vi.fn()} />);
     expect(screen.getByAltText('Beta Inc')).toBeInTheDocument();
   });
 
   it('renders emoji icon for brands with string icon', () => {
-    render(<Step3Vendor action="inventory" onSelect={vi.fn()} onBack={vi.fn()} />);
+    render(<Step3Vendor action="inventory" onContinue={vi.fn()} onBack={vi.fn()} />);
     expect(screen.getByText('🅰️')).toBeInTheDocument();
   });
 });

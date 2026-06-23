@@ -576,13 +576,14 @@
   z-index: 9;
   pointer-events: none;
   transition: height 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	height: 15vh;
 }
 .cine-bar-top    { top: 0;    box-shadow: 0  8px 20px rgba(0,0,0,0.55); }
 .cine-bar-bottom { bottom: 0; box-shadow: 0 -8px 20px rgba(0,0,0,0.55); }
 
 .arena[data-step="shopifyFile"] .cine-bar,
 .arena[data-step="vendor"]      .cine-bar,
-.arena[data-step="vendorFile"]  .cine-bar { height: 90px; }
+.arena[data-step="vendorFile"]  .cine-bar { height: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .cine-bar { transition: none; }
@@ -635,6 +636,82 @@
 .arena-hud-footer {
   margin-top: auto;
   flex-shrink: 0;
+}
+
+/* ── Hide-interface button (header, pushed to the right) ─────────────────── */
+.arena-hide-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Oswald', 'Arial Narrow', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(200,163,72,0.55);
+  background: rgba(200,163,72,0.06);
+  border: 1px solid rgba(200,163,72,0.22);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.arena-hide-btn:hover {
+  color: #c9a84c;
+  border-color: rgba(200,163,72,0.6);
+  background: rgba(200,163,72,0.12);
+}
+
+/* ── Cinematic-mode "Start" button (lower centre) ───────────────────────── */
+.cinematic-start {
+  position: absolute;
+  left: 50%;
+  bottom: 16vh;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Oswald', 'Arial Narrow', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #f0e2b6;
+  background: rgba(8,7,3,0.72);
+  border: 1px solid rgba(200,163,72,0.5);
+  border-radius: 999px;
+  padding: 12px 30px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.55), 0 0 22px rgba(200,163,72,0.12);
+  animation: cinematic-start-pulse 3.2s ease-in-out infinite;
+  transition: color 0.2s, border-color 0.2s, background 0.2s, transform 0.2s;
+}
+.cinematic-start:hover {
+  color: #fff;
+  border-color: #c9a84c;
+  background: rgba(20,16,6,0.85);
+  transform: translateX(-50%) translateY(-2px);
+}
+.cinematic-start-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c9a84c 0%, #a8892e 100%);
+  color: #030303;
+  font-size: 0.66rem;
+  padding-left: 2px;
+}
+@keyframes cinematic-start-pulse {
+  0%, 100% { box-shadow: 0 6px 28px rgba(0,0,0,0.55), 0 0 18px rgba(200,163,72,0.10); }
+  50%      { box-shadow: 0 6px 28px rgba(0,0,0,0.55), 0 0 30px rgba(200,163,72,0.28); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-start { animation: none; }
 }
 
 /* ── UFC content panel ───────────────────────────────────────────────────── */

@@ -1,4 +1,4 @@
-import type { Vendor, Product } from './vendors/vendor.ts';
+import type { Product } from './vendors/vendor.ts';
 import { shopifyVendor } from './vendors/index.ts';
 import type { ShopifyInventoryProduct } from './vendors/shopify.ts';
 import updateInventory from './functions/updateInventory.ts';
@@ -9,13 +9,12 @@ import ExpectedError from './utils/ExpectedError.ts';
 
 export async function runUpdateInventory(
   shopifyProducts: Product[],
-  vendorProducts: Product[],
-  vendor: Vendor<any>,
+  vendorProducts: Record<string, Product[]>,
   opts: { maxQuantity: number }
 ): Promise<string> {
   const result = updateInventory(
     shopifyProducts as ShopifyInventoryProduct[],
-    { [vendor.name]: vendorProducts },
+    vendorProducts,
     opts
   );
   if (!result.length) throw new ExpectedError('Nothing to export');
@@ -24,21 +23,19 @@ export async function runUpdateInventory(
 
 export async function runAddProducts(
   shopifyProducts: Product[],
-  vendorProducts: Product[],
-  vendor: Vendor<any>
+  vendorProducts: Record<string, Product[]>
 ): Promise<string> {
-  const result = addProducts(shopifyProducts as any, { [vendor.name]: vendorProducts });
+  const result = addProducts(shopifyProducts as any, vendorProducts);
   if (!result.length) throw new ExpectedError('Nothing to export');
   return csv.unparse(result, { columns: shopifyVendor.expectedHeaders });
 }
 
 export async function runUpdateProducts(
   shopifyProducts: Product[],
-  vendorProducts: Product[],
-  vendor: Vendor<any>,
+  vendorProducts: Record<string, Product[]>,
   opts: { updateImages: boolean }
 ): Promise<string> {
-  const result = updateProducts(shopifyProducts as any, { [vendor.name]: vendorProducts }, opts);
+  const result = updateProducts(shopifyProducts as any, vendorProducts, opts);
   if (!result.length) throw new ExpectedError('Nothing to export');
   return csv.unparse(result, { columns: shopifyVendor.expectedHeaders });
 }

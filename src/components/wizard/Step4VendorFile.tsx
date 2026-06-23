@@ -10,16 +10,23 @@ interface Props {
   brand: Brand;
   onNext: (products: Product[], fileName: string) => void;
   onBack: () => void;
+  /** Zero-based position of this vendor among those selected (for paging). */
+  stepIndex?: number;
+  /** Total number of vendors whose feeds are being collected. */
+  stepTotal?: number;
+  /** Feed already collected for this vendor (when paging back to it). */
+  initialProducts?: Product[] | null;
+  initialFileName?: string | null;
 }
 
-export default function Step4VendorFile({ action, brand, onNext, onBack }: Props) {
+export default function Step4VendorFile({ action, brand, onNext, onBack, stepIndex = 0, stepTotal = 1, initialProducts = null, initialFileName = null }: Props) {
   const vendorInstance = brand.vendorFor[action]!();
   const { supportsFile, supportsURL } = vendorInstance.urlConfig;
   const URL_CORS_DISABLED = true; // Temporarily disabled until CORS is resolved
   const showBothTabs = supportsFile && supportsURL && !URL_CORS_DISABLED;
 
-  const [fileNames, setFileNames] = useState<string[]>([]);
-  const [products, setProducts] = useState<Product[] | null>(null);
+  const [fileNames, setFileNames] = useState<string[]>(initialFileName ? [initialFileName] : []);
+  const [products, setProducts] = useState<Product[] | null>(initialProducts);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -96,7 +103,7 @@ export default function Step4VendorFile({ action, brand, onNext, onBack }: Props
 
       <div style={{ marginBottom: 22 }}>
         <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(200,163,72,0.5)', marginBottom: 4 }}>
-          Step 3 — Vendor Feed
+          Step 3 — Vendor Feed{stepTotal > 1 ? ` · ${stepIndex + 1} of ${stepTotal}` : ''}
         </p>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#fff', margin: 0 }}>
           Upload the {brand.name} file
@@ -207,7 +214,7 @@ export default function Step4VendorFile({ action, brand, onNext, onBack }: Props
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
         <button className="ufc-btn-secondary" onClick={onBack}>← Back</button>
         <button className="ufc-btn-primary" onClick={handleNext} disabled={loading || fetching || !hasProducts}>
-          Next →
+          {stepIndex < stepTotal - 1 ? 'Next vendor →' : 'Next →'}
         </button>
       </div>
     </div>

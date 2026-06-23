@@ -10,30 +10,42 @@ export interface WizardSettings {
   updateImages: boolean;
 }
 
+/** A vendor feed collected during the vendorFile step, keyed by brand id. */
+export interface VendorFile {
+  fileName: string;
+  products: Product[];
+}
+
 export interface WizardState {
   step: WizardStep;
   action?: WizardAction;
-  brand?: Brand;
+  /** Vendors selected in the vendor step, in the order their feeds are collected. */
+  brands: Brand[];
+  /** Index of the brand whose feed is currently being collected in the vendorFile step. */
+  vendorIndex: number;
   shopifyFileName?: string;
-  vendorFileName?: string;
   shopifyProducts?: Product[];
-  vendorProducts?: Product[];
+  /** Collected vendor feeds, keyed by brand id. */
+  vendorFiles: Record<string, VendorFile>;
   settings: WizardSettings;
   runState: RunState;
   resultCSV?: string;
   errorMessage?: string;
+  /** When true the wizard UI is hidden and only the background scene plays. */
+  cinematic?: boolean;
 }
 
 export type WizardDispatch =
   | { type: 'SET_ACTION'; action: WizardAction }
-  | { type: 'SET_BRAND'; brand: Brand }
+  | { type: 'SET_BRANDS'; brands: Brand[] }
   | { type: 'SET_SHOPIFY_FILE'; products: Product[]; fileName: string }
-  | { type: 'SET_VENDOR_FILE'; products: Product[]; fileName: string }
+  | { type: 'SET_VENDOR_FILE'; brandId: string; products: Product[]; fileName: string }
   | { type: 'SET_SETTINGS'; settings: Partial<WizardSettings> }
   | { type: 'START_RUN' }
   | { type: 'RUN_DONE'; resultCSV: string }
   | { type: 'RUN_ERROR'; message: string }
   | { type: 'RESET_RUN' }
+  | { type: 'ENTER_CINEMATIC' }
   | { type: 'BACK' }
   | { type: 'NAVIGATE_TO'; step: WizardStep };
 

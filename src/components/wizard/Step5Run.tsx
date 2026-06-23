@@ -1,5 +1,7 @@
+import { Fragment } from 'react';
 import type { WizardState, WizardDispatch } from './types.ts';
 import { ACTION_LABELS } from './types.ts';
+import type { Product } from '../../vendors/vendor.ts';
 import CSVPreview from '../CSVPreview.tsx';
 import Spinner from '../Spinner.tsx';
 import { downloadTextFile } from '../../files/download.ts';
@@ -17,8 +19,8 @@ interface Props {
 }
 
 export default function Step5Run({ state, dispatch }: Props) {
-  const { action, brand, shopifyFileName, vendorFileName, settings, runState, resultCSV, errorMessage } = state;
-  if (!action || !brand) return null;
+  const { action, brands, shopifyFileName, vendorFiles, settings, runState, resultCSV, errorMessage } = state;
+  if (!action || !brands.length) return null;
 
   const { title } = ACTION_LABELS[action];
   const isLocked = runState !== 'idle';
@@ -33,14 +35,21 @@ export default function Step5Run({ state, dispatch }: Props) {
     // before the synchronous CSV work blocks the thread.
     await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     try {
-      const vendor = brand.vendorFor[action]!();
+      // Collect every selected vendor's feed into a map keyed by vendor name,
+      // which is how the underlying functions look products up per vendor.
+      const vendorProducts: Record<string, Product[]> = {};
+      for (const b of brands) {
+        const entry = vendorFiles[b.id];
+        if (!entry) continue;
+        vendorProducts[b.vendorFor[action]!().name] = entry.products;
+      }
       let csv: string;
       if (action === 'inventory') {
-        csv = await runUpdateInventory(state.shopifyProducts!, state.vendorProducts!, vendor, { maxQuantity: settings.maxQuantity });
+        csv = await runUpdateInventory(state.shopifyProducts!, vendorProducts, { maxQuantity: settings.maxQuantity });
       } else if (action === 'addProducts') {
-        csv = await runAddProducts(state.shopifyProducts!, state.vendorProducts!, vendor);
+        csv = await runAddProducts(state.shopifyProducts!, vendorProducts);
       } else {
-        csv = await runUpdateProducts(state.shopifyProducts!, state.vendorProducts!, vendor, { updateImages: settings.updateImages });
+        csv = await runUpdateProducts(state.shopifyProducts!, vendorProducts, { updateImages: settings.updateImages });
       }
       dispatch({ type: 'RUN_DONE', resultCSV: csv });
     } catch (err) {
@@ -80,17 +89,19 @@ export default function Step5Run({ state, dispatch }: Props) {
         <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 20px', fontSize: '0.82rem' }}>
           <dt style={{ color: 'rgba(200,163,72,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.72rem' }}>Action</dt>
           <dd style={{ color: '#fff' }}>{title}</dd>
-          <dt style={{ color: 'rgba(200,163,72,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.72rem' }}>Vendor</dt>
-          <dd style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-            {typeof brand.icon === 'string'
-              ? <span>{brand.icon}</span>
-              : <img src={brand.icon.url} alt={brand.name} style={{ width: 18, height: 18, objectFit: 'contain' }} />}
-            <span>{brand.name}</span>
-          </dd>
           <dt style={{ color: 'rgba(200,163,72,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.72rem' }}>Shopify</dt>
           <dd style={{ color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shopifyFileName ?? '—'}</dd>
-          <dt style={{ color: 'rgba(200,163,72,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.72rem' }}>Vendor</dt>
-          <dd style={{ color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vendorFileName ?? '—'}</dd>
+          {brands.map(b => (
+            <Fragment key={b.id}>
+              <dt style={{ color: 'rgba(200,163,72,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {typeof b.icon === 'string'
+                  ? <span>{b.icon}</span>
+                  : <img src={b.icon.url} alt={b.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />}
+                <span>{b.name}</span>
+              </dt>
+              <dd style={{ color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vendorFiles[b.id]?.fileName ?? '—'}</dd>
+            </Fragment>
+          ))}
         </dl>
       </div>
 

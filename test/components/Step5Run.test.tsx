@@ -39,11 +39,11 @@ const mockBrand = {
 const makeState = (overrides: Partial<WizardState> = {}): WizardState => ({
   step: 'run',
   action: 'inventory',
-  brand: mockBrand,
+  brands: [mockBrand],
+  vendorIndex: 0,
   shopifyFileName: 'shopify.csv',
-  vendorFileName: 'vendor.csv',
   shopifyProducts: [{ Handle: 'h1' }] as any[],
-  vendorProducts: [{ Code: 'c1' }] as any[],
+  vendorFiles: { test: { fileName: 'vendor.csv', products: [{ Code: 'c1' }] as any[] } },
   settings: { maxQuantity: 5, updateImages: false },
   runState: 'idle',
   ...overrides,
@@ -84,7 +84,7 @@ describe('Step5Run', () => {
     render(<Step5Run state={makeState({ action: 'inventory' })} dispatch={dispatch} />);
     await user.click(screen.getByText('Run ▶'));
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'RUN_DONE' })));
-    expect(mockRunInventory).toHaveBeenCalledWith([{ Handle: 'h1' }], [{ Code: 'c1' }], mockVendor, { maxQuantity: 5 });
+    expect(mockRunInventory).toHaveBeenCalledWith([{ Handle: 'h1' }], { TestVendor: [{ Code: 'c1' }] }, { maxQuantity: 5 });
   });
 
   it('calls runAddProducts on Run click for addProducts action', async () => {
@@ -93,7 +93,7 @@ describe('Step5Run', () => {
     render(<Step5Run state={makeState({ action: 'addProducts' })} dispatch={dispatch} />);
     await user.click(screen.getByText('Run ▶'));
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'RUN_DONE' })));
-    expect(mockRunAdd).toHaveBeenCalledWith([{ Handle: 'h1' }], [{ Code: 'c1' }], mockVendor);
+    expect(mockRunAdd).toHaveBeenCalledWith([{ Handle: 'h1' }], { TestVendor: [{ Code: 'c1' }] });
   });
 
   it('calls runUpdateProducts on Run click for editProducts action', async () => {
@@ -102,7 +102,7 @@ describe('Step5Run', () => {
     render(<Step5Run state={makeState({ action: 'editProducts' })} dispatch={dispatch} />);
     await user.click(screen.getByText('Run ▶'));
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'RUN_DONE' })));
-    expect(mockRunUpdate).toHaveBeenCalledWith([{ Handle: 'h1' }], [{ Code: 'c1' }], mockVendor, { updateImages: false });
+    expect(mockRunUpdate).toHaveBeenCalledWith([{ Handle: 'h1' }], { TestVendor: [{ Code: 'c1' }] }, { updateImages: false });
   });
 
   it('dispatches RUN_ERROR with message when orchestrate throws', async () => {

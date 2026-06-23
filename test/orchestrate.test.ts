@@ -26,9 +26,9 @@ const mockAddProducts = vi.mocked(addProducts);
 const mockUpdateProducts = vi.mocked(updateProducts);
 const mockUnparse = vi.mocked(csv.unparse);
 
-const mockVendor = { name: 'MockVendor', importLabel: '', expectedHeaders: [], getSKU: () => '', urlConfig: { supportsFile: true, supportsURL: true } };
 const shopifyRows = [{ Handle: 'h1' }] as any[];
 const vendorRows = [{ Code: 'c1' }] as any[];
+const vendorMap = { MockVendor: vendorRows };
 const resultRows = [{ Handle: 'result' }] as any[];
 
 describe('orchestrate', () => {
@@ -43,18 +43,18 @@ describe('orchestrate', () => {
     });
 
     it('passes shopify products to updateInventory', async () => {
-      await runUpdateInventory(shopifyRows, vendorRows, mockVendor as any, { maxQuantity: 5 });
-      expect(mockUpdateInventory).toHaveBeenCalledWith(shopifyRows, { MockVendor: vendorRows }, { maxQuantity: 5 });
+      await runUpdateInventory(shopifyRows, vendorMap, { maxQuantity: 5 });
+      expect(mockUpdateInventory).toHaveBeenCalledWith(shopifyRows, vendorMap, { maxQuantity: 5 });
     });
 
     it('returns the unparsed CSV string', async () => {
-      const result = await runUpdateInventory(shopifyRows, vendorRows, mockVendor as any, { maxQuantity: 5 });
+      const result = await runUpdateInventory(shopifyRows, vendorMap, { maxQuantity: 5 });
       expect(result).toBe('Handle\nresult');
     });
 
     it('throws ExpectedError when result is empty', async () => {
       mockUpdateInventory.mockReturnValue([]);
-      await expect(runUpdateInventory(shopifyRows, vendorRows, mockVendor as any, { maxQuantity: 5 }))
+      await expect(runUpdateInventory(shopifyRows, vendorMap, { maxQuantity: 5 }))
         .rejects.toThrow('Nothing to export');
     });
   });
@@ -65,18 +65,18 @@ describe('orchestrate', () => {
     });
 
     it('passes products to addProducts keyed by vendor name', async () => {
-      await runAddProducts(shopifyRows, vendorRows, mockVendor as any);
-      expect(mockAddProducts).toHaveBeenCalledWith(shopifyRows, { MockVendor: vendorRows });
+      await runAddProducts(shopifyRows, vendorMap);
+      expect(mockAddProducts).toHaveBeenCalledWith(shopifyRows, vendorMap);
     });
 
     it('unparsed with shopifyVendor.expectedHeaders as columns', async () => {
-      await runAddProducts(shopifyRows, vendorRows, mockVendor as any);
+      await runAddProducts(shopifyRows, vendorMap);
       expect(mockUnparse).toHaveBeenCalledWith(resultRows, { columns: shopifyVendor.expectedHeaders });
     });
 
     it('throws ExpectedError when result is empty', async () => {
       mockAddProducts.mockReturnValue([]);
-      await expect(runAddProducts(shopifyRows, vendorRows, mockVendor as any))
+      await expect(runAddProducts(shopifyRows, vendorMap))
         .rejects.toThrow('Nothing to export');
     });
   });
@@ -87,13 +87,13 @@ describe('orchestrate', () => {
     });
 
     it('passes products to updateProducts with options', async () => {
-      await runUpdateProducts(shopifyRows, vendorRows, mockVendor as any, { updateImages: true });
-      expect(mockUpdateProducts).toHaveBeenCalledWith(shopifyRows, { MockVendor: vendorRows }, { updateImages: true });
+      await runUpdateProducts(shopifyRows, vendorMap, { updateImages: true });
+      expect(mockUpdateProducts).toHaveBeenCalledWith(shopifyRows, vendorMap, { updateImages: true });
     });
 
     it('throws ExpectedError when result is empty', async () => {
       mockUpdateProducts.mockReturnValue([]);
-      await expect(runUpdateProducts(shopifyRows, vendorRows, mockVendor as any, { updateImages: false }))
+      await expect(runUpdateProducts(shopifyRows, vendorMap, { updateImages: false }))
         .rejects.toThrow('Nothing to export');
     });
   });
