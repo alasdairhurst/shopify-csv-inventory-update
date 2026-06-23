@@ -1,7 +1,5 @@
 import type { WizardState, WizardDispatch } from './types.ts';
 import { ACTION_LABELS } from './types.ts';
-import BackButton from './BackButton.tsx';
-import Spinner from '../Spinner.tsx';
 import CSVPreview from '../CSVPreview.tsx';
 import { downloadTextFile } from '../../files/download.ts';
 import { runUpdateInventory, runAddProducts, runUpdateProducts } from '../../orchestrate.ts';
@@ -52,51 +50,57 @@ export default function Step5Run({ state, dispatch }: Props) {
   const handleSettingChange = (key: keyof typeof settings, value: number | boolean) => {
     if (isLocked) return;
     const updated = { ...settings, [key]: value };
-    if (key === 'maxQuantity') {
-      localStorage.setItem('settings:maxQuantity', String(value));
-    }
+    if (key === 'maxQuantity') localStorage.setItem('settings:maxQuantity', String(value));
     dispatch({ type: 'SET_SETTINGS', settings: updated });
   };
 
   const hasSettings = action === 'inventory' || action === 'editProducts';
+  const stageLabel = runState === 'done' ? 'Complete' : runState === 'running' ? 'Processing…' : 'Review & Run';
 
   return (
-    <div>
-      {runState === 'idle' && <BackButton onClick={() => dispatch({ type: 'BACK' })} />}
-
-      <div className="mt-4 mb-6">
-        <h2 className="text-2xl font-bold">
-          {runState === 'done' ? 'Complete' : runState === 'running' ? 'Processing…' : 'Review and run'}
+    <div className="ufc-step-wide">
+      <div style={{ marginBottom: 22 }}>
+        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(200,163,72,0.5)', marginBottom: 4 }}>
+          Step 4 — Execute
+        </p>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#fff', margin: 0 }}>
+          {stageLabel}
         </h2>
       </div>
 
       {/* Summary */}
-      <section className="bg-[#1e2127] border border-[#3a3f4b] rounded-xl p-5 mb-4">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Summary</h3>
-        <dl className="grid grid-cols-[auto,1fr] gap-x-5 gap-y-2 text-sm">
-          <dt className="text-gray-500">Action</dt>
-          <dd className="text-white">{title}</dd>
-          <dt className="text-gray-500">Vendor</dt>
-          <dd className="text-white flex items-center gap-2">
+      <div className="ufc-panel" style={{ marginBottom: 12 }}>
+        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(200,163,72,0.45)', marginBottom: 12 }}>
+          Summary
+        </p>
+        <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 20px', fontSize: '0.82rem' }}>
+          <dt style={{ color: 'rgba(200,163,72,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.72rem' }}>Action</dt>
+          <dd style={{ color: '#fff' }}>{title}</dd>
+          <dt style={{ color: 'rgba(200,163,72,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.72rem' }}>Vendor</dt>
+          <dd style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
             {typeof brand.icon === 'string'
               ? <span>{brand.icon}</span>
-              : <img src={brand.icon.url} alt={brand.name} className="w-5 h-5 object-contain" />}
+              : <img src={brand.icon.url} alt={brand.name} style={{ width: 18, height: 18, objectFit: 'contain' }} />}
             <span>{brand.name}</span>
           </dd>
-          <dt className="text-gray-500">Shopify file</dt>
-          <dd className="text-white truncate">{shopifyFileName ?? '—'}</dd>
-          <dt className="text-gray-500">Vendor file</dt>
-          <dd className="text-white truncate">{vendorFileName ?? '—'}</dd>
+          <dt style={{ color: 'rgba(200,163,72,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.72rem' }}>Shopify</dt>
+          <dd style={{ color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shopifyFileName ?? '—'}</dd>
+          <dt style={{ color: 'rgba(200,163,72,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.72rem' }}>Vendor</dt>
+          <dd style={{ color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vendorFileName ?? '—'}</dd>
         </dl>
-      </section>
+      </div>
 
       {/* Settings */}
       {hasSettings && (
-        <section className={`bg-[#1e2127] border border-[#3a3f4b] rounded-xl p-5 mb-5 transition-opacity ${isLocked ? 'opacity-50' : ''}`}>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Settings</h3>
+        <div className="ufc-panel" style={{ marginBottom: 16, opacity: isLocked ? 0.45 : 1, transition: 'opacity 0.2s' }}>
+          <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(200,163,72,0.45)', marginBottom: 12 }}>
+            Settings
+          </p>
           {action === 'inventory' && (
-            <div className="flex items-center gap-4">
-              <label htmlFor="maxQuantity" className="text-sm text-gray-300">Maximum stock level</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <label htmlFor="maxQuantity" style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Maximum stock level
+              </label>
               <input
                 id="maxQuantity"
                 type="number"
@@ -104,54 +108,53 @@ export default function Step5Run({ state, dispatch }: Props) {
                 value={settings.maxQuantity}
                 onChange={e => handleSettingChange('maxQuantity', Number(e.target.value))}
                 disabled={isLocked}
-                className="w-20 bg-[#282c34] border border-[#3a3f4b] rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-cyan-400 disabled:cursor-not-allowed"
+                className="ufc-number-input"
               />
             </div>
           )}
           {action === 'editProducts' && (
-            <div className="flex items-center gap-3">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <input
                 id="updateImages"
                 type="checkbox"
                 checked={settings.updateImages}
                 onChange={e => handleSettingChange('updateImages', e.target.checked)}
                 disabled={isLocked}
-                className="w-4 h-4 accent-cyan-400 disabled:cursor-not-allowed"
+                style={{ width: 16, height: 16, accentColor: '#c9a84c', cursor: isLocked ? 'not-allowed' : 'pointer' }}
               />
-              <label htmlFor="updateImages" className="text-sm text-gray-300">Update variant images</label>
+              <label htmlFor="updateImages" style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em', cursor: isLocked ? 'not-allowed' : 'pointer' }}>
+                Update variant images
+              </label>
             </div>
           )}
-        </section>
+        </div>
       )}
 
       {/* Run button */}
       {runState === 'idle' && (
-        <div className="flex justify-end">
-          <button
-            onClick={handleRun}
-            className="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
-          >
-            Run ▶
-          </button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 14 }}>
+          <button className="ufc-btn-secondary" onClick={() => dispatch({ type: 'BACK' })}>← Back</button>
+          <button className="run-btn" onClick={handleRun}>Run ▶</button>
         </div>
       )}
 
       {/* Running */}
       {runState === 'running' && (
-        <div className="flex flex-col items-center py-10 gap-4">
-          <Spinner />
-          <p className="text-gray-400 text-sm">Processing…</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0', gap: 16 }}>
+          <div style={{ width: 36, height: 36, border: '3px solid rgba(200,163,72,0.2)', borderTopColor: '#c9a84c', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Processing…</p>
         </div>
       )}
 
       {/* Error */}
       {runState === 'error' && (
-        <div className="bg-red-900/30 border border-red-700 rounded-xl p-4 mt-4">
-          <p className="text-red-300 text-sm font-medium mb-1">Something went wrong</p>
-          <p className="text-red-200 text-sm whitespace-pre-wrap">{errorMessage}</p>
+        <div style={{ background: 'rgba(120,10,10,0.25)', border: '1px solid rgba(180,40,40,0.5)', padding: '16px 18px', marginTop: 12 }}>
+          <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#e07070', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Something went wrong</p>
+          <p style={{ fontSize: '0.8rem', color: '#d08080', whiteSpace: 'pre-wrap' }}>{errorMessage}</p>
           <button
             onClick={() => dispatch({ type: 'RESET_RUN' })}
-            className="mt-3 px-4 py-1.5 bg-red-700 hover:bg-red-600 text-white text-sm rounded-lg transition-colors"
+            className="ufc-btn-secondary"
+            style={{ marginTop: 12 }}
           >
             Try again
           </button>
@@ -160,27 +163,32 @@ export default function Step5Run({ state, dispatch }: Props) {
 
       {/* Result */}
       {runState === 'done' && resultCSV && (
-        <div className="mt-2">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-gray-400">Preview the output below before downloading.</p>
+        <div style={{ marginTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Preview output before downloading
+            </p>
             <button
               onClick={() => downloadTextFile(resultCSV, downloadName, 'text/csv')}
-              className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="ufc-btn-primary"
             >
               ⬇ Download CSV
             </button>
           </div>
           <CSVPreview csv={resultCSV} />
-          <div className="mt-8 pt-6 border-t border-[#3a3f4b]">
+          <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid rgba(200,163,72,0.12)' }}>
             <button
               onClick={() => dispatch({ type: 'SET_ACTION', action })}
-              className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+              className="ufc-btn-secondary"
+              style={{ fontSize: '0.76rem' }}
             >
               ← Start another run
             </button>
           </div>
         </div>
       )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

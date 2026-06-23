@@ -35,22 +35,29 @@ interface Props {
 export default function Step1Home({ onSelect }: Props) {
   return (
     <div>
-      <div className="mb-10">
-        <h2 className="text-3xl font-bold mb-3">What would you like to update?</h2>
-        <p className="text-gray-400 max-w-lg">
-          Choose an operation below. You'll be guided through selecting your vendor and uploading the files needed.
+      <div style={{ marginBottom: 28 }}>
+        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(200,163,72,0.5)', marginBottom: 6 }}>
+          Select Operation
         </p>
+        <h2 style={{ fontSize: '1.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#fff', margin: 0 }}>
+          What would you like to update?
+        </h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
         {cards.map(({ action, icon, title, description }) => (
           <button
             key={action}
             onClick={() => onSelect(action)}
-            className="text-left bg-[#1e2127] border border-[#3a3f4b] rounded-xl p-6 hover:border-cyan-400 transition-colors cursor-pointer focus:outline-none focus:border-cyan-400 group"
+            className="ufc-action-card"
           >
-            <div className="text-3xl mb-4">{icon}</div>
-            <div className="text-base font-semibold mb-2 group-hover:text-cyan-400 transition-colors">{title}</div>
-            <div className="text-sm text-gray-400 leading-relaxed">{description}</div>
+            <div style={{ fontSize: '2rem', marginBottom: 14 }}>{icon}</div>
+            <div style={{ fontSize: '0.92rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#c9a84c', marginBottom: 10 }}>
+              {title}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.42)', lineHeight: 1.55, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
+              {description}
+            </div>
           </button>
         ))}
       </div>

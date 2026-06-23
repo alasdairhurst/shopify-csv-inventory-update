@@ -58,7 +58,7 @@ export default function LogPanel({ version }: Props) {
     setFilter(f => ({ ...f, [level]: !f[level] }));
 
   return (
-    <div className="border-t border-[#3a3f4b] bg-[#1a1d23] sticky bottom-0">
+    <div className="ufc-log-bar">
       {/* Always-visible bar */}
       <div className="flex items-center gap-3 px-4 py-2">
         {/* Log label + level filters */}
@@ -96,7 +96,7 @@ export default function LogPanel({ version }: Props) {
 
       {/* Expandable log area */}
       {open && (
-        <div className="h-40 overflow-y-auto px-4 pb-3 border-t border-[#3a3f4b] font-mono">
+        <div className="h-40 overflow-y-auto px-4 pb-3 font-mono" style={{ borderTop: '1px solid rgba(200,163,72,0.12)' }}>
           {hiddenCount > 0 && (
             <div className="text-xs text-gray-600 py-1">{hiddenCount} earlier entries not shown</div>
           )}

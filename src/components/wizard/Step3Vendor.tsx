@@ -3,7 +3,6 @@ import type { Brand } from '../../vendors/brand.ts';
 import type { BrandIcon } from '../../vendors/brands.ts';
 import type { WizardAction } from './types.ts';
 import { ACTION_LABELS } from './types.ts';
-import BackButton from './BackButton.tsx';
 
 interface Props {
   action: WizardAction;
@@ -15,27 +14,23 @@ function isLargeIcon(icon: BrandIcon): icon is { url: string; size: 'large' } {
   return typeof icon === 'object' && icon.size === 'large';
 }
 
-function SmallBrandIcon({ brand }: { brand: Brand }) {
-  if (typeof brand.icon === 'string') {
-    return <span className="text-3xl">{brand.icon}</span>;
-  }
-  return <img src={brand.icon.url} alt={brand.name} className="w-10 h-10 object-contain" />;
-}
-
-const CARD_BASE = 'bg-[#1e2127] border border-[#3a3f4b] hover:border-cyan-400 transition-colors cursor-pointer focus:outline-none focus:border-cyan-400 group rounded-xl';
-
-export default function Step2Vendor({ action, onSelect, onBack }: Props) {
+export default function Step3Vendor({ action, onSelect, onBack }: Props) {
   const available = brandsForAction(action);
   const { subtitle } = ACTION_LABELS[action];
 
   return (
     <div>
-      <BackButton onClick={onBack} />
-      <div className="mt-4 mb-8">
-        <h2 className="text-2xl font-bold mb-2">Choose your vendor</h2>
-        <p className="text-gray-400 text-sm">{subtitle}</p>
+      <div style={{ marginBottom: 22 }}>
+        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(200,163,72,0.5)', marginBottom: 4 }}>
+          Step 2 — Vendor
+        </p>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#fff', margin: 0 }}>
+          Choose your vendor
+        </h2>
+        <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.38)', marginTop: 6, fontWeight: 400 }}>{subtitle}</p>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
         {available.map(brand => {
           const { icon } = brand;
 
@@ -44,16 +39,13 @@ export default function Step2Vendor({ action, onSelect, onBack }: Props) {
               <button
                 key={brand.id}
                 onClick={() => onSelect(brand)}
-                className={`text-left overflow-hidden ${CARD_BASE}`}
+                className="ufc-action-card"
+                style={{ padding: 0, overflow: 'hidden' }}
               >
-                <div className="flex items-center justify-center p-5 bg-white/5 min-h-[88px]">
-                  <img
-                    src={icon.url}
-                    alt={brand.name}
-                    className="max-h-14 w-full object-contain"
-                  />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(255,255,255,0.04)', minHeight: 72 }}>
+                  <img src={icon.url} alt={brand.name} style={{ maxHeight: 48, width: '100%', objectFit: 'contain', filter: 'drop-shadow(0 1px 6px rgba(255,255,255,0.55))' }} />
                 </div>
-                <div className="px-4 py-2.5 text-sm font-semibold group-hover:text-cyan-400 transition-colors">
+                <div style={{ padding: '8px 14px', fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#c9a84c' }}>
                   {brand.name}
                 </div>
               </button>
@@ -64,15 +56,24 @@ export default function Step2Vendor({ action, onSelect, onBack }: Props) {
             <button
               key={brand.id}
               onClick={() => onSelect(brand)}
-              className={`text-left p-5 ${CARD_BASE}`}
+              className="ufc-action-card"
+              style={{ padding: '18px 16px' }}
             >
-              <div className="mb-3">
-                <SmallBrandIcon brand={brand} />
+              <div style={{ marginBottom: 10, fontSize: '1.8rem' }}>
+                {typeof brand.icon === 'string'
+                  ? brand.icon
+                  : <img src={brand.icon.url} alt={brand.name} style={{ width: 36, height: 36, objectFit: 'contain', filter: 'drop-shadow(0 1px 6px rgba(255,255,255,0.55))' }} />}
               </div>
-              <div className="font-semibold group-hover:text-cyan-400 transition-colors">{brand.name}</div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#c9a84c' }}>
+                {brand.name}
+              </div>
             </button>
           );
         })}
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <button className="ufc-btn-secondary" onClick={onBack}>← Back</button>
       </div>
     </div>
   );

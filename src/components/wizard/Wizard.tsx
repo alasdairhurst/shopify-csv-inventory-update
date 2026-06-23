@@ -7,6 +7,7 @@ import Step3Vendor from './Step3Vendor.tsx';
 import Step4VendorFile from './Step4VendorFile.tsx';
 import Step5Run from './Step5Run.tsx';
 import LogPanel from '../LogPanel.tsx';
+import OctagonScene from './OctagonScene.tsx';
 
 const INITIAL_MAX_QUANTITY = Number(localStorage.getItem('settings:maxQuantity') ?? 5) || 5;
 
@@ -25,15 +26,7 @@ function reducer(state: WizardState, action: WizardDispatch): WizardState {
     case 'SET_BRAND':
       return { ...state, step: 'vendorFile', brand: action.brand };
     case 'SET_VENDOR_FILE':
-      return {
-        ...state,
-        step: 'run',
-        vendorProducts: action.products,
-        vendorFileName: action.fileName,
-        runState: 'idle',
-        resultCSV: undefined,
-        errorMessage: undefined,
-      };
+      return { ...state, step: 'run', vendorProducts: action.products, vendorFileName: action.fileName, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
     case 'SET_SETTINGS':
       return { ...state, settings: { ...state.settings, ...action.settings } };
     case 'START_RUN':
@@ -61,11 +54,7 @@ function reducer(state: WizardState, action: WizardDispatch): WizardState {
   }
 }
 
-interface BreadcrumbItem {
-  label: string;
-  step: WizardStep;
-  clickable: boolean;
-}
+interface BreadcrumbItem { label: string; step: WizardStep; clickable: boolean; }
 
 function Breadcrumb({ state, dispatch }: { state: WizardState; dispatch: React.Dispatch<WizardDispatch> }) {
   const items: BreadcrumbItem[] = [{ label: 'Home', step: 'home', clickable: state.step !== 'home' }];
@@ -78,19 +67,16 @@ function Breadcrumb({ state, dispatch }: { state: WizardState; dispatch: React.D
   if (items.length <= 1) return null;
 
   return (
-    <nav className="flex items-center gap-1.5 text-xs mb-6">
+    <nav className="ufc-breadcrumb">
       {items.map((item, i) => (
         <span key={item.step} className="flex items-center gap-1.5">
-          {i > 0 && <span className="text-gray-600">›</span>}
+          {i > 0 && <span className="ufc-breadcrumb-sep">›</span>}
           {item.clickable ? (
-            <button
-              onClick={() => dispatch({ type: 'NAVIGATE_TO', step: item.step })}
-              className="text-gray-400 hover:text-cyan-400 transition-colors"
-            >
+            <button className="ufc-breadcrumb-link" onClick={() => dispatch({ type: 'NAVIGATE_TO', step: item.step })}>
               {item.label}
             </button>
           ) : (
-            <span className="text-gray-300">{item.label}</span>
+            <span className="ufc-breadcrumb-active">{item.label}</span>
           )}
         </span>
       ))}
@@ -102,19 +88,21 @@ export default function Wizard({ version }: { version?: string }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#282c34] text-white">
-      <header className="border-b border-[#3a3f4b] px-6 py-4">
-        <button
-          onClick={() => dispatch({ type: 'NAVIGATE_TO', step: 'home' })}
-          className="text-lg font-semibold text-cyan-400 tracking-tight hover:text-cyan-300 transition-colors"
-        >
-          Shopify CSV Update
-        </button>
-      </header>
+    <div className="arena">
+      {/* ── 3D world — atmosphere only (floor, fence, lights) ── */}
+      <div className="world" data-step={state.step}>
+        <div className="world-origin">
+          <OctagonScene />
+        </div>
+      </div>
 
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
-        <Breadcrumb state={state} dispatch={dispatch} />
+      {/* ── Screen-space overlays ── */}
+      <div className="spotlight-overlay" />
+      <div className="crowd-vignette" />
+      <div className="arena-tint" data-step={state.step} />
 
+      {/* ── Step content — screen space, always interactive ── */}
+      <div className="arena-step-content">
         {state.step === 'home' && (
           <Step1Home onSelect={action => dispatch({ type: 'SET_ACTION', action })} />
         )}
@@ -143,9 +131,24 @@ export default function Wizard({ version }: { version?: string }) {
         {state.step === 'run' && state.action && state.brand && (
           <Step5Run state={state} dispatch={dispatch} />
         )}
-      </main>
+      </div>
 
-      <LogPanel version={version} />
+      {/* ── HUD (header + log panel, pinned to screen) ── */}
+      <div className="arena-hud">
+        <div className="arena-hud-header">
+          <button
+            onClick={() => dispatch({ type: 'NAVIGATE_TO', step: 'home' })}
+            className="ufc-breadcrumb-link"
+            style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '0.06em', color: '#c9a84c' }}
+          >
+            Shopify CSV Update
+          </button>
+          <Breadcrumb state={state} dispatch={dispatch} />
+        </div>
+        <div className="arena-hud-footer">
+          <LogPanel version={version} />
+        </div>
+      </div>
     </div>
   );
 }
