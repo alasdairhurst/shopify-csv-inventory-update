@@ -15,6 +15,24 @@ const CROWD_FLASHES = Array.from({ length: 28 }, () => ({
   dur: (1.4 + Math.random() * 2.4).toFixed(2),
 }));
 
+/*
+ * A solid 3D body part: a CSS cuboid built from five extruded faces (the bottom
+ * is never seen). The front face hosts any detail passed as children — e.g. the
+ * head's face. Per-face brightness in scene.css fakes directional lighting so
+ * the volume reads as a real model rather than a flat sprite.
+ */
+function Cube({ part, children }: { part: string; children?: React.ReactNode }) {
+  return (
+    <div className={`f-cube ${part}`}>
+      <div className="cf cf-front">{children}</div>
+      <div className="cf cf-back" />
+      <div className="cf cf-left" />
+      <div className="cf cf-right" />
+      <div className="cf cf-top" />
+    </div>
+  );
+}
+
 function Fighter({ corner }: { corner: 'red' | 'blue' }) {
   return (
     <div className={`fighter fighter-${corner}`}>
@@ -22,13 +40,25 @@ function Fighter({ corner }: { corner: 'red' | 'blue' }) {
         <div className="fighter-billboard">
           <div className="fighter-mirror">
             <div className="fighter-body">
-              <div className="fighter-shadow" />
-              <div className="fighter-leg fighter-leg-back" />
-              <div className="fighter-leg fighter-leg-front" />
-              <div className="fighter-torso" />
-              <div className="fighter-arm fighter-arm-back" />
-              <div className="fighter-arm fighter-arm-front" />
-              <div className="fighter-head" />
+              {/* Static 3/4 turn so the camera always reads the model's depth. */}
+              <div className="fighter-3q">
+                <div className="fighter-shadow" />
+                <Cube part="fighter-leg fighter-leg-back" />
+                <Cube part="fighter-leg fighter-leg-front" />
+                <Cube part="fighter-torso" />
+                <Cube part="fighter-arm fighter-arm-back" />
+                <Cube part="fighter-arm fighter-arm-front" />
+                <Cube part="fighter-head">
+                  <div className="f-face">
+                    <div className="f-brow f-brow-l" />
+                    <div className="f-brow f-brow-r" />
+                    <div className="f-eye f-eye-l"><span className="f-pupil" /></div>
+                    <div className="f-eye f-eye-r"><span className="f-pupil" /></div>
+                    <div className="f-nose" />
+                    <div className="f-mouth" />
+                  </div>
+                </Cube>
+              </div>
             </div>
           </div>
         </div>
