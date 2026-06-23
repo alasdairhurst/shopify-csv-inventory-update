@@ -5,7 +5,7 @@
   perspective-origin: 50% 36%;
   width: 100vw;
   height: 100vh;
-  overflow: hidden;
+  overflow: clip; /* clip prevents scrollIntoView from using this as a scroll container */
   background: #030303;
   position: relative;
   font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif;
@@ -36,6 +36,27 @@
 .world[data-step="vendor"]      { transform: translate3d(   0px, 120px, -120px); }
 .world[data-step="vendorFile"]  { transform: translate3d(-390px, 120px,  -75px); }
 .world[data-step="run"]         { transform: translate3d(   0px, 270px, -120px); }
+
+/* ── World orbit — handles Y-rotation independently of scale/position ──────── */
+/*
+ * Sits between .world (camera translation) and .world-origin (scale/anchor).
+ * When runState=running, a CSS animation rotates the entire scene around Y,
+ * making the camera appear to orbit the centre of the octagon.
+ */
+.world-orbit {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.world[data-run-state="running"] .world-orbit {
+  animation: camera-orbit 12s linear infinite;
+}
+
+@keyframes camera-orbit {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(360deg); }
+}
 
 /* ── World origin — all 3D objects are children of this 0×0 anchor ───────── */
 .world-origin {
@@ -623,3 +644,4 @@
 
 /* ── Spinner override (dark bg) ──────────────────────────────────────────── */
 .arena .animate-spin { border-top-color: #c9a84c; border-color: rgba(200,163,72,0.2); border-top-color: #c9a84c; }
+.arena .lds-roller div::after { background: #c9a84c; }

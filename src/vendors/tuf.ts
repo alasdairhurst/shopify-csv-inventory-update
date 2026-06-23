@@ -12,11 +12,10 @@ const parseQuantity = (product: TufInventoryProduct | TufProduct) => {
 };
 
 export type TufProduct = Product & {
-	LONGCODE: string;
 	['PARENT CODE']: string;
 	Name: string;
 	SIZE: string;
-	CARRIAGE: string; //
+	CARRIAGE: string;
 	SKU: string;
 	STOCK: string;
 	DESCRIPTION: string;
@@ -27,22 +26,12 @@ export type TufProduct = Product & {
 	RRP: string;
 	Sell: string;
 	Trade: string;
-	Price1: string;
-	Price2: string;
-	MyPrice: string;
-	Price: string;
 	Discount: 'Y' | 'N';
 };
 
 export class Tuf extends Vendor<TufProduct> implements ProductAddable<TufProduct> {
 	name = 'tuf';
 	importLabel = 'Tuf Products CSV';
-	forceEmptyHeaders = [
-		'PriceCalc1',
-		'PriceCalc2',
-		'PriceCalc3',
-		'Price'
-	];
 	expectedHeaders = [
 		'LONGCODE',
 		'PARENT CODE',
@@ -59,21 +48,16 @@ export class Tuf extends Vendor<TufProduct> implements ProductAddable<TufProduct
 		'RRP',
 		'Sell',
 		'Trade',
-		'PriceCalc1',
-		'PriceCalc2',
-		'PriceCalc3',
-		'Price',
 		'Discount'
 	];
 	shouldNotIgnore = (product: TufProduct) => {
-		const sku = this.getSKU(product);
 		// borked with invalid prices/shipping
-		if ([ 'TW38031-Black_GoldOne Size', 'TW38031-LightGreen_Black_WhiteOne Size' ].includes(sku)) {
+		if (['TW38031-LightGreen_Black_White', 'TW38031-Black_Gold'].includes(product['PARENT CODE'])) {
 			return false;
 		}
 		return true;
 	};
-	getSKU = (product: TufProduct) => product.LONGCODE;
+	getSKU = (product: TufProduct) => product['PARENT CODE']+product.SIZE;
 	getQuantity = parseQuantity;
 	getBarcode = (product: TufProduct) => this._parseBarcode(product, product.SKU);
 	getShipping = (product: TufProduct) => Number(product.CARRIAGE);
@@ -84,8 +68,8 @@ export class Tuf extends Vendor<TufProduct> implements ProductAddable<TufProduct
 	}
 	getPrice = (product: TufProduct) => {
 		const profit = 1.45;
-		// (Price - discount) + profit + VAT + shipping
-		const price = (Number(product.Price) * this.getDiscount(product)) * profit * this.getVAT(product) + this.getShipping(product);
+		// (Trade price - discount) + profit + VAT + shipping
+		const price = (Number(product.Trade) * this.getDiscount(product)) * profit * this.getVAT(product) + this.getShipping(product);
 		return roundPrice(price);
 	};
 	getRRP = (product: TufProduct) => {

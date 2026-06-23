@@ -7,7 +7,6 @@ describe('vendor Tuf', () => {
 	const tuf = new Tuf();
 
 	const makeProduct = (overrides: Partial<TufProduct>): TufProduct => ({
-		LONGCODE: 'TW123-BLACKMedium',
 		'PARENT CODE': 'TW123-BLACK',
 		Name: 'Tuf Wear Test Gloves',
 		SIZE: 'Medium',
@@ -22,10 +21,6 @@ describe('vendor Tuf', () => {
 		RRP: '59.99',
 		Sell: '49.99',
 		Trade: '30',
-		Price1: '25.5',
-		Price2: '44.4',
-		MyPrice: '49.4',
-		Price: '49.99',
 		Discount: 'N',
 		...overrides,
 	});
@@ -37,7 +32,7 @@ describe('vendor Tuf', () => {
 		expect(tuf.canUpdateInventory()).toBe(true);
 	});
 
-	it('getSKU returns LONGCODE', () => {
+	it('getSKU returns expected PARENT CODE + SIZE', () => {
 		expect(tuf.getSKU(makeProduct({}))).toBe('TW123-BLACKMedium');
 	});
 
@@ -87,8 +82,8 @@ describe('vendor Tuf', () => {
 			expect(tuf.getBarcode(makeProduct({ SKU: '5063253012345' }))).toBe('5063253012345');
 		});
 
-		it('returns "does not apply" for a non-numeric SKU', () => {
-			expect(tuf.getBarcode(makeProduct({ LONGCODE: 'TW123-BLACK-INVALID', SKU: 'INVALID' }))).toBe('does not apply');
+		it('returns "does not apply" for a non-numeric barcode (SKU)', () => {
+			expect(tuf.getBarcode(makeProduct({ 'PARENT CODE': 'TW123-BLACK-INVALID', SKU: 'INVALID' }))).toBe('does not apply');
 		});
 	});
 
@@ -114,14 +109,14 @@ describe('vendor Tuf', () => {
 	});
 
 	describe('getPrice()', () => {
-		it('calculates price with no discount: (Price * 1) * 1.45 * 1.2 + shipping', () => {
+		it('calculates price with no discount: (Trade * 1) * 1.45 * 1.2 + shipping', () => {
 			// (49.4 * 1) * 1.45 * 1.2 + 4.99 = 85.956 + 4.99 = 90.946 → roundPrice → 90.99
-			expect(tuf.getPrice(makeProduct({ Price: '49.4', CARRIAGE: '4.99', Discount: 'N' }))).toBe(90.99);
+			expect(tuf.getPrice(makeProduct({ Trade: '49.4', CARRIAGE: '4.99', Discount: 'N' }))).toBe(90.99);
 		});
 
-		it('applies a 15% discount to MyPrice before markup', () => {
+		it('applies a 15% discount to Trade before markup', () => {
 			// (49.4 * 0.85) * 1.45 * 1.2 + 4.99 = 73.0626 + 4.99 = 78.0526 → roundPrice → 78.99
-			expect(tuf.getPrice(makeProduct({ MyPrice: '49.4', CARRIAGE: '4.99', Discount: 'Y' }))).toBe(78.99);
+			expect(tuf.getPrice(makeProduct({ Trade: '49.4', CARRIAGE: '4.99', Discount: 'Y' }))).toBe(78.99);
 		});
 	});
 
@@ -147,12 +142,12 @@ describe('vendor Tuf', () => {
 
 	describe('shouldNotIgnore()', () => {
 		it('returns false when LONGCODE is one of the skipped values', () => {
-			expect(tuf.shouldNotIgnore(makeProduct({ LONGCODE: 'TW38031-Black_GoldOne Size' }))).toBe(false);
-			expect(tuf.shouldNotIgnore(makeProduct({ LONGCODE: 'TW38031-LightGreen_Black_WhiteOne Size' }))).toBe(false);
+			expect(tuf.shouldNotIgnore(makeProduct({ 'PARENT CODE': 'TW38031-Black_Gold' }))).toBe(false);
+			expect(tuf.shouldNotIgnore(makeProduct({ 'PARENT CODE': 'TW38031-LightGreen_Black_White' }))).toBe(false);
 		});
 
 			it('returns true when STATUS is LIVE', () => {
-			expect(tuf.shouldNotIgnore(makeProduct({ LONGCODE: 'BANANAS' }))).toBe(true);
+			expect(tuf.shouldNotIgnore(makeProduct({ 'PARENT CODE': 'BANANAS' }))).toBe(true);
 		});
 	});
 
@@ -171,7 +166,7 @@ describe('vendor Tuf', () => {
 			expect(tuf.getRRP(product)).toEqual(59.99);
 			expect(tuf.getShipping(product)).toEqual(4.99);
 			expect(tuf.getBarcode(product)).toEqual('5063253032766');
-			expect(tuf.getPrice(product)).toEqual(78.99);
+			expect(tuf.getPrice(product)).toEqual(49.99);
 			expect(tuf.getMainImageURL(product)).toEqual('https://admin.tufweardirect.com/shopimages/products/extras/TW26650-BLUEWHITE-F1.jpg');
 			expect(tuf.getVariantImageURL(product)).toEqual('https://admin.tufweardirect.com/shopimages/products/extras/TW26650-BLUEWHITE-F1.jpg');
 			expect(tuf.getAdditionalImages(product)).toEqual([

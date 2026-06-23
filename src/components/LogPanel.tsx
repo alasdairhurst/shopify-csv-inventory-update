@@ -32,7 +32,7 @@ export default function LogPanel({ version }: Props) {
   const [, setTick] = useState(0);
   const [filter, setFilter] = useState<LevelFilter>(DEFAULT_FILTER);
   const [open, setOpen] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     entriesRef.current = logger.entries;
@@ -43,8 +43,8 @@ export default function LogPanel({ version }: Props) {
   }, []);
 
   useEffect(() => {
-    if (open) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (open && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [entriesRef.current.length, open]);
 
@@ -96,7 +96,7 @@ export default function LogPanel({ version }: Props) {
 
       {/* Expandable log area */}
       {open && (
-        <div className="h-40 overflow-y-auto px-4 pb-3 font-mono" style={{ borderTop: '1px solid rgba(200,163,72,0.12)' }}>
+        <div ref={scrollContainerRef} className="h-40 overflow-y-auto px-4 pb-3 font-mono" style={{ borderTop: '1px solid rgba(200,163,72,0.12)' }}>
           {hiddenCount > 0 && (
             <div className="text-xs text-gray-600 py-1">{hiddenCount} earlier entries not shown</div>
           )}
@@ -114,7 +114,6 @@ export default function LogPanel({ version }: Props) {
               </div>
             );
           })}
-          <div ref={bottomRef} />
         </div>
       )}
     </div>

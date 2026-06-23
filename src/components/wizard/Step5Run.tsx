@@ -1,6 +1,7 @@
 import type { WizardState, WizardDispatch } from './types.ts';
 import { ACTION_LABELS } from './types.ts';
 import CSVPreview from '../CSVPreview.tsx';
+import Spinner from '../Spinner.tsx';
 import { downloadTextFile } from '../../files/download.ts';
 import { runUpdateInventory, runAddProducts, runUpdateProducts } from '../../orchestrate.ts';
 import ExpectedError from '../../utils/ExpectedError.ts';
@@ -28,6 +29,9 @@ export default function Step5Run({ state, dispatch }: Props) {
 
   const handleRun = async () => {
     dispatch({ type: 'START_RUN' });
+    // Yield two animation frames so the browser paints the loading state
+    // before the synchronous CSV work blocks the thread.
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     try {
       const vendor = brand.vendorFor[action]!();
       let csv: string;
@@ -141,7 +145,7 @@ export default function Step5Run({ state, dispatch }: Props) {
       {/* Running */}
       {runState === 'running' && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0', gap: 16 }}>
-          <div style={{ width: 36, height: 36, border: '3px solid rgba(200,163,72,0.2)', borderTopColor: '#c9a84c', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <Spinner />
           <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Processing…</p>
         </div>
       )}
@@ -178,17 +182,16 @@ export default function Step5Run({ state, dispatch }: Props) {
           <CSVPreview csv={resultCSV} />
           <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid rgba(200,163,72,0.12)' }}>
             <button
-              onClick={() => dispatch({ type: 'SET_ACTION', action })}
+              onClick={() => dispatch({ type: 'NAVIGATE_TO', step: 'home' })}
               className="ufc-btn-secondary"
               style={{ fontSize: '0.76rem' }}
             >
-              ← Start another run
+              ← Start another round
             </button>
           </div>
         </div>
       )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

@@ -90,9 +90,11 @@ export default function Wizard({ version }: { version?: string }) {
   return (
     <div className="arena">
       {/* ── 3D world — atmosphere only (floor, fence, lights) ── */}
-      <div className="world" data-step={state.step}>
-        <div className="world-origin">
-          <OctagonScene />
+      <div className="world" data-step={state.step} data-run-state={state.runState}>
+        <div className="world-orbit">
+          <div className="world-origin">
+            <OctagonScene />
+          </div>
         </div>
       </div>
 
