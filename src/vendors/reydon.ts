@@ -1,6 +1,7 @@
 import { RM_LARGE_SHIPPING, RM_SMALL_SHIPPING } from '../utils/constants.ts';
 import { roundPrice } from '../utils/helpers.ts';
 import { InventoryUpdatable, Product, ProductAddable, Vendor } from './vendor.ts';
+import type { Brand } from './brand.ts';
 
 const MAX_DIMENTIONS_FOR_SMALL_SHIPPING = 120;
 const MAX_WEIGHT_FOR_SMALL_SHIPPING = 1500;
@@ -145,4 +146,23 @@ export class ReydonInventory extends Vendor<ReydonInventoryProduct> implements I
 	// Reydon adds a lot of info to their inventory product names that don't
 	// match their other CSV so trim them off to help the title matching
 	getTitle = (product: ReydonInventoryProduct) => product['Product Name'].replace(/ *\([^()]*\)/g, '');
+};
+
+export const reydonBrand: Brand = {
+	id: 'reydon',
+	name: 'Reydon',
+	icon: {
+		url: 'https://reydon.com/web/image/website/1/logo/Reydon%20Group%20Plc?unique=2454795',
+		size: 'large' as const
+	},
+	fileInfo: {
+		inventory:    { label: 'Reydon Inventory CSV', description: 'The Reydon inventory export. Contains Code and Quantity columns.' },
+		addProducts:  { label: 'Reydon Products CSV', description: 'The Reydon full product export. Requires Your_Price, barcode, and dimension columns.' },
+		editProducts: { label: 'Reydon Products CSV', description: 'The Reydon full product export. Prices and images will be updated in Shopify.' },
+	},
+	vendorFor: {
+		inventory:    () => new ReydonInventory(),
+		addProducts:  () => new Reydon(),
+		editProducts: () => new Reydon(),
+	},
 };

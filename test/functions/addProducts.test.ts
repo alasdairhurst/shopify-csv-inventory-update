@@ -3,7 +3,7 @@ import * as csv from '../../src/files/csv.ts';
 import addProducts from '../../src/functions/addProducts.ts';
 import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
 import { Blitz, BlitzProduct } from '../../src/vendors/blitz.ts';
-import { Cartas } from '../../src/vendors/cartas.ts';
+import { Cartasport } from '../../src/vendors/cartasport.ts';
 import { Reydon } from '../../src/vendors/reydon.ts';
 import { Tuf } from '../../src/vendors/tuf.ts';
 import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../../src/vendors/shopify.ts';
@@ -155,7 +155,7 @@ describe('addProducts()', () => {
 		const shopifyCsv = loadExampleFixture(['shopify', 'products.csv']);
 		const [shopifyRaw] = await csv.parseString(shopifyCsv, shopifyVendor);
 		const cartasCsv = loadExampleFixture(['vendors', 'cartas', 'product.csv']);
-		const cartasProducts = await parseProductsCSV(cartasCsv, new Cartas());
+		const cartasProducts = await parseProductsCSV(cartasCsv, new Cartasport());
 
 		const result = addProducts(shopifyRaw, { cartas: cartasProducts });
 

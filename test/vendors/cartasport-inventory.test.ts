@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
-import { CartasInventory, CartasInventoryProduct } from '../../src/vendors/cartas.ts';
+import { CartasportInventory, CartasportInventoryProduct } from '../../src/vendors/cartasport.ts';
 import { loadExampleFixture } from '../testUtils/fixtureHelpers.ts';
 
 describe('vendor Cartas Inventory', () => {
-	const cartasInventory = new CartasInventory();
+	const cartasInventory = new CartasportInventory();
 
-	const makeProduct = (overrides: Partial<CartasInventoryProduct>): CartasInventoryProduct => ({
+	const makeProduct = (overrides: Partial<CartasportInventoryProduct>): CartasportInventoryProduct => ({
 		PRODUCT_ID: '1',
 		PARENT_CODE: 'PARENT-001',
 		PRODUCT_NAME: 'Test Product',
@@ -19,8 +19,8 @@ describe('vendor Cartas Inventory', () => {
 	});
 
 	it('validates the vendor features', () => {
-		expect(cartasInventory.name).toBe('cartas-inventory');
-		expect(cartasInventory.importLabel).toBe('Cartas Inventory CSV');
+		expect(cartasInventory.name).toBe('cartasport-inventory');
+		expect(cartasInventory.importLabel).toBe('Cartasport Inventory CSV');
 		expect(cartasInventory.useBarcodeForExclusiveMatching).toBe(undefined);
 		expect(cartasInventory.useTitleForMatching).toBe(true);
 		expect(cartasInventory.canAddProducts()).toBe(false);

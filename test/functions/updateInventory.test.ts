@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as csv from '../../src/files/csv.ts';
 import updateInventory from '../../src/functions/updateInventory.ts';
-import { Cartas } from '../../src/vendors/cartas.ts';
-import { CartasInventory } from '../../src/vendors/cartas.ts';
+import { Cartasport, CartasportInventory } from '../../src/vendors/cartasport.ts';
 import { Reydon, ReydonInventory, ReydonInventoryProduct } from '../../src/vendors/reydon.ts';
 import { Tuf, TufInventory } from '../../src/vendors/tuf.ts';
 import { Unicorn } from '../../src/vendors/unicorn.ts';
@@ -175,7 +174,7 @@ describe('updateInventory()', () => {
 		const inventoryCsv = loadExampleFixture(['shopify', 'inventory.csv']);
 		const [inventoryRows] = await csv.parseString(inventoryCsv, shopifyInventoryVendor);
 		const cartasCsv = loadExampleFixture(['vendors', 'cartas', 'product.csv']);
-		const cartasProducts = await parseProductsCSV(cartasCsv, new Cartas());
+		const cartasProducts = await parseProductsCSV(cartasCsv, new Cartasport());
 
 		const updates = updateInventory(inventoryRows, { cartas: cartasProducts }, { maxQuantity: 25 });
 
@@ -189,9 +188,9 @@ describe('updateInventory()', () => {
 		const inventoryCsv = loadExampleFixture(['shopify', 'inventory.csv']);
 		const [inventoryRows] = await csv.parseString(inventoryCsv, shopifyInventoryVendor);
 		const cartasInventoryCsv = loadExampleFixture(['vendors', 'cartas', 'inventory.csv']);
-		const cartasInventoryProducts = await parseProductsCSV(cartasInventoryCsv, new CartasInventory());
+		const cartasInventoryProducts = await parseProductsCSV(cartasInventoryCsv, new CartasportInventory());
 
-		const updates = updateInventory(inventoryRows, { 'cartas-inventory': cartasInventoryProducts }, { maxQuantity: 25 });
+		const updates = updateInventory(inventoryRows, { 'cartasport-inventory': cartasInventoryProducts }, { maxQuantity: 25 });
 
 		expect(updates.every(row => Number(row['On hand (new)']) <= 25)).toBe(true);
 		expect(updates.every(row => Number(row['On hand (new)']) >= 0)).toBe(true);

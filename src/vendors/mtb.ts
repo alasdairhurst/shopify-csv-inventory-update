@@ -1,6 +1,7 @@
 import { RM_SMALL_SHIPPING } from '../utils/constants.ts';
 import { roundPrice } from '../utils/helpers.ts';
 import { InventoryUpdatable, Product, ProductAddable, Vendor } from './vendor.ts';
+import type { Brand } from './brand.ts';
 
 const RM_LARGE_SHIPPING_MTB = 25;
 
@@ -114,4 +115,23 @@ export class MTB extends Vendor<MTBProduct> implements ProductAddable<MTBProduct
 		}
 		return csv;
 	}
+};
+
+export const mtbBrand: Brand = {
+	id: 'mtb',
+	name: 'Muay Thai Boxing',
+	icon: {
+		url: 'https://muaythai-boxing.com/cdn/shop/files/muaythai-boxing-logo-dark.png?v=1737681891&width=480',
+		size: 'large' as const
+	},
+	fileInfo: {
+		inventory:    { label: 'Muay Thai Boxing CSV', description: 'The MTB product export. Contains SKU, barcode, and inventory quantity columns.' },
+		addProducts:  { label: 'Muay Thai Boxing CSV', description: 'The MTB product export. New products will be created in Shopify.' },
+		editProducts: { label: 'Muay Thai Boxing CSV', description: 'The MTB product export. Prices and images will be updated in Shopify.' },
+	},
+	vendorFor: {
+		inventory:    () => new MTB(),
+		addProducts:  () => new MTB(),
+		editProducts: () => new MTB(),
+	},
 };

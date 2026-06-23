@@ -2,6 +2,7 @@ import { RM_SMALL_SHIPPING, PARENT_SYMBOL } from '../utils/constants.ts';
 import { Vendor, Product, InventoryUpdatable, ProductAddable } from './vendor.ts';
 import { intRange } from '../utils/number.ts';
 import { roundPrice } from '../utils/helpers.ts';
+import type { Brand } from './brand.ts';
 
 // Fixed price shipping for certain SKUs
 const blitzShipping: Record<string, number> = {
@@ -223,4 +224,23 @@ export class Blitz extends Vendor<BlitzProduct> implements InventoryUpdatable<Bl
 		}
 		return csv;
 	};
+};
+
+export const blitzBrand: Brand = {
+	id: 'blitz',
+	name: 'Blitz',
+	icon: {
+		url: 'https://cdn.blitzsport.com/images/assets/logo.png',
+		size: 'large' as const
+	},
+	fileInfo: {
+		inventory:    { label: 'Blitz CSV', description: 'The standard Blitz product export. Used for both inventory and product data.' },
+		addProducts:  { label: 'Blitz CSV', description: 'The standard Blitz product export. Requires InStock, TradePrice, and variant columns.' },
+		editProducts: { label: 'Blitz CSV', description: 'The standard Blitz product export. Prices and images will be updated in Shopify.' },
+	},
+	vendorFor: {
+		inventory:    () => new Blitz(),
+		addProducts:  () => new Blitz(),
+		editProducts: () => new Blitz(),
+	},
 };

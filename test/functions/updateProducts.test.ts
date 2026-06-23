@@ -3,7 +3,7 @@ import * as csv from '../../src/files/csv.ts';
 import updateProducts from '../../src/functions/updateProducts.ts';
 import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
 import { Blitz } from '../../src/vendors/blitz.ts';
-import { Cartas, CartasProduct } from '../../src/vendors/cartas.ts';
+import { Cartasport, CartasportProduct } from '../../src/vendors/cartasport.ts';
 import { Reydon } from '../../src/vendors/reydon.ts';
 import { Tuf } from '../../src/vendors/tuf.ts';
 import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../../src/vendors/shopify.ts';
@@ -39,7 +39,7 @@ describe('updateProducts()', () => {
 			}),
 		];
 
-		const vendorProduct: CartasProduct = {
+		const vendorProduct: CartasportProduct = {
 			STATUS: 'LIVE',
 			CODE: 'CANT00058',
 			WEIGHT: '1',
@@ -83,7 +83,7 @@ describe('updateProducts()', () => {
 			}),
 		];
 
-		const vendorProduct: CartasProduct = {
+		const vendorProduct: CartasportProduct = {
 			STATUS: 'LIVE',
 			CODE: 'CANT00058',
 			WEIGHT: '1',
@@ -117,7 +117,7 @@ describe('updateProducts()', () => {
 		const shopifyCsv = loadExampleFixture(['shopify', 'products.csv']);
 		const [shopifyRaw] = await csv.parseString(shopifyCsv, shopifyVendor);
 		const cartasCsv = loadExampleFixture(['vendors', 'cartas', 'product.csv']);
-		const cartasProducts = await parseProductsCSV(cartasCsv, new Cartas());
+		const cartasProducts = await parseProductsCSV(cartasCsv, new Cartasport());
 
 		const result = updateProducts(shopifyRaw, { cartas: cartasProducts }, { updateImages: false });
 

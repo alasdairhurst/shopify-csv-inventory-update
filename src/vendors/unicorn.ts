@@ -1,4 +1,5 @@
 import { Vendor, Product, InventoryUpdatable } from './vendor.ts';
+import type { Brand } from './brand.ts';
 
 export type UnicornProduct = Product & {
 	SKU: string;
@@ -30,4 +31,19 @@ export class Unicorn extends Vendor<UnicornProduct> implements InventoryUpdatabl
 	getQuantity = (product: UnicornProduct) => Number(product.QTY);
 	getBarcode = (product: UnicornProduct) => this._parseBarcode(product, product['Barcode EAN/UPC']);
 	getTitle = (product: UnicornProduct) => product.Description;
+};
+
+export const unicornBrand: Brand = {
+	id: 'unicorn',
+	name: 'Unicorn',
+	icon: {
+		url: 'https://unicorn.playwiththebest.com/media/logo/stores/6/unicorn_tagline.png',
+		size: 'large' as const
+	},
+	fileInfo: {
+		inventory: { label: 'Unicorn CSV', description: 'The Unicorn product export. Contains SKU and QTY stock quantity columns.' },
+	},
+	vendorFor: {
+		inventory: () => new Unicorn(),
+	},
 };

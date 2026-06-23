@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import parseProductsCSV from '../../src/functions/parseProductsCSV.ts';
-import { Cartas, CartasProduct } from '../../src/vendors/cartas.ts';
+import { Cartasport, CartasportProduct } from '../../src/vendors/cartasport.ts';
 import { loadExampleFixture } from '../testUtils/fixtureHelpers.ts';
 
 describe('vendor Cartas', () => {
-	const cartas = new Cartas();
+	const cartas = new Cartasport();
 
-	const makeProduct = (overrides: Partial<CartasProduct>): CartasProduct => ({
+	const makeProduct = (overrides: Partial<CartasportProduct>): CartasportProduct => ({
 		STATUS: 'LIVE',
 		CODE: 'TEST-001',
 		WEIGHT: '100',
@@ -34,7 +34,7 @@ describe('vendor Cartas', () => {
 
 	it('validates the vendor features', () => {
 		expect(cartas.name).toBe('cartas');
-		expect(cartas.importLabel).toBe('Cartas Products CSV');
+		expect(cartas.importLabel).toBe('Cartasport Products CSV');
 		expect(cartas.useBarcodeForExclusiveMatching).toBe(undefined);
 		expect(cartas.useTitleForMatching).toBe(true);
 		expect(cartas.canAddProducts()).toBe(true);
