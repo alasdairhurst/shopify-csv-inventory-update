@@ -114,9 +114,9 @@ describe('vendor Tuf', () => {
 	});
 
 	describe('getPrice()', () => {
-		it('calculates price with no discount: (MyPrice * 1) * 1.45 * 1.2 + shipping', () => {
+		it('calculates price with no discount: (Price * 1) * 1.45 * 1.2 + shipping', () => {
 			// (49.4 * 1) * 1.45 * 1.2 + 4.99 = 85.956 + 4.99 = 90.946 → roundPrice → 90.99
-			expect(tuf.getPrice(makeProduct({ MyPrice: '49.4', CARRIAGE: '4.99', Discount: 'N' }))).toBe(90.99);
+			expect(tuf.getPrice(makeProduct({ Price: '49.4', CARRIAGE: '4.99', Discount: 'N' }))).toBe(90.99);
 		});
 
 		it('applies a 15% discount to MyPrice before markup', () => {

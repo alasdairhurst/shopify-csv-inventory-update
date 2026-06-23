@@ -7,7 +7,7 @@ describe('vendor TufInventory', () => {
 	const tufInventory = new TufInventory();
 
 	const makeProduct = (overrides: Partial<TufInventoryProduct>): TufInventoryProduct => ({
-		LONGCODE: 'TW123-BLACKMedium',
+		'LONG CODE': 'TW123-BLACKMedium',
 		'PARENT CODE': 'TW123-BLACK',
 		Name: 'Tuf Wear Test Gloves',
 		SIZE: 'Medium',
@@ -59,8 +59,8 @@ describe('vendor TufInventory', () => {
 			expect(products.length).toBeGreaterThan(0);
 			const product = products[0]!;
 
-			expect(tufInventory.getSKU(product)).toEqual('TW28513-WHITE/METALLIC PINK8oz');
-			expect(tufInventory.getTitle(product)).toEqual('Tuf Wear Falcon Contest Glove BBBofC Approved');
+			expect(tufInventory.getSKU(product)).toEqual('TW26650-BLUE/WHITEOne Size');
+			expect(tufInventory.getTitle(product)).toEqual('Tuf Wear Balboa Floor to Ceiling Top to Bottom Ball');
 			expect(tufInventory.getQuantity(product)).toBe(0);
 		});
 	});
