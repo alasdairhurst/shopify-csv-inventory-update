@@ -83,9 +83,9 @@ Run           Summary + locked settings + Run button → CSVPreview + Download
 | Step | Produces | Cleared when navigating to this step |
 |---|---|---|
 | home | action | — |
-| shopifyFile | shopifyCSV[], shopifyFileName | shopifyCSV, shopifyFileName, brand, vendorCSV, vendorFileName, runState, resultCSV |
-| vendor | brand | brand, vendorCSV, vendorFileName, runState, resultCSV |
-| vendorFile | vendorCSV[], vendorFileName | vendorCSV, vendorFileName, runState, resultCSV |
+| shopifyFile | shopifyProducts[], shopifyFileName | shopifyProducts, shopifyFileName, brand, vendorProducts, vendorFileName, runState, resultCSV |
+| vendor | brand | brand, vendorProducts, vendorFileName, runState, resultCSV |
+| vendorFile | vendorProducts[], vendorFileName | vendorProducts, vendorFileName, runState, resultCSV |
 | run | runState, resultCSV | runState, resultCSV |
 
 ---
@@ -120,7 +120,7 @@ Unicorn is inventory-only. Each brand appears once regardless of how many vendor
 - **`maxQuantity`**: persisted in `localStorage['settings:maxQuantity']`
 - **Vendor file URLs**: last used URL persisted in `localStorage['lastUrl:{brand.id}']`
 - **Expected headers panel**: Step4 shows up to 6 expected column names from the vendor class as chips, with "+N more" if there are additional ones
-- **Multiple files**: both Shopify and vendor file steps accept multiple files; state holds `string[]` for CSV content
+- **Multiple files**: both Shopify and vendor file steps accept multiple files; they are read, parsed, and merged in the upload step — state holds `Product[]` (parsed rows), not raw CSV strings
 
 ---
 
@@ -170,31 +170,39 @@ settings:maxQuantity       → persisted max quantity (default 5)
 
 ---
 
-## Phase 2 — Wire up functionality (PENDING)
+## Phase 2 — Wire up functionality — COMPLETE
 
-1. `logger.ts` — observable with debounced notify
-2. `src/files/read.ts` — extract `readFileAsText`, `readCSVFileList`, `fetchCSVFromURL`
-3. `src/orchestrate.ts` — pure async functions returning CSV text
-4. `src/vendors/vendor.ts` — add optional `urlConfig` property to base class
-5. Each vendor class — add `urlConfig` where applicable
-6. Connect `Step2ShopifyFile.tsx` to real file reading (multiple files → `string[]`)
-7. Connect `Step4VendorFile.tsx` to real file reading + URL fetch
-8. Connect `Step5Run.tsx` to real orchestration
-9. Connect `LogPanel.tsx` to real logger
-10. Connect `CSVPreview.tsx` to real result CSV
-11. Remove old App form; clean up `App.css`
+1. `logger.ts` — observable with debounced notify ✓
+2. `src/files/read.ts` — `readFileAsText`, `readCSVFileList`, `fetchCSVFromURL` ✓
+3. `src/orchestrate.ts` — pure async functions accepting pre-parsed products ✓
+4. `src/vendors/vendor.ts` — `urlConfig` class property ✓
+5. `Step2ShopifyFile.tsx` — file reading + `parseProductsCSVs` + validation ✓
+6. `Step4VendorFile.tsx` — file reading + URL fetch + `parseProductsCSVs` + validation ✓
+7. `Step5Run.tsx` — calls orchestrate with pre-parsed products ✓
+8. `LogPanel.tsx` — subscribes to logger ✓
+9. `App.tsx` / `App.css` — old form removed ✓
 
 ### `src/orchestrate.ts` functions
 
+Parsing is done in the upload steps (Step2/Step4) so orchestrate receives pre-parsed products:
+
 ```typescript
-export async function runUpdateInventory(shopifyCSVs: string[], vendorCSVs: string[], vendor, { maxQuantity }): Promise<string>
-export async function runAddProducts(shopifyCSVs: string[], vendorCSVs: string[], vendor): Promise<string>
-export async function runUpdateProducts(shopifyCSVs: string[], vendorCSVs: string[], vendor, { updateImages }): Promise<string>
+export async function runUpdateInventory(shopifyProducts: Product[], vendorProducts: Product[], vendor, { maxQuantity }): Promise<string>
+export async function runAddProducts(shopifyProducts: Product[], vendorProducts: Product[], vendor): Promise<string>
+export async function runUpdateProducts(shopifyProducts: Product[], vendorProducts: Product[], vendor, { updateImages }): Promise<string>
 ```
 
-Each: parses both CSV arrays via `parseProductsCSVs` → calls existing action function → `csv.unparse()` → returns text. Throws `ExpectedError("Nothing to export")` on empty result.
+Each: calls existing action function → `csv.unparse()` → returns text. Throws `ExpectedError("Nothing to export")` on empty result.
 
-Reuses without modification: `parseProductsCSVs`, `updateInventory`, `addProducts`, `updateProducts`, `csv.unparse`, `downloadTextFile`, `readZip`, `shopifyVendor`, `shopifyInventoryVendor`.
+### CSV parsing in upload steps
+
+`Step2ShopifyFile` calls `parseProductsCSVs` immediately after reading the file(s):
+- `inventory` action → parsed with `shopifyInventoryVendor`
+- `addProducts` / `editProducts` → parsed with `shopifyVendor`
+
+`Step4VendorFile` calls `parseProductsCSVs` with `vendorInstance` after read or URL fetch.
+
+Header validation runs inside `parseProductsCSVs` — if headers don't match the vendor's `expectedHeaders`, an `ExpectedError` is thrown and shown inline. The Next button stays disabled until parsing succeeds.
 
 ### Vendor URL config
 
@@ -211,20 +219,14 @@ Step4VendorFile reads `brand.vendorFor[action]!().urlConfig` to decide whether t
 
 ---
 
-## Phase 3 — Tests (PENDING)
+## Phase 3 — Tests — COMPLETE
 
-Unit tests using Vitest + React Testing Library:
+All 259 tests pass (26 test files). Component tests use `@testing-library/react` + `@testing-library/user-event` v14. Notable patterns:
 
-- `Step1Home` — clicking each card dispatches correct action
-- `Step2ShopifyFile` — Next disabled until file provided; multiple files show as list
-- `Step3Vendor` — correct brands shown per action (mock brands array); large vs small icon card layouts
-- `Step4VendorFile` — file upload and URL fetch flows; multiple files; expected headers rendered
-- `Step5Run` — settings locked after run; correct orchestrate fn called; download button shown on done
-- `CSVPreview` — table capped at 500 rows with banner; text view renders textarea
-- `LogPanel` — level filter hides/shows entries; "earlier entries" note; closed by default
-- `orchestrate.ts` — mock `parseProductsCSVs` + action fns; verify CSV text returned
-
-Any existing files that are touched during implementation should be covered by tests including new features and changed features.
+- `parseProductsCSVs` is mocked in Step2 and Step4 tests — validates vendor selection and error handling
+- `orchestrate.ts` tests mock only business-logic functions (no CSV parsing); pass pre-parsed product arrays directly
+- `scrollIntoView` and `cleanup` are set up globally in `test/testUtils/setup.ts`
+- JSX attribute strings with `\n` must use `{...}` expression syntax (HTML-like literal strings don't process escape sequences)
 
 ---
 

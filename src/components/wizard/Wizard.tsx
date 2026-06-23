@@ -21,14 +21,14 @@ function reducer(state: WizardState, action: WizardDispatch): WizardState {
     case 'SET_ACTION':
       return { ...initialState, step: 'shopifyFile', action: action.action };
     case 'SET_SHOPIFY_FILE':
-      return { ...state, step: 'vendor', shopifyCSV: action.csv, shopifyFileName: action.fileName };
+      return { ...state, step: 'vendor', shopifyProducts: action.products, shopifyFileName: action.fileName };
     case 'SET_BRAND':
       return { ...state, step: 'vendorFile', brand: action.brand };
     case 'SET_VENDOR_FILE':
       return {
         ...state,
         step: 'run',
-        vendorCSV: action.csv,
+        vendorProducts: action.products,
         vendorFileName: action.fileName,
         runState: 'idle',
         resultCSV: undefined,
@@ -46,15 +46,15 @@ function reducer(state: WizardState, action: WizardDispatch): WizardState {
       return { ...state, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
     case 'BACK':
       if (state.step === 'shopifyFile') return { ...initialState };
-      if (state.step === 'vendor') return { ...state, step: 'shopifyFile', shopifyCSV: undefined, shopifyFileName: undefined, brand: undefined, vendorCSV: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
-      if (state.step === 'vendorFile') return { ...state, step: 'vendor', brand: undefined, vendorCSV: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
-      if (state.step === 'run') return { ...state, step: 'vendorFile', vendorCSV: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
+      if (state.step === 'vendor') return { ...state, step: 'shopifyFile', shopifyProducts: undefined, shopifyFileName: undefined, brand: undefined, vendorProducts: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
+      if (state.step === 'vendorFile') return { ...state, step: 'vendor', brand: undefined, vendorProducts: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
+      if (state.step === 'run') return { ...state, step: 'vendorFile', vendorProducts: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
       return state;
     case 'NAVIGATE_TO':
       if (action.step === 'home') return { ...initialState };
-      if (action.step === 'shopifyFile') return { ...state, step: 'shopifyFile', shopifyCSV: undefined, shopifyFileName: undefined, brand: undefined, vendorCSV: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
-      if (action.step === 'vendor') return { ...state, step: 'vendor', brand: undefined, vendorCSV: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
-      if (action.step === 'vendorFile') return { ...state, step: 'vendorFile', vendorCSV: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
+      if (action.step === 'shopifyFile') return { ...state, step: 'shopifyFile', shopifyProducts: undefined, shopifyFileName: undefined, brand: undefined, vendorProducts: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
+      if (action.step === 'vendor') return { ...state, step: 'vendor', brand: undefined, vendorProducts: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
+      if (action.step === 'vendorFile') return { ...state, step: 'vendorFile', vendorProducts: undefined, vendorFileName: undefined, runState: 'idle', resultCSV: undefined, errorMessage: undefined };
       return state;
     default:
       return state;
@@ -121,7 +121,7 @@ export default function Wizard({ version }: { version?: string }) {
         {state.step === 'shopifyFile' && state.action && (
           <Step2ShopifyFile
             action={state.action}
-            onNext={(csv, fileName) => dispatch({ type: 'SET_SHOPIFY_FILE', csv, fileName })}
+            onNext={(products, fileName) => dispatch({ type: 'SET_SHOPIFY_FILE', products, fileName })}
             onBack={() => dispatch({ type: 'BACK' })}
           />
         )}
@@ -136,7 +136,7 @@ export default function Wizard({ version }: { version?: string }) {
           <Step4VendorFile
             action={state.action}
             brand={state.brand}
-            onNext={(csv, fileName) => dispatch({ type: 'SET_VENDOR_FILE', csv, fileName })}
+            onNext={(products, fileName) => dispatch({ type: 'SET_VENDOR_FILE', products, fileName })}
             onBack={() => dispatch({ type: 'BACK' })}
           />
         )}

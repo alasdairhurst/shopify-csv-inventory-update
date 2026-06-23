@@ -34,7 +34,7 @@ describe('vendor Cartas', () => {
 
 	it('validates the vendor features', () => {
 		expect(cartas.name).toBe('cartas');
-		expect(cartas.importLabel).toBe('Cartas Products CSV');
+		expect(cartas.importLabel).toBe('Cartasport Products CSV');
 		expect(cartas.useBarcodeForExclusiveMatching).toBe(undefined);
 		expect(cartas.useTitleForMatching).toBe(true);
 		expect(cartas.canAddProducts()).toBe(true);

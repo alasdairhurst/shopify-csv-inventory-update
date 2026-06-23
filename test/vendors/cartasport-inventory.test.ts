@@ -19,8 +19,8 @@ describe('vendor Cartas Inventory', () => {
 	});
 
 	it('validates the vendor features', () => {
-		expect(cartasInventory.name).toBe('cartas-inventory');
-		expect(cartasInventory.importLabel).toBe('Cartas Inventory CSV');
+		expect(cartasInventory.name).toBe('cartasport-inventory');
+		expect(cartasInventory.importLabel).toBe('Cartasport Inventory CSV');
 		expect(cartasInventory.useBarcodeForExclusiveMatching).toBe(undefined);
 		expect(cartasInventory.useTitleForMatching).toBe(true);
 		expect(cartasInventory.canAddProducts()).toBe(false);

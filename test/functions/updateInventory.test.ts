@@ -190,7 +190,7 @@ describe('updateInventory()', () => {
 		const cartasInventoryCsv = loadExampleFixture(['vendors', 'cartas', 'inventory.csv']);
 		const cartasInventoryProducts = await parseProductsCSV(cartasInventoryCsv, new CartasportInventory());
 
-		const updates = updateInventory(inventoryRows, { 'cartas-inventory': cartasInventoryProducts }, { maxQuantity: 25 });
+		const updates = updateInventory(inventoryRows, { 'cartasport-inventory': cartasInventoryProducts }, { maxQuantity: 25 });
 
 		expect(updates.every(row => Number(row['On hand (new)']) <= 25)).toBe(true);
 		expect(updates.every(row => Number(row['On hand (new)']) >= 0)).toBe(true);

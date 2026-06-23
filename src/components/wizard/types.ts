@@ -1,4 +1,5 @@
 import type { Brand } from '../../vendors/brand.ts';
+import type { Product } from '../../vendors/vendor.ts';
 
 export type WizardAction = 'inventory' | 'addProducts' | 'editProducts';
 export type WizardStep = 'home' | 'vendor' | 'shopifyFile' | 'vendorFile' | 'run';
@@ -15,8 +16,8 @@ export interface WizardState {
   brand?: Brand;
   shopifyFileName?: string;
   vendorFileName?: string;
-  shopifyCSV?: string[];
-  vendorCSV?: string[];
+  shopifyProducts?: Product[];
+  vendorProducts?: Product[];
   settings: WizardSettings;
   runState: RunState;
   resultCSV?: string;
@@ -26,8 +27,8 @@ export interface WizardState {
 export type WizardDispatch =
   | { type: 'SET_ACTION'; action: WizardAction }
   | { type: 'SET_BRAND'; brand: Brand }
-  | { type: 'SET_SHOPIFY_FILE'; csv: string[]; fileName: string }
-  | { type: 'SET_VENDOR_FILE'; csv: string[]; fileName: string }
+  | { type: 'SET_SHOPIFY_FILE'; products: Product[]; fileName: string }
+  | { type: 'SET_VENDOR_FILE'; products: Product[]; fileName: string }
   | { type: 'SET_SETTINGS'; settings: Partial<WizardSettings> }
   | { type: 'START_RUN' }
   | { type: 'RUN_DONE'; resultCSV: string }

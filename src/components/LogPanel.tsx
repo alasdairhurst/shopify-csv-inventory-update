@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import logger from '../utils/logger.ts';
+import type { LogLevel, LogEntry } from '../utils/logger.ts';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-export interface LogEntry { level: LogLevel; message: string; timestamp: Date }
+export type { LogLevel, LogEntry };
 
 const MAX_RENDERED = 500;
 
@@ -19,39 +20,39 @@ const LEVEL_LABELS: Record<LogLevel, string> = {
   error: 'ERR',
 };
 
-const SAMPLE_ENTRIES: LogEntry[] = [
-  { level: 'info', message: 'Loaded 342 products from Blitz', timestamp: new Date() },
-  { level: 'info', message: 'Matched 298 SKUs against Shopify inventory', timestamp: new Date() },
-  { level: 'warn', message: '[WARN] Blitz csv missing expected header: VariantImageURL', timestamp: new Date() },
-  { level: 'info', message: 'Updated 42 inventory rows', timestamp: new Date() },
-  { level: 'debug', message: '[SKIP] load not applicable to Cartas Inventory', timestamp: new Date() },
-  { level: 'info', message: '[DONE] Downloading inventory CSV', timestamp: new Date() },
-];
-
 interface Props {
-  entries?: LogEntry[];
   version?: string;
 }
 
 type LevelFilter = Record<LogLevel, boolean>;
 const DEFAULT_FILTER: LevelFilter = { debug: false, info: true, warn: true, error: true };
 
-export default function LogPanel({ entries = SAMPLE_ENTRIES, version }: Props) {
+export default function LogPanel({ version }: Props) {
+  const entriesRef = useRef(logger.entries);
+  const [, setTick] = useState(0);
   const [filter, setFilter] = useState<LevelFilter>(DEFAULT_FILTER);
   const [open, setOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    entriesRef.current = logger.entries;
+    return logger.subscribe(() => {
+      entriesRef.current = logger.entries;
+      setTick(t => t + 1);
+    });
+  }, []);
+
+  useEffect(() => {
     if (open) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [entries.length, open]);
+  }, [entriesRef.current.length, open]);
 
-  const filtered = entries.filter(e => filter[e.level]);
+  const filtered = entriesRef.current.filter(e => filter[e.level]);
   const visible = filtered.length > MAX_RENDERED ? filtered.slice(-MAX_RENDERED) : filtered;
   const hiddenCount = filtered.length - visible.length;
 
-  const hasWarnings = entries.some(e => e.level === 'warn' || e.level === 'error');
+  const hasWarnings = entriesRef.current.some(e => e.level === 'warn' || e.level === 'error');
 
   const toggleLevel = (level: LogLevel) =>
     setFilter(f => ({ ...f, [level]: !f[level] }));

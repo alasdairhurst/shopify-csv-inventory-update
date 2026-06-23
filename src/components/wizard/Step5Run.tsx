@@ -4,29 +4,49 @@ import BackButton from './BackButton.tsx';
 import Spinner from '../Spinner.tsx';
 import CSVPreview from '../CSVPreview.tsx';
 import { downloadTextFile } from '../../files/download.ts';
+import { runUpdateInventory, runAddProducts, runUpdateProducts } from '../../orchestrate.ts';
+import ExpectedError from '../../utils/ExpectedError.ts';
+import {
+  DOWNLOAD_INVENTORY_FILE_NAME,
+  DOWNLOAD_PRODUCTS_FILE_NAME,
+  DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME,
+} from '../../utils/constants.ts';
 
 interface Props {
   state: WizardState;
   dispatch: React.Dispatch<WizardDispatch>;
 }
 
-const MOCK_RESULT_CSV = `Handle,Title,SKU,On hand (new)
-blitz-helmet-red,Blitz Helmet Red,BH-RED-001,5
-blitz-helmet-blue,Blitz Helmet Blue,BH-BLU-001,3
-reydon-gloves-l,Reydon Gloves Large,RG-L-001,5`;
-
 export default function Step5Run({ state, dispatch }: Props) {
   const { action, brand, shopifyFileName, vendorFileName, settings, runState, resultCSV, errorMessage } = state;
   if (!action || !brand) return null;
 
-  const { title, verb } = ACTION_LABELS[action];
+  const { title } = ACTION_LABELS[action];
   const isLocked = runState !== 'idle';
+
+  const downloadName = action === 'inventory' ? DOWNLOAD_INVENTORY_FILE_NAME
+    : action === 'addProducts' ? DOWNLOAD_PRODUCTS_FILE_NAME
+    : DOWNLOAD_PRODUCTS_UPDATE_FILE_NAME;
 
   const handleRun = async () => {
     dispatch({ type: 'START_RUN' });
-    // Phase 1 mock run
-    await new Promise(r => setTimeout(r, 1200));
-    dispatch({ type: 'RUN_DONE', resultCSV: MOCK_RESULT_CSV });
+    try {
+      const vendor = brand.vendorFor[action]!();
+      let csv: string;
+      if (action === 'inventory') {
+        csv = await runUpdateInventory(state.shopifyProducts!, state.vendorProducts!, vendor, { maxQuantity: settings.maxQuantity });
+      } else if (action === 'addProducts') {
+        csv = await runAddProducts(state.shopifyProducts!, state.vendorProducts!, vendor);
+      } else {
+        csv = await runUpdateProducts(state.shopifyProducts!, state.vendorProducts!, vendor, { updateImages: settings.updateImages });
+      }
+      dispatch({ type: 'RUN_DONE', resultCSV: csv });
+    } catch (err) {
+      const message = err instanceof ExpectedError ? err.message
+        : err instanceof Error ? err.message
+        : 'Unknown error';
+      dispatch({ type: 'RUN_ERROR', message });
+    }
   };
 
   const handleSettingChange = (key: keyof typeof settings, value: number | boolean) => {
@@ -144,7 +164,7 @@ export default function Step5Run({ state, dispatch }: Props) {
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm text-gray-400">Preview the output below before downloading.</p>
             <button
-              onClick={() => downloadTextFile(resultCSV, 'output.csv', 'text/csv')}
+              onClick={() => downloadTextFile(resultCSV, downloadName, 'text/csv')}
               className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
               ⬇ Download CSV

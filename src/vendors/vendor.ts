@@ -59,6 +59,9 @@ export abstract class Vendor<P extends Product = Product> {
 	parseImport?: (product: P[]) => P[];
 	getVariantCorrelationId?: (product: P) => string;
 
+	urlConfig: { defaultURL?: string; supportsFile: boolean; supportsURL: boolean }
+		= { supportsFile: true, supportsURL: true };
+
 	_parsedBarcodes: Record<string, string|undefined> = {}
 
 	// base functionality
