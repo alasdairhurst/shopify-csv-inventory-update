@@ -46,14 +46,31 @@
  */
 /* animation-delay = the step transition time, so when returning to home the
  * camera first tweens to the home framing, then the cinematic loop begins. */
-.world[data-step="home"] { animation: home-cam 48s ease-in-out 0.85s infinite; }
+.world[data-step="home"] { animation: home-cam 45s ease-in-out 0.85s infinite; }
 
+/*
+ * Home "broadcast" cut sequence. The first fifth keeps the original smooth
+ * drift across the ring, then the camera hard-CUTS (step-end on the keyframe
+ * before each boundary) between distinct shots: a top-down overhead, an
+ * in-close low angle on each corner that drifts to follow the action, then a
+ * wide pull-out that sweeps back the other way before easing home to loop.
+ * rotateX only appears on the overhead pair, and those boundaries are cuts, so
+ * the tilt never interpolates into the other shots.
+ */
 @keyframes home-cam {
+  /* ── Wide establisher — the original drift (smooth) ── */
   0%   { transform: translate3d(   0px, 120px, -120px); }
-  20%  { transform: translate3d( 210px,  70px, -300px); }  /* pan right, low & wide */
-  40%  { transform: translate3d(   0px, 300px,   10px); }  /* rise high, push in */
-  60%  { transform: translate3d(-210px,  70px, -300px); }  /* pan left, low & wide */
-  80%  { transform: translate3d(   0px, 150px,  -60px); }  /* settle, close */
+  7%   { transform: translate3d( 210px,  70px, -300px); }  /* pan right, low & wide */
+  14%  { transform: translate3d(   0px, 300px,   10px); }  /* rise high, push in */
+  19%  { transform: translate3d(-170px,  95px, -250px); animation-timing-function: step-end; } /* pan left, hold → CUT */
+
+  /* ── CUT: inside the ring ── */
+  20%  { transform: translate3d( -60px, 50px,  500px); }
+  69%  { transform: translate3d( -160px, 10px,  600px); animation-timing-function: step-end; }
+
+  /* ── CUT: pull out wide and sweep back the other way (smooth) ── */
+  70%  { transform: translate3d(-220px,  95px, -270px); }
+  86%  { transform: translate3d( 190px,  80px, -300px); }
   100% { transform: translate3d(   0px, 120px, -120px); }
 }
 
@@ -71,9 +88,14 @@
   transition: transform 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* Slow full orbit around the ring while on the home screen. */
+/*
+ * Slow orbit around the ring while on the home screen. Unlike the running
+ * spin this doesn't just go clockwise — it eases forward, then reverses to
+ * swing back the other way, before completing a full turn so the loop is
+ * seamless. Shares the 60s clock with the camera cuts above.
+ */
 .world[data-step="home"] .world-orbit {
-  animation: camera-orbit 48s linear 0.85s infinite;
+  animation: home-orbit 60s ease-in-out 0.85s infinite;
 }
 
 .world[data-run-state="running"] .world-orbit {
@@ -83,6 +105,16 @@
 @keyframes camera-orbit {
   from { transform: rotateY(0deg); }
   to   { transform: rotateY(360deg); }
+}
+
+@keyframes home-orbit {
+  0%   { transform: rotateY(0deg); }
+  19%  { transform: rotateY(70deg); }    /* drift clockwise through the establisher */
+  33%  { transform: rotateY(95deg); }    /* slow turn under the overhead */
+  49%  { transform: rotateY(168deg); }   /* keep circling with the red corner */
+  66%  { transform: rotateY(120deg); }   /* REVERSE — swing back the other way on blue */
+  86%  { transform: rotateY(300deg); }   /* sweep the long way round */
+  100% { transform: rotateY(360deg); }   /* finish a full turn for a seamless loop */
 }
 
 /* Respect users who prefer reduced motion — hold the camera still. */
@@ -345,8 +377,15 @@
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  animation: fighter-lunge 2.3s ease-in-out infinite;
 }
+/*
+ * Footwork runs on a shared 16s "bout" clock (lunge + body + strikes all use
+ * it, so the choreography lines up). The corners trade at range for the first
+ * ~58%, then both close right down to the centre so the knockout and pin land
+ * on the same patch of mat instead of in empty space.
+ */
+.fighter-red  .fighter-lunge { animation: lunge-red  16s ease-in-out infinite; }
+.fighter-blue .fighter-lunge { animation: lunge-blue 16s ease-in-out infinite; }
 
 .fighter-billboard {
   position: absolute;
@@ -356,31 +395,88 @@
 }
 .fighter-blue .fighter-billboard { animation-delay: -5.5s; }
 
-/* Facing flip — keeps the silhouettes mirrored without touching the motion. */
-.fighter-mirror { position: absolute; inset: 0; }
-.fighter-blue .fighter-mirror { transform: scaleX(-1); }
+/*
+ * Mirror layer carries the idle bob (shared by both corners). The facing flip
+ * for blue moved down into its body keyframes, which frees this body layer up
+ * for the knockout / pin choreography below.
+ */
+.fighter-mirror {
+  position: absolute; inset: 0;
+  transform-origin: 50% 100%;
+  animation: fighter-bob 0.9s ease-in-out infinite;
+}
+.fighter-blue .fighter-mirror { animation-delay: -0.45s; }
 
 @keyframes fighter-turn      { to { transform: rotateY(360deg); } }
 @keyframes fighter-turn-ccw  { to { transform: rotateY(-360deg); } }
 
-/* Press in toward the centre (toward the opponent) and break back out. */
-@keyframes fighter-lunge {
-  0%, 100% { transform: translateZ(170px); }
-  50%      { transform: translateZ( 78px); }
+/* Lead corner (red) footwork — trades at range, then closes for the finish. */
+@keyframes lunge-red {
+  0%       { transform: translateZ(170px); }
+  12%      { transform: translateZ( 95px); }
+  24%      { transform: translateZ(165px); }
+  36%      { transform: translateZ( 90px); }
+  48%      { transform: translateZ(160px); }
+  58%      { transform: translateZ( 40px); }
+  68%, 88% { transform: translateZ( 14px); }   /* clinch at centre for the finish */
+  96%      { transform: translateZ(120px); }
+  100%     { transform: translateZ(170px); }
+}
+/* Opposite corner (blue) footwork — offset so the exchanges alternate. */
+@keyframes lunge-blue {
+  0%       { transform: translateZ(120px); }
+  12%      { transform: translateZ(165px); }
+  24%      { transform: translateZ( 90px); }
+  36%      { transform: translateZ(165px); }
+  48%      { transform: translateZ( 95px); }
+  58%      { transform: translateZ( 45px); }
+  68%, 88% { transform: translateZ( 16px); }   /* meets red over the centre */
+  96%      { transform: translateZ(110px); }
+  100%     { transform: translateZ(120px); }
 }
 
-/* Bobbing body wrapper */
+/* Bobbing now lives on the mirror layer (see above). */
+@keyframes fighter-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%      { transform: translateY(-4px) rotate(1deg); }
+}
+
+/*
+ * Body layer = the finish. Pivots at the feet so a fall swings down onto the
+ * mat. Red gets dropped and held for the count; blue lands the shot, covers in
+ * a pin / ground-and-pound, then stands tall. Blue keeps scaleX(-1) on every
+ * keyframe so it stays mirrored the whole way through.
+ */
 .fighter-body {
   position: absolute;
   inset: 0;
   transform-origin: 50% 100%;
-  animation: fighter-bob 0.9s ease-in-out infinite;
 }
-.fighter-blue .fighter-body { animation-delay: -0.45s; }
+.fighter-red  .fighter-body { animation: ko-red   16s ease-in-out infinite; }
+.fighter-blue .fighter-body { animation: pin-blue 16s ease-in-out infinite; }
 
-@keyframes fighter-bob {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50%      { transform: translateY(-4px) rotate(1deg); }
+@keyframes ko-red {
+  0%,  55% { transform: rotate(0deg)   translateY(0); }
+  60%      { transform: rotate(7deg)   translateY(0); }    /* rocked by the shot */
+  64%      { transform: rotate(-12deg) translateY(-2px); } /* head snaps back */
+  70%      { transform: rotate(-78deg) translateY(6px); }  /* timber — going down */
+  76%      { transform: rotate(-90deg) translateY(11px); } /* flat out, lights off */
+  88%      { transform: rotate(-90deg) translateY(11px); } /* pinned for the count */
+  95%      { transform: rotate(-14deg) translateY(0); }    /* hauls back up */
+  100%     { transform: rotate(0deg)   translateY(0); }
+}
+
+@keyframes pin-blue {
+  0%,  56% { transform: scaleX(-1) rotate(0deg)   translateY(0); }
+  62%      { transform: scaleX(-1) rotate(-10deg) translateY(0); }   /* load it up */
+  66%      { transform: scaleX(-1) rotate(12deg)  translateY(0); }   /* the finishing blow */
+  72%      { transform: scaleX(-1) rotate(58deg)  translateY(8px); } /* drop into the pin */
+  80%      { transform: scaleX(-1) rotate(72deg)  translateY(13px); }
+  83%      { transform: scaleX(-1) rotate(64deg)  translateY(13px); }/* ground & pound */
+  86%      { transform: scaleX(-1) rotate(72deg)  translateY(13px); }
+  91%      { transform: scaleX(-1) rotate(18deg)  translateY(0); }   /* rises */
+  96%      { transform: scaleX(-1) rotate(-7deg)  translateY(-5px); }/* stands tall */
+  100%     { transform: scaleX(-1) rotate(0deg)   translateY(0); }
 }
 
 /* Limbs / torso / head — silhouette built from rounded blocks */
@@ -407,25 +503,70 @@
   width: 11px; height: 34px; border-radius: 6px;
   transform-origin: 50% 6px;
 }
-.fighter-arm-back  { left: 14px; transform: rotate(28deg); opacity: 0.78; }
+/* Strikes share the 16s bout clock so the big shots land exactly as the body
+ * choreography drops the opponent. A small corner offset keeps the two from
+ * punching in perfect unison. */
+.fighter-arm-back {
+  left: 14px; opacity: 0.78;
+  animation: strike-rear 16s ease-in-out infinite;
+}
 .fighter-arm-front {
   left: 45px;
-  animation: fighter-jab 1.8s ease-in-out infinite;
+  animation: strike-lead 16s ease-in-out infinite;
 }
-.fighter-blue .fighter-arm-front { animation-delay: -0.9s; }
+.fighter-blue .fighter-arm-front,
+.fighter-blue .fighter-arm-back { animation-delay: -0.4s; }
 
-@keyframes fighter-jab {
-  0%, 60%, 100% { transform: rotate(20deg); }
-  70%           { transform: rotate(88deg) scaleY(1.18); }
-  80%           { transform: rotate(88deg) scaleY(1.18); }
+/* Lead hand: jab–cross–hook–jab through the exchange, the finishing shot at
+ * ~58% (as red is dropped), then tucked while the pin plays out. */
+@keyframes strike-lead {
+  0%,  3% { transform: rotate(20deg); }
+  6%      { transform: rotate(96deg)  scaleY(1.18); }   /* jab */
+  10%     { transform: rotate(20deg); }
+  16%     { transform: rotate(102deg) scaleY(1.20); }   /* cross */
+  20%     { transform: rotate(20deg); }
+  29%     { transform: rotate(-26deg); }                 /* wind the hook */
+  33%     { transform: rotate(72deg); }                  /* hook */
+  38%     { transform: rotate(20deg); }
+  46%     { transform: rotate(96deg)  scaleY(1.18); }   /* jab */
+  50%     { transform: rotate(20deg); }
+  58%     { transform: rotate(124deg) scaleY(1.28); }   /* the finish */
+  63%     { transform: rotate(40deg); }
+  100%    { transform: rotate(20deg); }
+}
+/* Rear hand: mostly a guard, with an overhand right and a finishing double. */
+@keyframes strike-rear {
+  0%, 24% { transform: rotate(28deg); }
+  28%     { transform: rotate(96deg) scaleY(1.16); }    /* overhand right */
+  33%     { transform: rotate(28deg); }
+  56%     { transform: rotate(28deg); }
+  59%     { transform: rotate(90deg) scaleY(1.18); }    /* doubles the finish */
+  63%     { transform: rotate(28deg); }
+  100%    { transform: rotate(28deg); }
 }
 
 .fighter-leg {
   position: absolute; top: 68px;
   width: 13px; height: 56px; border-radius: 6px;
 }
-.fighter-leg-back  { left: 20px; transform: rotate(8deg);  opacity: 0.82; }
-.fighter-leg-front { left: 37px; transform: rotate(-8deg); }
+.fighter-leg-back  { left: 20px; transform: rotate(8deg); opacity: 0.82; }
+.fighter-leg-front {
+  left: 37px;
+  transform-origin: 50% 6px;   /* pivot at the hip so the leg swings up to kick */
+  animation: strike-kick 16s ease-in-out infinite;
+}
+.fighter-blue .fighter-leg-front { animation-delay: -0.4s; }
+
+/* A head kick then a body kick during the exchange; planted for the finish. */
+@keyframes strike-kick {
+  0%,  24% { transform: rotate(-8deg); }
+  29%      { transform: rotate(-74deg) translateY(-4px); }  /* head kick */
+  35%      { transform: rotate(-8deg); }
+  50%      { transform: rotate(-8deg); }
+  54%      { transform: rotate(-52deg); }                   /* body kick */
+  60%      { transform: rotate(-8deg); }
+  100%     { transform: rotate(-8deg); }
+}
 
 .fighter-shadow {
   position: absolute;
@@ -524,9 +665,14 @@
 .world[data-run-state="running"] .crowd-flash { animation-duration: 0.9s !important; }
 .world[data-run-state="running"] .fighter,
 .world[data-run-state="running"] .fighter-billboard { animation-duration: 4.5s; }
-.world[data-run-state="running"] .fighter-lunge { animation-duration: 1s; }
-.world[data-run-state="running"] .fighter-body { animation-duration: 0.5s; }
-.world[data-run-state="running"] .fighter-arm-front { animation-duration: 0.7s; }
+.world[data-run-state="running"] .fighter-mirror { animation-duration: 0.5s; }   /* frantic bob */
+/* Keep every bout-clocked layer on one duration so the knockout/pin stay in
+ * sync — just run the whole bout faster while processing. */
+.world[data-run-state="running"] .fighter-lunge,
+.world[data-run-state="running"] .fighter-body,
+.world[data-run-state="running"] .fighter-arm-front,
+.world[data-run-state="running"] .fighter-arm-back,
+.world[data-run-state="running"] .fighter-leg-front { animation-duration: 8s; }
 
 /* ── Step content (screen-space overlay, above the 3D scene) ────────────── */
 .arena-step-content {
