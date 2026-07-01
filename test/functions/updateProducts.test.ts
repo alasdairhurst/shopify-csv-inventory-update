@@ -167,4 +167,9 @@ describe('updateProducts()', () => {
 
 		await assertCsvFixtureMatches(csv.unparse(result), 'tuf-update-products.csv', PRODUCT_CSV_KEYS, shopifyVendor);
 	});
+
+	it('throws error when unknown vendor is used', () => {
+		expect(() => updateProducts([], { unknown: [] }, { updateImages: false }))
+			.toThrow('Unknown vendor: unknown');
+	});
 });

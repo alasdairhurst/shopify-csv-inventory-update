@@ -239,4 +239,9 @@ describe('updateInventory()', () => {
 
 		await assertCsvFixtureMatches(csv.unparse(updates), 'unicorn-update-inventory.csv', INVENTORY_CSV_KEYS, shopifyInventoryVendor);
 	});
+
+	it('throws error when unknown vendor is used', () => {
+		expect(() => updateInventory([], { unknown: [] }, { maxQuantity: 1 }))
+			.toThrow('Unknown vendor: unknown');
+	});
 });

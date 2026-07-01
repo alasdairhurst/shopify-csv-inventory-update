@@ -17,7 +17,7 @@ export async function runUpdateInventory(
     vendorProducts,
     opts
   );
-  if (!result.length) throw new ExpectedError('Nothing to export');
+  if (!result.length) throw new ExpectedError('Stock levels already up to date');
   return csv.unparse(result);
 }
 
@@ -26,7 +26,7 @@ export async function runAddProducts(
   vendorProducts: Record<string, Product[]>
 ): Promise<string> {
   const result = addProducts(shopifyProducts as any, vendorProducts);
-  if (!result.length) throw new ExpectedError('Nothing to export');
+  if (!result.length) throw new ExpectedError('No new products to add');
   return csv.unparse(result, { columns: shopifyVendor.expectedHeaders });
 }
 
@@ -36,6 +36,6 @@ export async function runUpdateProducts(
   opts: { updateImages: boolean }
 ): Promise<string> {
   const result = updateProducts(shopifyProducts as any, vendorProducts, opts);
-  if (!result.length) throw new ExpectedError('Nothing to export');
+  if (!result.length) throw new ExpectedError('Products already up to date');
   return csv.unparse(result, { columns: shopifyVendor.expectedHeaders });
 }

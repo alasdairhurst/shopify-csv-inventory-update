@@ -13,10 +13,15 @@ import {
 } from '../shopify/products.ts';
 import { BARCODE_DOES_NOT_APPLY } from '../utils/constants.ts';
 import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../vendors/shopify.ts';
+import ExpectedError from '../utils/ExpectedError.ts';
 
 const updateProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendorProducts: Record<string, Product[]>, { updateImages }: { updateImages : boolean }) => {
 	const shopifyProducts = convertShopifyProductsToInternal(externalShopifyProducts);
-	for (const vendor of vendors) {
+	for (const vendorId in vendorProducts) {
+		const vendor = vendors.find(v => v.name === vendorId);
+		if (!vendor) {
+			throw new ExpectedError(`Unknown vendor: ${vendorId}`);
+		}
 		const vendorProductCSV = vendorProducts[vendor.name];
 		if (!vendorProductCSV) {
 			logger.log(`[SKIP] no product file selected for ${vendor.name}`);

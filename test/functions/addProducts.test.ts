@@ -192,4 +192,9 @@ describe('addProducts()', () => {
 
 		await assertCsvFixtureMatches(csv.unparse(result), 'tuf-add-products.csv', PRODUCT_CSV_KEYS, shopifyVendor);
 	});
+
+	it('throws error when unknown vendor is used', () => {
+		expect(() => addProducts([], { unknown: [] }))
+			.toThrow('Unknown vendor: unknown');
+	});
 });

@@ -5,6 +5,7 @@ import { Cartasport, CartasportInventory } from './cartasport.ts';
 import { Reydon, ReydonInventory } from './reydon.ts';
 import { ShopifyInventory, Shopify } from './shopify.ts';
 import { Tuf, TufInventory } from './tuf.ts';
+import { MTB } from './mtb.ts';
 
 export type { Vendor, Product } from './vendor.ts';
 
@@ -17,7 +18,8 @@ export const vendors: Vendor[] = [
 	new ReydonInventory() as unknown as Vendor,
 	new Unicorn() as unknown as Vendor,
 	new Tuf() as unknown as Vendor,
-	new TufInventory() as unknown as Vendor
+	new TufInventory() as unknown as Vendor,
+	new MTB() as unknown as Vendor,
 ];
 
 export const shopifyVendor = new Shopify();

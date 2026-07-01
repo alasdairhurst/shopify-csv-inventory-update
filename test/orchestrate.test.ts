@@ -55,7 +55,7 @@ describe('orchestrate', () => {
     it('throws ExpectedError when result is empty', async () => {
       mockUpdateInventory.mockReturnValue([]);
       await expect(runUpdateInventory(shopifyRows, vendorMap, { maxQuantity: 5 }))
-        .rejects.toThrow('Nothing to export');
+        .rejects.toThrow('Stock levels already up to date');
     });
   });
 
@@ -77,7 +77,7 @@ describe('orchestrate', () => {
     it('throws ExpectedError when result is empty', async () => {
       mockAddProducts.mockReturnValue([]);
       await expect(runAddProducts(shopifyRows, vendorMap))
-        .rejects.toThrow('Nothing to export');
+        .rejects.toThrow('No new products to add');
     });
   });
 
@@ -94,7 +94,7 @@ describe('orchestrate', () => {
     it('throws ExpectedError when result is empty', async () => {
       mockUpdateProducts.mockReturnValue([]);
       await expect(runUpdateProducts(shopifyRows, vendorMap, { updateImages: false }))
-        .rejects.toThrow('Nothing to export');
+        .rejects.toThrow('Products already up to date');
     });
   });
 });

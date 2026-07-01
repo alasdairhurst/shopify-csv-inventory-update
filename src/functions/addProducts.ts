@@ -14,10 +14,15 @@ import {
 import { PARENT_SYMBOL } from '../utils/constants.ts';
 import { intRange } from '../utils/number.ts';
 import { DEFAULT_SHOPIFY_PRODUCT, ExternalShopifyProduct } from '../vendors/shopify.ts';
+import ExpectedError from '../utils/ExpectedError.ts';
 
 const addProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendorProducts: Record<string, Product[]>) => {
 	const shopifyProducts = convertShopifyProductsToInternal(externalShopifyProducts);
-	for (const vendor of vendors) {
+	for (const vendorId in vendorProducts) {
+		const vendor = vendors.find(v => v.name === vendorId);
+		if (!vendor) {
+			throw new ExpectedError(`Unknown vendor: ${vendorId}`);
+		}
 		if (!vendor.canAddProducts()) {
 			logger.debug(`[SKIP] Vendor ${vendor.name} does not support adding products`);
 			continue;

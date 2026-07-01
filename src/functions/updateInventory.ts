@@ -3,12 +3,18 @@ import { matchInventory } from '../shopify/inventory.ts';
 import { parseSKU } from '../utils/helpers.ts';
 import { vendors, Product } from '../vendors/index.ts';
 import { ShopifyInventoryProduct } from '../vendors/shopify.ts';
+import ExpectedError from '../utils/ExpectedError.ts';
 
 // Updates existing items in inventory
 // The full inventory is not downloaded, only updated rows
 const updateInventory = (shopifyInventoryCSV: ShopifyInventoryProduct[], vendorInventory: Record<string, Product[]>, { maxQuantity }: { maxQuantity: number }) => {
 	const shopifyInventoryUpdates: ShopifyInventoryProduct[] = [];
-	for (const vendor of vendors) {
+
+	for (const vendorId in vendorInventory) {
+		const vendor = vendors.find(v => v.name === vendorId);
+		if (!vendor) {
+			throw new ExpectedError(`Unknown vendor: ${vendorId}`);
+		}
 		if (!vendor.canUpdateInventory()) {
 				logger.debug(`[SKIP] no inventory update support for ${vendor.name}`);
 				continue;
@@ -16,7 +22,7 @@ const updateInventory = (shopifyInventoryCSV: ShopifyInventoryProduct[], vendorI
 
 		let vendorInventoryCSV = vendorInventory[vendor.name];
 		if (!vendorInventoryCSV) {
-			logger.log(`[SKIP] no inventory file selected for ${vendor.name}`);
+			logger.debug(`[SKIP] no inventory file selected for ${vendor.name}`);
 			continue;
 		}
 
