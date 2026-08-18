@@ -52,5 +52,5 @@ export function roundPrice(price: number) {
 	if (isNaN(price)) {
 		throw new Error('Price is not a number');
 	}
-	return Math.ceil(price) - 0.01
+	return Math.ceil(price) - 0.01;
 }

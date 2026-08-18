@@ -162,9 +162,14 @@ describe('vendor Blitz', () => {
 	});
 
 	describe('getRRP()', () => {
-		it('rounds the RetailPrice', () => {
-			expect(blitz.getRRP(makeProduct({ RetailPrice: '50.00' }))).toBe(49.99);
-			expect(blitz.getRRP(makeProduct({ RetailPrice: '39.99' }))).toBe(39.99);
+		it('rounds the RetailPrice or the RRP + 20% whatever is higher', () => {
+			const product1 = makeProduct({ TradePrice: '2.00', Taxable: 'False', RetailPrice: '50.00' });
+			expect(blitz.getPrice(product1)).toBe(7.99);
+			expect(blitz.getRRP(product1)).toBe(50);
+
+			const product2 = makeProduct({ TradePrice: '25.00', RetailPrice: '50.00' });
+			expect(blitz.getPrice(product2)).toBe(48.99);
+			expect(blitz.getRRP(product2)).toBe(58.99);
 		});
 	});
 
@@ -263,7 +268,7 @@ describe('vendor Blitz', () => {
 			expect(blitz.getVAT(product)).toEqual(1.2);
 			expect(blitz.getTaxable(product)).toEqual(true);
 			expect(blitz.getShipping(product)).toEqual(5);
-			expect(blitz.getRRP(product)).toEqual(39.99);
+			expect(blitz.getRRP(product)).toEqual(47.99);
 			expect(blitz.getMainImageURL(product)).toEqual('https://images.blitzsport.com/item/blitz-aero-training-shoes.jpg');
 			expect(blitz.getVariantImageURL(product)).toEqual('https://images.blitzsport.com/item/blitz-aero-training-shoes.jpg');
 			expect(blitz.getAdditionalImages(product)).toEqual([

@@ -77,5 +77,5 @@ export const assertJsonFixtureMatches = async (expectedFilename: string, actualO
 
   const expectedObject = JSON.parse(loadExpectedFixture(expectedFilename));
 
-	expect(expectedObject).toEqual(actualObject);
+	expect(actualObject).toEqual(expectedObject);
 };

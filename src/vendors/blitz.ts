@@ -122,7 +122,13 @@ export class Blitz extends Vendor<BlitzProduct> implements InventoryUpdatable<Bl
 	getShipping = (product: BlitzProduct) => {
 		return blitzShipping[product.Sku] || RM_SMALL_SHIPPING;
 	};
-	getRRP = (product: BlitzProduct) => roundPrice(Number(product.RetailPrice));
+	getRRP = (product: BlitzProduct) => {
+		// Don't want an rrp smaller than selling price
+		const myprice = this.getPrice(product);
+		const minRRP = roundPrice(myprice * 1.2);
+		// If the RRP is already higher than 20% more than sale price then use it
+		return Math.max(minRRP, Number(product.RetailPrice));
+	};
 	getMainImageURL = (product: BlitzProduct) => product.ImageUrl;
 	getVariantImageURL = (product: BlitzProduct) => product.ImageUrl;
 	getAdditionalImages = (product: BlitzProduct) => {
