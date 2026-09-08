@@ -209,7 +209,9 @@ export default function Step4VendorFile({ action, brand, onNext, onBack, stepInd
         </div>
       )}
 
-      {error && <p style={{ fontSize: '0.78rem', color: '#e05555', marginBottom: 12 }}>{error}</p>}
+      {error && <div style={{ fontSize: '0.78rem', color: '#e05555', marginBottom: 12 }}>{
+				error.split('\n').map(line => <p>{line}</p>)
+			}</div>}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
         <button className="ufc-btn-secondary" onClick={onBack}>← Back</button>

@@ -122,7 +122,9 @@ export default function FileOrURL({ label, urlConfig, storageKey, onResolved, on
         <p className="mt-1.5 text-xs text-red-400">{fetchError}</p>
       )}
       {error && !resolvedName && (
-        <p className="mt-1.5 text-xs text-red-400">{error}</p>
+        <div className="mt-1.5 text-xs text-red-400">{
+					error.split('\n').map(line => <p>{line}</p>)
+				}</div>
       )}
     </div>
   );

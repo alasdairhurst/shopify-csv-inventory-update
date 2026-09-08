@@ -19,24 +19,23 @@ export const parseProductsCSV = async function <P extends Product>(fileContent: 
 	const [csvObj, headers] = await csv.parseString(headerRow + fileContent, vendor);
 
 	// Check the headers as soon as we parse the csv before we use any properties.
-	let match = false;
+	const missingHeaders: string[] = [];
 	// check if expected headers matches the ones we got
-	match = vendor.expectedHeaders.every(expectedHeader => {
+	vendor.expectedHeaders.forEach(expectedHeader => {
 		// ideally we'd do a full match of all headers since the order sometimes matters,
 		// but since shopify just decides to add random headers we'll just check for the
 		// fields we know/care about.
 		const there = headers.includes(expectedHeader);
 		if (!there) {
+			missingHeaders.push(expectedHeader);
 			logger.warn(`[WARN] ${vendor.name} csv missing expected header: ${expectedHeader}`);
 		}
 		return there;
 	});
 
-	if (!match) {
-		// TODO: Give a proper diff that fits on the screen
+	if (missingHeaders.length) {
 		// TODO: Try and guess if the file was for another vendor so it can warn better
-		const expected = vendor.expectedHeaders.map(value => JSON.stringify(value)).join('\nor\n');
-		throw new ExpectedError(`Did you pick the right file for ${vendor.importLabel}?\n CSV headers don't look right.\n\n  Expected:\n ${expected}\n\n  Got:\n ${JSON.stringify(headers)}`);
+		throw new ExpectedError(`Did you pick the right file for ${vendor.importLabel}?\nMissing headers: ${missingHeaders}`);
 	}
 
 	let products: P[] = [];
