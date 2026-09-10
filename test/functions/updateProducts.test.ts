@@ -35,7 +35,7 @@ describe('updateProducts()', () => {
 				'Variant SKU': 'CANT00058',
 				'Variant Price': '10.00',
 				'Variant Compare At Price': '10.00',
-				'Variant Barcode': '5054698692271',
+				'Variant Barcodes': '5054698692271',
 			}),
 		];
 

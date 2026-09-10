@@ -97,7 +97,9 @@ const addProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendorPr
 				'Variant Compare At Price': String(vendor.getRRP?.(vendorProduct) ?? price),
 				'Variant Requires Shipping': 'TRUE',
 				'Variant Taxable': vendor.getTaxable?.(vendorProduct) === false ? 'FALSE' : 'TRUE',
-				'Variant Barcode': escapeBarcode(vendorProductBarcode),
+				// TODO: identify barcode type and set prefix avoiding need for escaping. supports multiple - ean:blah; upc:blah
+				// Empty prefix is just custom and still works so leave for now. It's more of a problem when parsing the value than setting it.
+				'Variant Barcodes': escapeBarcode(vendorProductBarcode),
 				'Gift Card': 'FALSE',
 				'Variant Weight Unit': 'kg',
 				'Status': 'active'

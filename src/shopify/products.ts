@@ -1,4 +1,4 @@
-import { parseBarcode } from '../utils/helpers.ts';
+import { parseBarcodesShopify } from '../utils/helpers.ts';
 import type { Vendor } from '../vendors/index.ts';
 import { ExternalShopifyProduct } from '../vendors/shopify.ts';
 import { matchShopifyItems } from './items.ts';
@@ -8,7 +8,7 @@ export type ShopifyProduct = {
 	secondaryRows: ExternalShopifyProduct[];
 	edited: boolean;
 	sale?: boolean; // TODO: do this better
-	_parsedBarcode?: string;
+	_parsedBarcodes?: Array<{ type: string; value: string }>;
 };
 
 export const isOnSale = (shopifyProduct: ExternalShopifyProduct) => {
@@ -19,11 +19,11 @@ export const isOnSale = (shopifyProduct: ExternalShopifyProduct) => {
 };
 
 // Replace
-export const getShopifyProductParsedBarcode = (product: ExternalShopifyProduct) => {
-	if (!('_parsedBarcode' in product)) {
-		product._parsedBarcode = parseBarcode(product['Variant Barcode']);
+export const getShopifyProductParsedBarcodes = (product: ExternalShopifyProduct) => {
+	if (product._parsedBarcodes === undefined) {
+		product._parsedBarcodes = parseBarcodesShopify(product['Variant Barcodes']);
 	}
-	return product._parsedBarcode;
+	return product._parsedBarcodes;
 }
 
 export const convertShopifyProductsToInternal = (shopifyProductsCSV: ExternalShopifyProduct[]) => {
@@ -56,8 +56,12 @@ export const convertShopifyProductsToExternal = (products: ShopifyProduct[], opt
 		if (options.onlyEdited && !product.edited) {
 			continue;
 		}
+		delete product.primaryRow._parsedBarcodes;
 		shopifyProductsCSV.push(product.primaryRow);
-		shopifyProductsCSV.push(...product.secondaryRows);
+		for (const row of product.secondaryRows) {
+			delete row._parsedBarcodes;
+			shopifyProductsCSV.push(row);
+		}
 	}
 	return shopifyProductsCSV;
 }
@@ -67,7 +71,7 @@ const matchProduct = (shopifyParent: ShopifyProduct, shopifyProduct: ExternalSho
 		{
 			sku: shopifyProduct['Variant SKU'],
 			title: shopifyParent.primaryRow.Title,
-			barcode: getShopifyProductParsedBarcode(shopifyProduct),
+			barcodes: getShopifyProductParsedBarcodes(shopifyProduct),
 			tags: shopifyParent.primaryRow.Tags.split(', ')
 		},
 		vendor,

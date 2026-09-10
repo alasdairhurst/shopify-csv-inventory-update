@@ -8,7 +8,7 @@ import {
 	convertShopifyProductsToExternal,
 	convertShopifyProductsToInternal,
 	getShopifyProductAndParent,
-	getShopifyProductParsedBarcode,
+	getShopifyProductParsedBarcodes,
 	isOnSale
 } from '../shopify/products.ts';
 import { BARCODE_DOES_NOT_APPLY } from '../utils/constants.ts';
@@ -68,21 +68,24 @@ const updateProducts = (externalShopifyProducts: ExternalShopifyProduct[], vendo
 			if (!vendor.getBarcode) {
 				// logger.debug(`[WARN] cannot update barcode for vendor ${vendor.name} getBarcode not implemented`);
 			} else {
-				const shopifyProductBarcode = getShopifyProductParsedBarcode(shopifyProduct);
-				if (shopifyProductBarcode === vendorProductBarcode) {
+				const shopifyProductBarcodes = getShopifyProductParsedBarcodes(shopifyProduct);
+				if (shopifyProductBarcodes.some(barcode => barcode.value === vendorProductBarcode)) {
 					logger.debug(`[BARCODE MATCH] ${vendor.name} SKU ${vendorProductLabel} barcode matches shopify product ${shopifyProductLabel}`);
 					// even if the barcode matches it may not be nicely formatted. enable this once for existing products, then it's already handled
 					// check the raw value to avoid updating absolutely everything
-					// if ((shopifyProduct['Variant Barcode'] !== escapeBarcode(vendorProductBarcode))) {
-					//   logger.log(`[BARCODE UPDATE] ${vendor.name} SKU ${vendorProductLabel} raw barcode differs in shopify product (${shopifyProduct['Variant Barcode']}) ${shopifyProductLabel}`);
-					//   shopifyProduct['Variant Barcode'] = escapeBarcode(vendorProductBarcode);
+					// TODO: needs fixing for multiple barcodes though if enabling
+					// if ((shopifyProduct['Variant Barcodes'] !== escapeBarcode(vendorProductBarcode))) {
+					//   logger.log(`[BARCODE UPDATE] ${vendor.name} SKU ${vendorProductLabel} raw barcode differs in shopify product (${shopifyProduct['Variant Barcodes']}) ${shopifyProductLabel}`);
+					//   shopifyProduct['Variant Barcodes'] = escapeBarcode(vendorProductBarcode);
 					//   shopifyParent.edited = true;
 					// }
 				} else if (vendorProductBarcode === BARCODE_DOES_NOT_APPLY) {
 					logger.debug(`[BARCODE UPDATE IGNORED] ${vendor.name} SKU ${vendorProductLabel} barcode missing but exists in shopify product ${shopifyProductLabel}`);
 				} else {
+					// TODO: If we have a problem, we need to somehow decide which barcode to replace based on what the vendor offers.
+					// Can be problematic if the vendor changes format though. which one do we delete?
 					logger.log(`[BARCODE UPDATE] ${vendor.name} SKU ${vendorProductLabel} barcode differs in shopify product ${shopifyProductLabel}`);
-					shopifyProduct['Variant Barcode'] = escapeBarcode(vendorProductBarcode);
+					shopifyProduct['Variant Barcodes'] = escapeBarcode(vendorProductBarcode);
 					shopifyParent.edited = true;
 				}
 			}

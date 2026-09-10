@@ -31,6 +31,29 @@ export const parseBarcode = (barcode: string) => {
   return BARCODE_DOES_NOT_APPLY;
 }
 
+export const parseBarcodesShopify = (field: string) => {
+	if (field) {
+		  const barcodes = field
+				.replace(GLOBAL_QUOTE_RX, '')
+				.split('; ')
+				.map(item => {
+					const [type, value] = item.split(':');
+					if (value && type) {
+						return { type, value };
+					} else if (!value && type) {
+						return { type: 'custom', value: type };
+					} else {
+						return undefined;
+					}
+				})
+				.filter(x => x !== undefined);
+				if (barcodes.length) {
+					return barcodes;
+				}
+	}
+  return [ { type: 'custom', value: BARCODE_DOES_NOT_APPLY }];
+}
+
 export const escapeBarcode = (barcode: string) => {
   if (barcode === BARCODE_DOES_NOT_APPLY) {
     return barcode;

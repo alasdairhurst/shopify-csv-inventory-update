@@ -8,20 +8,27 @@ type MatchShopifyItemsOptions = {
 	matchTitle?: boolean;
 };
 
-export const matchShopifyItems = <P extends Product>(shopifyItem: any, vendor: Vendor<P>, vendorProduct: P, options: MatchShopifyItemsOptions = {}) => {
+type ShopifyItemRepresentation = {
+	sku: string;
+	title: string;
+	barcodes?: Array<{type: string; value: string}>;
+	tags?: string[];
+};
+
+export const matchShopifyItems = <P extends Product>(shopifyItem: ShopifyItemRepresentation, vendor: Vendor<P>, vendorProduct: P, options: MatchShopifyItemsOptions = {}) => {
 	const vendorProductSKU = parseSKU(vendor.getSKU(vendorProduct));
 	if (shopifyItem.sku !== vendorProductSKU) {
 		return;
 	}
 
-	const shopifyItemLabel = `${shopifyItem.sku} (${shopifyItem.title}/${shopifyItem.barcode})`;
+	const shopifyItemLabel = `${shopifyItem.sku} (${shopifyItem.title}/${shopifyItem.barcodes?.[0]?.value || ''})`;
 	const vendorProductTitle = vendor.getTitle?.(vendorProduct) ?? '';
 	const vendorProductBarcode = vendor.getBarcode?.(vendorProduct) ?? '';
 	const vendorProductLabel = `${vendorProductSKU} (${vendorProductTitle}/${vendorProductBarcode})`;
 
 	// Check the product for the vendor tag. Use this to differentiate matching skus across different vendors
 	if (options.matchVendorTag) {
-		if (!shopifyItem.tags.includes(vendor.name)) {
+		if (!shopifyItem.tags?.includes(vendor.name)) {
 			logger.warn(`[WARN] ${vendor.name} SKU ${vendorProductLabel} matches SKU but the matched shopify product is missing ${vendor.name} tag ${shopifyItemLabel} (${shopifyItem.tags}). Not matching.`)
 			return;
 		}

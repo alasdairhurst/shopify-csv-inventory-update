@@ -24,7 +24,7 @@ export const DEFAULT_SHOPIFY_PRODUCT = {
 	'Variant Compare At Price': '',
 	'Variant Requires Shipping': '',
 	'Variant Taxable': '',
-	'Variant Barcode': '',
+	'Variant Barcodes': '',
 	'Image Src': '',
 	'Image Position': '',
 	'Image Alt Text': '',
@@ -62,7 +62,7 @@ export const DEFAULT_SHOPIFY_PRODUCT = {
 };
 
 export type ExternalShopifyProduct = Product & typeof DEFAULT_SHOPIFY_PRODUCT & {
-	_parsedBarcode?: string
+	_parsedBarcodes?: Array<{type: string, value: string}>
 };
 
 export class Shopify extends Vendor<ExternalShopifyProduct> {

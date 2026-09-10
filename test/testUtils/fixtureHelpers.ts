@@ -15,7 +15,7 @@ export const PRODUCT_CSV_KEYS = [
 	'Option1 Name', 'Option1 Value', 'Option2 Name', 'Option2 Value', 'Option3 Name', 'Option3 Value',
 	'Variant SKU', 'Variant Grams', 'Variant Inventory Tracker', 'Variant Inventory Policy',
 	'Variant Fulfillment Service', 'Variant Price', 'Variant Compare At Price',
-	'Variant Requires Shipping', 'Variant Taxable', 'Variant Barcode',
+	'Variant Requires Shipping', 'Variant Taxable', 'Variant Barcodes',
 	'Variant Weight Unit', 'Image Src', 'Variant Image'
 ];
 
